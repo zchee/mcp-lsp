@@ -2,7 +2,7 @@ module github.com/zchee/mcp-lsp
 
 go 1.27
 
-replace github.com/yosida95/uritemplate/v3 => github.com/zchee/uritemplate/v4 v4.0.0-20260623021515-c6b3c4f37725
+replace github.com/yosida95/uritemplate/v3 => github.com/zchee/uritemplate/v4 v4.0.0-20260624002930-bae857730b2b
 
 require (
 	github.com/google/go-cmp v0.7.0
