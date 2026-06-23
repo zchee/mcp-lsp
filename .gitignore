@@ -57,3 +57,6 @@ bench.txt
 
 # profile
 *.pprof
+
+# test results
+_test_results/
