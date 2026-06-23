@@ -17,9 +17,10 @@
 package rust_integration_test
 
 import (
-	_ "embed"
 	"testing"
 	"time"
+
+	_ "embed"
 
 	"github.com/zchee/mcp-lsp/tests/internal/lsptest"
 )
@@ -57,7 +58,7 @@ func TestIntegrationRustAnalyzer(t *testing.T) {
 		Message:  "cannot find value `undefined_symbol` in this scope\nnot found in this scope",
 	}}
 
-	lsptest.Run(t, lsptest.Config{
+	lsptest.Run(t, &lsptest.Config{
 		Server:   []string{"rust-analyzer"},
 		Language: "rust",
 		Fixture:  fixtureArchive,

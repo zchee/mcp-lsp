@@ -17,8 +17,9 @@
 package python_integration_test
 
 import (
-	_ "embed"
 	"testing"
+
+	_ "embed"
 
 	"github.com/zchee/mcp-lsp/tests/internal/lsptest"
 )
@@ -44,7 +45,7 @@ func TestIntegrationPyright(t *testing.T) {
 		Message:  `"undefined_symbol" is not defined`,
 	}}
 
-	lsptest.Run(t, lsptest.Config{
+	lsptest.Run(t, &lsptest.Config{
 		Server:   []string{"pyright-langserver", "--stdio"},
 		Language: "python",
 		Fixture:  fixtureArchive,

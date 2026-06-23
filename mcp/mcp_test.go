@@ -73,13 +73,13 @@ type fakeLSPServer struct {
 	pullReport protocol.DocumentDiagnosticReport
 }
 
-func (s *fakeLSPServer) Initialize(ctx context.Context, params *protocol.InitializeParams) (*protocol.InitializeResult, error) {
+func (s *fakeLSPServer) Initialize(_ context.Context, _ *protocol.InitializeParams) (*protocol.InitializeResult, error) {
 	return &protocol.InitializeResult{
 		Capabilities: protocol.ServerCapabilities{},
 	}, nil
 }
 
-func (s *fakeLSPServer) Initialized(ctx context.Context, params *protocol.InitializedParams) error {
+func (s *fakeLSPServer) Initialized(_ context.Context, _ *protocol.InitializedParams) error {
 	return nil
 }
 
@@ -97,7 +97,7 @@ func (s *fakeLSPServer) DidOpen(ctx context.Context, params *protocol.DidOpenTex
 	})
 }
 
-func (s *fakeLSPServer) Diagnostic(ctx context.Context, params *protocol.DocumentDiagnosticParams) (protocol.DocumentDiagnosticReport, error) {
+func (s *fakeLSPServer) Diagnostic(_ context.Context, _ *protocol.DocumentDiagnosticParams) (protocol.DocumentDiagnosticReport, error) {
 	return s.pullReport, nil
 }
 
@@ -179,12 +179,12 @@ func callDiagnostic(t *testing.T, session *sdk.ClientSession, args map[string]an
 
 // writeTempGo writes content to a .go file in a temp dir and returns its
 // absolute path and the directory's URI, suitable as a workspace root.
-func writeTempGo(t *testing.T, content string) (string, uri.URI) {
+func writeTempGo(t *testing.T) (string, uri.URI) {
 	t.Helper()
 
 	dir := t.TempDir()
 	path := filepath.Join(dir, "main.go")
-	if err := os.WriteFile(path, []byte(content), 0o600); err != nil {
+	if err := os.WriteFile(path, []byte("package main"), 0o600); err != nil {
 		t.Fatalf("writing temp file: %v", err)
 	}
 
@@ -238,7 +238,7 @@ func TestDiagnostic_Push(t *testing.T) {
 		t.Run(name, func(t *testing.T) {
 			t.Parallel()
 
-			path, rootURI := writeTempGo(t, "package main")
+			path, rootURI := writeTempGo(t)
 			docURI := uri.File(path)
 
 			srv := &fakeLSPServer{
@@ -311,7 +311,7 @@ func TestDiagnostic_Pull(t *testing.T) {
 		t.Run(name, func(t *testing.T) {
 			t.Parallel()
 
-			path, rootURI := writeTempGo(t, "package main")
+			path, rootURI := writeTempGo(t)
 			docURI := uri.File(path)
 
 			srv := &fakeLSPServer{pullReport: tt.report}
@@ -372,7 +372,7 @@ func TestDiagnostic_Errors(t *testing.T) {
 		t.Run(name, func(t *testing.T) {
 			t.Parallel()
 
-			path, rootURI := writeTempGo(t, "package main")
+			path, rootURI := writeTempGo(t)
 
 			srv := &fakeLSPServer{}
 			lspClient := newLSPClient(t, srv)
@@ -411,7 +411,7 @@ func TestDiagnostic_Errors(t *testing.T) {
 func TestServer_RunOnce(t *testing.T) {
 	t.Parallel()
 
-	path, rootURI := writeTempGo(t, "package main")
+	path, rootURI := writeTempGo(t)
 	docURI := uri.File(path)
 
 	srv := &fakeLSPServer{

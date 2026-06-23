@@ -121,9 +121,9 @@ func (c *Client) Server() protocol.Server { return c.server }
 // [Client.Initialized] once the handshake result has been processed.
 //
 // The workspace root is advertised through the rootUri field. The LSP
-// specification deprecates rootUri in favour of workspaceFolders, but the
+// specification deprecates rootUri in favor of workspaceFolders, but the
 // vendored protocol type exposes no public constructor for the nullable
-// workspaceFolders value, and every language server still honours rootUri for
+// workspaceFolders value, and every language server still honors rootUri for
 // backward compatibility, so rootUri remains the portable choice here.
 func (c *Client) Initialize(ctx context.Context, rootURI uri.URI, capabilities protocol.ClientCapabilities) (*protocol.InitializeResult, error) {
 	params := &protocol.InitializeParams{}

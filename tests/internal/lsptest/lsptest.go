@@ -99,7 +99,7 @@ type Config struct {
 // client over a subprocess stdio transport, runs every case as a subtest, and
 // finally asserts that an unknown mode surfaces as a tool error rather than a
 // transport failure.
-func Run(t *testing.T, cfg Config) {
+func Run(t *testing.T, cfg *Config) {
 	t.Helper()
 
 	if testing.Short() {
@@ -115,21 +115,21 @@ func Run(t *testing.T, cfg Config) {
 	bin := buildCommand(t)
 	workspace := writeFixture(t, cfg.Fixture)
 
-	// A real MCP client over a subprocess transport: CommandTransport spawns the
-	// server, keeps stdin open for the whole session, and closes it on teardown,
-	// which is what distinguishes a live client from piping a static request file.
-	args := append([]string{"-serve", "--"}, cfg.Server...)
-	cmd := exec.Command(bin, args...)
-	cmd.Dir = workspace // relative tool paths resolve against the server working directory.
-
-	client := mcp.NewClient(&mcp.Implementation{Name: "mcp-lsp-itest", Version: "0.0.1"}, nil)
-
 	timeout := cfg.Timeout
 	if timeout == 0 {
 		timeout = defaultTimeout
 	}
 	ctx, cancel := context.WithTimeout(t.Context(), timeout)
 	defer cancel()
+
+	// A real MCP client over a subprocess transport: CommandTransport spawns the
+	// server, keeps stdin open for the whole session, and closes it on teardown,
+	// which is what distinguishes a live client from piping a static request file.
+	args := append([]string{"-serve", "--"}, cfg.Server...)
+	cmd := exec.CommandContext(ctx, bin, args...)
+	cmd.Dir = workspace // relative tool paths resolve against the server working directory.
+
+	client := mcp.NewClient(&mcp.Implementation{Name: "mcp-lsp-itest", Version: "0.0.1"}, nil)
 
 	session, err := client.Connect(ctx, &mcp.CommandTransport{Command: cmd}, nil)
 	if err != nil {
@@ -216,7 +216,7 @@ func buildCommand(t *testing.T) string {
 	t.Helper()
 
 	bin := filepath.Join(t.TempDir(), "mcp-lsp")
-	cmd := exec.Command("go", "build", "-o", bin, commandPackage)
+	cmd := exec.CommandContext(t.Context(), "go", "build", "-o", bin, commandPackage)
 	cmd.Env = os.Environ()
 	if out, err := cmd.CombinedOutput(); err != nil {
 		t.Fatalf("building mcp-lsp command: %v\n%s", err, out)
@@ -283,7 +283,7 @@ func decodeStructured(t *testing.T, res *mcp.CallToolResult) diagnosticResult {
 
 	raw, err := json.Marshal(res.StructuredContent)
 	if err != nil {
-		t.Fatalf("marshalling structured content: %v", err)
+		t.Fatalf("marshaling structured content: %v", err)
 	}
 	var out diagnosticResult
 	if err := json.Unmarshal(raw, &out); err != nil {

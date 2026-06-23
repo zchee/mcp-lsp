@@ -217,7 +217,7 @@ func (d *Diagnostic) Diagnostics(docURI uri.URI) ([]protocol.Diagnostic, bool) {
 // The caller must invoke cancel to release the watcher; doing so is safe to
 // repeat. buffer sets the channel capacity and is raised to a minimum of one so
 // a delivery is never lost to a zero-length buffer.
-func (d *Diagnostic) Watch(buffer int) (<-chan PublishedDiagnostics, func()) {
+func (d *Diagnostic) Watch(buffer int) (deliveries <-chan PublishedDiagnostics, cancel func()) {
 	return d.sink.watch(buffer)
 }
 
@@ -344,7 +344,7 @@ func newPushSink() *pushSink {
 // This callback runs on the connection's dispatch path, so it must not block.
 // The watcher sends are non-blocking with drop-oldest semantics, and no
 // client->server call is made here, so the read loop stays live.
-func (s *pushSink) PublishDiagnostics(ctx context.Context, params *protocol.PublishDiagnosticsParams) error {
+func (s *pushSink) PublishDiagnostics(_ context.Context, params *protocol.PublishDiagnosticsParams) error {
 	// Copy the slice so a later mutation of params (the decoder may pool or reuse
 	// backing storage) cannot corrupt the stored set.
 	diags := slices.Clone(params.Diagnostics)
@@ -394,7 +394,7 @@ func (s *pushSink) diagnostics(docURI uri.URI) ([]protocol.Diagnostic, bool) {
 // The caller must invoke cancel to release the watcher; doing so is safe to
 // repeat. buffer sets the channel capacity and is raised to a minimum of one so
 // a delivery is never lost to a zero-length buffer.
-func (s *pushSink) watch(buffer int) (<-chan PublishedDiagnostics, func()) {
+func (s *pushSink) watch(buffer int) (deliveries <-chan PublishedDiagnostics, cancel func()) {
 	buffer = max(buffer, 1)
 	ch := make(chan PublishedDiagnostics, buffer)
 
@@ -405,13 +405,14 @@ func (s *pushSink) watch(buffer int) (<-chan PublishedDiagnostics, func()) {
 	s.mu.Unlock()
 
 	var once sync.Once
-	cancel := func() {
+	cancel = func() {
 		once.Do(func() {
 			s.mu.Lock()
 			defer s.mu.Unlock()
-			if ch, ok := s.watchers[id]; ok {
+			watcher, ok := s.watchers[id]
+			if ok {
 				delete(s.watchers, id)
-				close(ch)
+				close(watcher)
 			}
 		})
 	}
@@ -429,15 +430,16 @@ func toReport(docURI uri.URI, mode Mode, unchanged bool, diags []protocol.Diagno
 		Unchanged:   unchanged,
 		Diagnostics: make([]FlatDiagnostic, 0, len(diags)),
 	}
-	for _, d := range diags {
+	for i := range diags {
+		diagnostic := &diags[i]
 		out.Diagnostics = append(out.Diagnostics, FlatDiagnostic{
-			Line:      d.Range.Start.Line + 1,
-			Column:    d.Range.Start.Character + 1,
-			EndLine:   d.Range.End.Line + 1,
-			EndColumn: d.Range.End.Character + 1,
-			Severity:  severityName(d.Severity),
-			Source:    diagnosticSource(d),
-			Message:   diagnosticMessage(d),
+			Line:      diagnostic.Range.Start.Line + 1,
+			Column:    diagnostic.Range.Start.Character + 1,
+			EndLine:   diagnostic.Range.End.Line + 1,
+			EndColumn: diagnostic.Range.End.Character + 1,
+			Severity:  severityName(diagnostic.Severity),
+			Source:    diagnosticSource(diagnostic),
+			Message:   diagnosticMessage(diagnostic),
 		})
 	}
 	return out
@@ -511,7 +513,7 @@ func severityName(sev protocol.DiagnosticSeverity) string {
 
 // diagnosticSource returns the diagnostic's source string, or "" when the
 // server did not provide one.
-func diagnosticSource(d protocol.Diagnostic) string {
+func diagnosticSource(d *protocol.Diagnostic) string {
 	if src, ok := d.Source.Get(); ok {
 		return src
 	}
@@ -522,7 +524,7 @@ func diagnosticSource(d protocol.Diagnostic) string {
 // Message field is a sealed union whose common arm is a plain string; a
 // non-string arm (markup) is rendered through its Go representation so no
 // information is silently dropped.
-func diagnosticMessage(d protocol.Diagnostic) string {
+func diagnosticMessage(d *protocol.Diagnostic) string {
 	if s, ok := d.Message.(protocol.String); ok {
 		return string(s)
 	}

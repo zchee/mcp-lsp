@@ -51,13 +51,13 @@ type fakeServer struct {
 	pullReport protocol.DocumentDiagnosticReport
 }
 
-func (s *fakeServer) Initialize(ctx context.Context, params *protocol.InitializeParams) (*protocol.InitializeResult, error) {
+func (s *fakeServer) Initialize(_ context.Context, _ *protocol.InitializeParams) (*protocol.InitializeResult, error) {
 	return &protocol.InitializeResult{
 		Capabilities: protocol.ServerCapabilities{},
 	}, nil
 }
 
-func (s *fakeServer) Initialized(ctx context.Context, params *protocol.InitializedParams) error {
+func (s *fakeServer) Initialized(_ context.Context, _ *protocol.InitializedParams) error {
 	return nil
 }
 
@@ -77,7 +77,7 @@ func (s *fakeServer) DidOpen(ctx context.Context, params *protocol.DidOpenTextDo
 	})
 }
 
-func (s *fakeServer) Diagnostic(ctx context.Context, params *protocol.DocumentDiagnosticParams) (protocol.DocumentDiagnosticReport, error) {
+func (s *fakeServer) Diagnostic(_ context.Context, _ *protocol.DocumentDiagnosticParams) (protocol.DocumentDiagnosticReport, error) {
 	return s.pullReport, nil
 }
 

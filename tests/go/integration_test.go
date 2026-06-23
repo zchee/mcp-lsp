@@ -17,8 +17,9 @@
 package go_integration_test
 
 import (
-	_ "embed"
 	"testing"
+
+	_ "embed"
 
 	"github.com/zchee/mcp-lsp/tests/internal/lsptest"
 )
@@ -43,7 +44,7 @@ func TestIntegrationGopls(t *testing.T) {
 		Message:  "undefined: undefinedSymbol",
 	}}
 
-	lsptest.Run(t, lsptest.Config{
+	lsptest.Run(t, &lsptest.Config{
 		Server:   []string{"gopls", "serve"},
 		Language: "go",
 		Fixture:  fixtureArchive,

@@ -12,6 +12,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
+// Package version derives the build version exposed by mcp-lsp.
 package version
 
 import (
@@ -23,12 +24,14 @@ import (
 
 // versionStamp is the main CLI versionStamp number.
 //
-// Injected at build time via -ldflags "-X github.com/zchee/mcp-lsp/internal/versionStamp.versionStamp=..."
+// Injected at build time via -ldflags "-X github.com/zchee/mcp-lsp/internal/versionStamp.versionStamp=...".
 var versionStamp = "dev"
 
 var (
 	gitCommitStamp string
-	Version        string
+
+	// Version is the complete build version advertised by the command.
+	Version string
 )
 
 type embeddedInfo struct {
