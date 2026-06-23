@@ -1,0 +1,23 @@
+This archive is the fixture module the gopls integration test materializes to
+disk. clean.go compiles; broken.go references an undefined identifier so gopls
+type-checking reports one error-severity diagnostic at line 6, column 9.
+
+-- go.mod --
+module example.com/fixture
+
+go 1.27
+-- clean.go --
+package fixture
+
+// Add returns the sum of a and b.
+func Add(a, b int) int {
+	return a + b
+}
+-- broken.go --
+package fixture
+
+// Broken references an undefined identifier, so gopls type-checking must
+// report an error-severity diagnostic at its position.
+func Broken() int {
+	return undefinedSymbol + 1
+}
