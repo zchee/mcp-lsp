@@ -22,7 +22,7 @@ import (
 	"sync"
 )
 
-// versionStamp is the main CLI versionStamp number.
+// versionStamp is the CLI version number.
 //
 // Injected at build time via -ldflags "-X github.com/zchee/mcp-lsp/internal/versionStamp.versionStamp=...".
 var versionStamp = "dev"
@@ -84,6 +84,7 @@ func init() {
 	bi := getEmbeddedInfo()
 	if !bi.valid {
 		gitCommitStamp = "dev"
+		Version = strings.TrimSpace(versionStamp)
 		return
 	}
 	gitCommitStamp = fmt.Sprintf("%s-%s-t%s", bi.commit, bi.commitDate, bi.commitAbbrev())
