@@ -1,0 +1,31 @@
+This archive is the fixture crate the rust-analyzer integration test
+materializes to disk. clean.rs compiles; broken.rs references an undefined
+value so rust-analyzer reports one error-severity diagnostic at line 2,
+column 13. Both source files are wired as binaries in Cargo.toml so the crate
+builds, which rust-analyzer requires before it analyzes them.
+
+-- Cargo.toml --
+[package]
+name = "fixture"
+version = "0.0.0"
+edition = "2021"
+
+[[bin]]
+name = "clean"
+path = "clean.rs"
+
+[[bin]]
+name = "broken"
+path = "broken.rs"
+-- clean.rs --
+fn add(a: i32, b: i32) -> i32 {
+    a + b
+}
+
+fn main() {
+    let _ = add(1, 2);
+}
+-- broken.rs --
+fn main() {
+    let _ = undefined_symbol + 1;
+}
