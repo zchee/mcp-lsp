@@ -55,7 +55,7 @@ jobs:
           node --version
           npm --version
           gopls version
-          pyright-langserver --version
+          pyright --version
           rustc --version
           rust-analyzer --version
 
