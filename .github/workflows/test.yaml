@@ -46,6 +46,13 @@ jobs:
         with:
           toolchain: stable
           components: rust-analyzer
+          cache: false
+
+      - name: Install language servers
+        run: |
+          go install golang.org/x/tools/gopls@latest
+          npm install --global pyright
+          echo "$(go env GOPATH)/bin" >> "${GITHUB_PATH}"
 
       - name: Check versions
         run: |
