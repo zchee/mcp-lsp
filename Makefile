@@ -8,7 +8,7 @@
 
 GO_BUILDTAGS = osusergo,netgo,static
 GO_LDFLAGS = -s -w
-ifeq ($(GO_OS),linux)
+ifeq ($(shell go env GOOS),linux)
 GO_LDFLAGS += "-extldflags=-static"
 endif
 GO_FLAGS ?= -tags='${GO_BUILDTAGS}' -ldflags='${GO_LDFLAGS}'
@@ -102,7 +102,7 @@ clean:  ## Cleanups binaries and extra files in the package.
 ##@ miscellaneous
 
 .PHONY: todo
-TODO:  ## Print the all of (TODO|BUG|XXX|FIXME|NOTE) in packages.
+todo:  ## Print the all of (TODO|BUG|XXX|FIXME|NOTE) in packages.
 	@grep -E '(TODO|BUG|XXX|FIXME)(\(.+\):|:)' $(shell find . -type f -name '*.go' -and -not -iwholename '*vendor*')
 
 .PHONY: nolint
