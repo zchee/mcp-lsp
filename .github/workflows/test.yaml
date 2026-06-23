@@ -36,10 +36,28 @@ jobs:
           go-version: "1.27.0-rc.1"
           check-latest: true
 
+      - name: Install Node
+        uses: actions/setup-node@v6
+        with:
+          node-version: 24
+          cache: "npm"
+
+      - name: Install Rust
+        uses: actions-rust-lang/setup-rust-toolchain@v1
+        with:
+          toolchain: stable
+          components: rust-analyzer
+
       - name: Check versions
         run: |
           go version
           go env
+          node --version
+          npm --version
+          gopls version
+          pyright-langserver --version
+          rustc --version
+          rust-analyzer --version
 
       - name: Test and take a coverage
         env:
@@ -64,6 +82,7 @@ jobs:
           report_type: test_results
           name: test-results
           directory: _test_results/
+          use_oidc: true
 
   lint:
     name: lint
