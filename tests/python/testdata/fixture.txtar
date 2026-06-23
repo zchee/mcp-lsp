@@ -1,0 +1,14 @@
+This archive is the fixture project the pyright integration test materializes to
+disk. clean.py type-checks; broken.py references an undefined name so pyright
+reports one error-severity diagnostic at line 2, column 12. The empty
+pyrightconfig.json pins pyright's project root to the fixture directory so it
+does not walk up to an ambient configuration.
+
+-- pyrightconfig.json --
+{}
+-- clean.py --
+def add(a: int, b: int) -> int:
+    return a + b
+-- broken.py --
+def broken() -> int:
+    return undefined_symbol + 1
