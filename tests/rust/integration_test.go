@@ -17,10 +17,9 @@
 package rust_integration_test
 
 import (
+	_ "embed"
 	"testing"
 	"time"
-
-	_ "embed"
 
 	"github.com/zchee/mcp-lsp/tests/internal/lsptest"
 )

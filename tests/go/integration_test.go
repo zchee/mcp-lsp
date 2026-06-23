@@ -17,9 +17,8 @@
 package go_integration_test
 
 import (
-	"testing"
-
 	_ "embed"
+	"testing"
 
 	"github.com/zchee/mcp-lsp/tests/internal/lsptest"
 )
