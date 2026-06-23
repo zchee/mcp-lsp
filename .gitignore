@@ -58,5 +58,8 @@ bench.txt
 # profile
 *.pprof
 
+# tools
+hack/tools/bin/
+
 # test results
 _test_results/
