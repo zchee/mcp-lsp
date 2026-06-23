@@ -2,6 +2,8 @@ module github.com/zchee/mcp-lsp
 
 go 1.27
 
+replace github.com/yosida95/uritemplate/v3 => github.com/zchee/uritemplate/v4 v4.0.0-20260623021515-c6b3c4f37725
+
 require (
 	github.com/go-json-experiment/json v0.0.0-20260601182631-00ed12fed2a6
 	github.com/google/go-cmp v0.7.0
@@ -10,6 +12,7 @@ require (
 	go.lsp.dev/jsonrpc2 v1.0.0
 	go.lsp.dev/protocol v1.0.1-0.20260623001938-8bb731f68700
 	go.lsp.dev/uri v1.0.0
+	golang.org/x/tools v0.46.0
 )
 
 require (
