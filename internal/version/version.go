@@ -24,35 +24,37 @@ import (
 
 // versionStamp is the CLI version number.
 //
-// Injected at build time via -ldflags "-X github.com/zchee/mcp-lsp/internal/versionStamp.versionStamp=...".
+// Injected at build time via -ldflags "-X github.com/zchee/mcp-lsp/internal/version.versionStamp=...".
 var versionStamp = "dev"
 
-var (
-	gitCommitStamp string
+// Version is the complete build version advertised by the command.
+var Version string
 
-	// Version is the complete build version advertised by the command.
-	Version string
-)
-
+// embeddedInfo is the VCS metadata recovered from the binary's build info.
 type embeddedInfo struct {
 	valid      bool
 	commit     string
 	commitDate string
-	dirty      bool
 }
 
-func (i embeddedInfo) commitAbbrev() string {
-	if len(i.commit) >= 9 {
-		return i.commit[:9]
+// commitAbbrev returns the first nine characters of the commit hash, or the
+// whole hash when it is shorter.
+func commitAbbrev(commit string) string {
+	if len(commit) >= 9 {
+		return commit[:9]
 	}
-	return i.commit
+
+	return commit
 }
 
-var getEmbeddedInfo = sync.OnceValue(func() embeddedInfo {
-	bi, ok := debug.ReadBuildInfo()
+// parseBuildInfo extracts the commit and normalized commit date from build
+// info. It reports an invalid result when build info is absent or carries no
+// usable VCS data, in which case the caller falls back to the injected stamp.
+func parseBuildInfo(bi *debug.BuildInfo, ok bool) embeddedInfo {
 	if !ok {
 		return embeddedInfo{}
 	}
+
 	ret := embeddedInfo{valid: true}
 	for _, s := range bi.Settings {
 		switch s.Key {
@@ -60,31 +62,42 @@ var getEmbeddedInfo = sync.OnceValue(func() embeddedInfo {
 			ret.commit = s.Value
 		case "vcs.time":
 			if len(s.Value) >= len("yyyy-mm-dd") {
-				ret.commitDate = s.Value[:len("yyyy-mm-dd")]
-				ret.commitDate = strings.ReplaceAll(ret.commitDate, "-", "")
+				ret.commitDate = strings.ReplaceAll(s.Value[:len("yyyy-mm-dd")], "-", "")
 			}
-		case "vcs.modified":
-			ret.dirty = s.Value == "true"
 		}
 	}
 	if ret.commit == "" || ret.commitDate == "" {
-		// Build info is present in the binary, but has no useful data. Act as
-		// if it's missing.
+		// Build info is present in the binary but has no useful data; act as if
+		// it is missing.
 		return embeddedInfo{}
 	}
+
 	return ret
+}
+
+// getEmbeddedInfo reads and parses the binary's build info exactly once.
+var getEmbeddedInfo = sync.OnceValue(func() embeddedInfo {
+	return parseBuildInfo(debug.ReadBuildInfo())
 })
+
+// buildVersion assembles the advertised version from the injected stamp and the
+// embedded VCS metadata. When the metadata is invalid it returns the bare
+// stamp; otherwise it appends the commit, date, and abbreviated commit.
+func buildVersion(stamp string, info embeddedInfo) string {
+	stamp = strings.TrimSpace(stamp)
+	if !info.valid {
+		return stamp
+	}
+
+	gitCommit := fmt.Sprintf("%s-%s-t%s", info.commit, info.commitDate, commitAbbrev(info.commit))
+
+	return stamp + "-" + gitCommit
+}
 
 func init() {
 	if Version != "" {
 		return
 	}
-	bi := getEmbeddedInfo()
-	if !bi.valid {
-		gitCommitStamp = "dev"
-		Version = strings.TrimSpace(versionStamp)
-		return
-	}
-	gitCommitStamp = fmt.Sprintf("%s-%s-t%s", bi.commit, bi.commitDate, bi.commitAbbrev())
-	Version = strings.TrimSpace(versionStamp) + "-" + gitCommitStamp
+
+	Version = buildVersion(versionStamp, getEmbeddedInfo())
 }
