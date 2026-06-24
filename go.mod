@@ -2,7 +2,10 @@ module github.com/zchee/mcp-lsp
 
 go 1.27
 
-replace github.com/yosida95/uritemplate/v3 => github.com/zchee/uritemplate/v4 v4.0.0-20260624002930-bae857730b2b
+replace (
+	github.com/phuslu/log => github.com/zchee/phuslu-log v1.0.114-0.20260624070747-a403bb07450a
+	github.com/yosida95/uritemplate/v3 => github.com/zchee/uritemplate/v4 v4.0.0-20260624002930-bae857730b2b
+)
 
 require (
 	github.com/google/go-cmp v0.7.0
