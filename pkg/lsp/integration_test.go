@@ -42,6 +42,10 @@ type fakeServer struct {
 	pullSupported bool
 	pullReport    protocol.DocumentDiagnosticReport
 
+	definitionResult   protocol.DefinitionResult
+	definitionErr      error
+	definitionRequests []protocol.DefinitionParams
+
 	client protocol.Client
 }
 

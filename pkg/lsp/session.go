@@ -248,11 +248,10 @@ func isCleanExit(err error) bool {
 }
 
 // initializeParams builds the [protocol.InitializeParams] advertising support
-// for push and pull diagnostics and document synchronization rooted at rootURI.
+// for definition links, push and pull diagnostics, and document synchronization
+// rooted at rootURI.
 func initializeParams(rootURI uri.URI) *protocol.InitializeParams {
 	pid := int32(os.Getpid()) //nolint:gosec // a process id fits in int32 on every supported platform
-	ptrTrue := func() *bool { b := true; return &b }
-
 	return &protocol.InitializeParams{
 		ProcessID: &pid,
 		RootURI:   &rootURI,
@@ -265,14 +264,17 @@ func initializeParams(rootURI uri.URI) *protocol.InitializeParams {
 		Capabilities: protocol.ClientCapabilities{
 			TextDocument: &protocol.TextDocumentClientCapabilities{
 				Synchronization: &protocol.TextDocumentSyncClientCapabilities{
-					DynamicRegistration: ptrTrue(),
+					DynamicRegistration: new(true),
+				},
+				Definition: &protocol.DefinitionClientCapabilities{
+					LinkSupport: new(true),
 				},
 				PublishDiagnostics: &protocol.PublishDiagnosticsClientCapabilities{
-					RelatedInformation: ptrTrue(),
+					RelatedInformation: new(true),
 				},
 				Diagnostic: &protocol.DiagnosticClientCapabilities{
-					RelatedInformation:     ptrTrue(),
-					RelatedDocumentSupport: ptrTrue(),
+					RelatedInformation:     new(true),
+					RelatedDocumentSupport: new(true),
 				},
 			},
 		},
