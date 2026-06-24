@@ -27,10 +27,21 @@ import (
 
 	"go.lsp.dev/protocol"
 	"golang.org/x/tools/txtar"
+
+	"github.com/zchee/mcp-lsp/pkg/lsp"
 )
 
 // IntegrationEnv is the environment variable that opts in to integration tests.
 const IntegrationEnv = "MCP_LSP_INTEGRATION"
+
+// DefinitionLookupConfig controls retry behavior for real language-server
+// definition lookups.
+type DefinitionLookupConfig struct {
+	Language   string
+	ServerName string
+	Attempts   int
+	RetryDelay time.Duration
+}
 
 // RequireIntegration skips t unless the integration gate is set and serverName
 // is resolvable on PATH.
@@ -129,11 +140,52 @@ func (w Workspace) MarkerPosition(t *testing.T, rel, marker, ident string) proto
 		}
 		return protocol.Position{
 			Line:      uint32(lineIndex),
-			Character: uint32(utf16Column(line, col)),
+			Character: utf16Column(line, col),
 		}
 	}
 	t.Fatalf("file %q has no line carrying marker %q", rel, annotation)
 	return protocol.Position{}
+}
+
+// LookupDefinition drives [lsp.Definition.Lookup] against a real language
+// server, retrying while the server is still loading the workspace. It fails
+// the test if no definition resolves within cfg's attempt budget.
+func LookupDefinition(t *testing.T, mgr *lsp.Manager, cfg DefinitionLookupConfig, absPath, text string, pos protocol.Position) []lsp.DefinitionLocation {
+	t.Helper()
+	validateDefinitionLookupConfig(t, cfg)
+
+	var (
+		defs    []lsp.DefinitionLocation
+		lastErr error
+	)
+	for range cfg.Attempts {
+		defs, lastErr = mgr.Definition().Lookup(t.Context(), cfg.Language, absPath, text, pos)
+		if lastErr == nil && len(defs) > 0 {
+			return defs
+		}
+		if ctxErr := SleepOrCancel(t.Context(), cfg.RetryDelay); ctxErr != nil {
+			t.Fatalf("context canceled while waiting for %s: %v", cfg.ServerName, ctxErr)
+		}
+	}
+	t.Fatalf("no definition resolved after %d attempts; last error = %v, defs = %+v", cfg.Attempts, lastErr, defs)
+	return nil
+}
+
+// AssertDefinitionResolvesTo fails unless some definition target points at
+// wantURI with a selection range starting at the expected zero-based position.
+func AssertDefinitionResolvesTo(t *testing.T, defs []lsp.DefinitionLocation, wantURI string, want protocol.Position) {
+	t.Helper()
+
+	for _, def := range defs {
+		if def.TargetURI != wantURI {
+			continue
+		}
+		sel := def.TargetSelectionRange
+		if int64(sel.StartLine) == int64(want.Line) && int64(sel.StartColumn) == int64(want.Character) {
+			return
+		}
+	}
+	t.Fatalf("no definition pointed to %s at %d:%d (zero-based); defs = %+v", wantURI, want.Line, want.Character, defs)
 }
 
 // SleepOrCancel waits for d or returns the context error if ctx is canceled
@@ -149,8 +201,25 @@ func SleepOrCancel(ctx context.Context, d time.Duration) error {
 	}
 }
 
-func utf16Column(line string, byteOffset int) int {
-	var col int
+func validateDefinitionLookupConfig(t *testing.T, cfg DefinitionLookupConfig) {
+	t.Helper()
+
+	if cfg.Language == "" {
+		t.Fatal("definition lookup language is empty")
+	}
+	if cfg.ServerName == "" {
+		t.Fatal("definition lookup server name is empty")
+	}
+	if cfg.Attempts <= 0 {
+		t.Fatalf("definition lookup attempts must be positive: %d", cfg.Attempts)
+	}
+	if cfg.RetryDelay <= 0 {
+		t.Fatalf("definition lookup retry delay must be positive: %v", cfg.RetryDelay)
+	}
+}
+
+func utf16Column(line string, byteOffset int) uint32 {
+	var col uint32
 	for _, r := range line[:byteOffset] {
 		if r >= 0x10000 {
 			col += 2

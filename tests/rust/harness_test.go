@@ -35,12 +35,17 @@ import (
 )
 
 const (
-	rustAnalyzerCommand  = "rust-analyzer"
-	rustLanguage         = "rust"
-	rustSettle           = 250 * time.Millisecond
-	definitionAttempts   = 20
-	definitionRetryDelay = 250 * time.Millisecond
+	rustAnalyzerCommand = "rust-analyzer"
+	rustLanguage        = "rust"
+	rustSettle          = 250 * time.Millisecond
 )
+
+var rustDefinitionLookup = lsptest.DefinitionLookupConfig{
+	Language:   rustLanguage,
+	ServerName: rustAnalyzerCommand,
+	Attempts:   20,
+	RetryDelay: 250 * time.Millisecond,
+}
 
 func requireIntegration(t *testing.T) {
 	t.Helper()
@@ -70,39 +75,4 @@ func newManager(t *testing.T, w lsptest.Workspace) *lsp.Manager {
 		}
 	})
 	return mgr
-}
-
-func lookupDefinition(t *testing.T, mgr *lsp.Manager, absPath, text string, pos protocol.Position) []lsp.DefinitionLocation {
-	t.Helper()
-
-	var (
-		defs    []lsp.DefinitionLocation
-		lastErr error
-	)
-	for range definitionAttempts {
-		defs, lastErr = mgr.Definition().Lookup(t.Context(), rustLanguage, absPath, text, pos)
-		if lastErr == nil && len(defs) > 0 {
-			return defs
-		}
-		if ctxErr := lsptest.SleepOrCancel(t.Context(), definitionRetryDelay); ctxErr != nil {
-			t.Fatalf("context canceled while waiting for rust-analyzer: %v", ctxErr)
-		}
-	}
-	t.Fatalf("no definition resolved after %d attempts; last error = %v, defs = %+v", definitionAttempts, lastErr, defs)
-	return nil
-}
-
-func assertResolvesTo(t *testing.T, defs []lsp.DefinitionLocation, wantURI string, want protocol.Position) {
-	t.Helper()
-
-	for _, def := range defs {
-		if def.TargetURI != wantURI {
-			continue
-		}
-		sel := def.TargetSelectionRange
-		if uint32(sel.StartLine) == want.Line && uint32(sel.StartColumn) == want.Character {
-			return
-		}
-	}
-	t.Fatalf("no definition pointed to %s at %d:%d (zero-based); defs = %+v", wantURI, want.Line, want.Character, defs)
 }

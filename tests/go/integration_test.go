@@ -18,20 +18,17 @@ import (
 	"testing"
 	"time"
 
-	"go.lsp.dev/protocol"
 	"go.lsp.dev/uri"
 
-	"github.com/zchee/mcp-lsp/pkg/lsp"
 	"github.com/zchee/mcp-lsp/tests/internal/lsptest"
 )
 
-// definitionAttempts bounds how many times a definition lookup is retried while
-// gopls asynchronously loads the package; cross-file resolution in particular
-// returns empty until the workspace is analyzed.
-const definitionAttempts = 10
-
-// definitionRetryDelay is the pause between definition lookup attempts.
-const definitionRetryDelay = 250 * time.Millisecond
+var goDefinitionLookup = lsptest.DefinitionLookupConfig{
+	Language:   "go",
+	ServerName: "gopls",
+	Attempts:   10,
+	RetryDelay: 250 * time.Millisecond,
+}
 
 func TestIntegrationDiagnosticsReportsCompileError(t *testing.T) {
 	requireIntegration(t)
@@ -79,8 +76,8 @@ func TestIntegrationDefinitionResolvesLocalSymbol(t *testing.T) {
 	target := ws.MarkerPosition(t, "main.go", "target", "answer")
 	wantURI := string(uri.File(mainFile))
 
-	defs := lookupDefinition(t, mgr, mainFile, text, query)
-	assertResolvesTo(t, defs, wantURI, target)
+	defs := lsptest.LookupDefinition(t, mgr, goDefinitionLookup, mainFile, text, query)
+	lsptest.AssertDefinitionResolvesTo(t, defs, wantURI, target)
 }
 
 func TestIntegrationDefinitionResolvesAcrossFiles(t *testing.T) {
@@ -95,46 +92,6 @@ func TestIntegrationDefinitionResolvesAcrossFiles(t *testing.T) {
 	target := ws.MarkerPosition(t, "lib.go", "target", "Greeting")
 	wantURI := string(uri.File(ws.Path("lib.go")))
 
-	defs := lookupDefinition(t, mgr, mainFile, text, query)
-	assertResolvesTo(t, defs, wantURI, target)
-}
-
-// lookupDefinition drives Definition.Lookup against real gopls, retrying while
-// the package is still loading. It fails the test if no definition resolves
-// within the attempt budget.
-func lookupDefinition(t *testing.T, mgr *lsp.Manager, absPath, text string, pos protocol.Position) []lsp.DefinitionLocation {
-	t.Helper()
-
-	var (
-		defs    []lsp.DefinitionLocation
-		lastErr error
-	)
-	for range definitionAttempts {
-		defs, lastErr = mgr.Definition().Lookup(t.Context(), "go", absPath, text, pos)
-		if lastErr == nil && len(defs) > 0 {
-			return defs
-		}
-		if ctxErr := lsptest.SleepOrCancel(t.Context(), definitionRetryDelay); ctxErr != nil {
-			t.Fatalf("context canceled while waiting for gopls: %v", ctxErr)
-		}
-	}
-	t.Fatalf("no definition resolved after %d attempts; last error = %v, defs = %+v", definitionAttempts, lastErr, defs)
-	return nil
-}
-
-// assertResolvesTo fails unless some definition target points at wantURI with a
-// selection range starting at the expected zero-based position.
-func assertResolvesTo(t *testing.T, defs []lsp.DefinitionLocation, wantURI string, want protocol.Position) {
-	t.Helper()
-
-	for _, def := range defs {
-		if def.TargetURI != wantURI {
-			continue
-		}
-		sel := def.TargetSelectionRange
-		if uint32(sel.StartLine) == want.Line && uint32(sel.StartColumn) == want.Character {
-			return
-		}
-	}
-	t.Fatalf("no definition pointed to %s at %d:%d (zero-based); defs = %+v", wantURI, want.Line, want.Character, defs)
+	defs := lsptest.LookupDefinition(t, mgr, goDefinitionLookup, mainFile, text, query)
+	lsptest.AssertDefinitionResolvesTo(t, defs, wantURI, target)
 }

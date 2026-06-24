@@ -18,6 +18,8 @@ import (
 	"testing"
 
 	"go.lsp.dev/uri"
+
+	"github.com/zchee/mcp-lsp/tests/internal/lsptest"
 )
 
 func TestIntegrationRustAnalyzerDefinitionResolvesAcrossFiles(t *testing.T) {
@@ -31,6 +33,6 @@ func TestIntegrationRustAnalyzerDefinitionResolvesAcrossFiles(t *testing.T) {
 	query := ws.MarkerPosition(t, "src/main.rs", "query", "Greeting")
 	target := ws.MarkerPosition(t, "src/lib.rs", "target", "Greeting")
 
-	defs := lookupDefinition(t, mgr, mainFile, text, query)
-	assertResolvesTo(t, defs, string(uri.File(ws.Path("src/lib.rs"))), target)
+	defs := lsptest.LookupDefinition(t, mgr, rustDefinitionLookup, mainFile, text, query)
+	lsptest.AssertDefinitionResolvesTo(t, defs, string(uri.File(ws.Path("src/lib.rs"))), target)
 }

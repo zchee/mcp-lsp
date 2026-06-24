@@ -29,6 +29,14 @@ import (
 
 	"github.com/modelcontextprotocol/go-sdk/mcp"
 	"go.lsp.dev/uri"
+
+	"github.com/zchee/mcp-lsp/tests/internal/lsptest"
+)
+
+const (
+	e2eDefinitionAttempts   = 5
+	e2eDefinitionRetryDelay = 250 * time.Millisecond
+	e2eWorkspaceSettle      = 100 * time.Millisecond
 )
 
 // errorFixture is a Go source file with a deliberate compile error: it calls an
@@ -52,12 +60,7 @@ func main() {
 `
 
 func TestE2EDiagnostics(t *testing.T) {
-	if os.Getenv("MCP_LSP_INTEGRATION") == "" {
-		t.Skip("set MCP_LSP_INTEGRATION=1 to run the end-to-end tests")
-	}
-	if _, err := exec.LookPath("gopls"); err != nil {
-		t.Skip("gopls not found on PATH; skipping the end-to-end test")
-	}
+	lsptest.RequireIntegration(t, "gopls")
 
 	bin := buildBinary(t)
 	workspace := newWorkspace(t)
@@ -74,7 +77,7 @@ func TestE2EDiagnostics(t *testing.T) {
 	if err != nil {
 		t.Fatalf("connect to mcp-lsp: %v", err)
 	}
-	defer func() { _ = session.Close() }()
+	cleanupSession(t, session.Close)
 
 	res, err := session.CallTool(ctx, &mcp.CallToolParams{
 		Name: "lsp_diagnostics",
@@ -111,12 +114,7 @@ func TestE2EDiagnostics(t *testing.T) {
 }
 
 func TestE2EDefinition(t *testing.T) {
-	if os.Getenv("MCP_LSP_INTEGRATION") == "" {
-		t.Skip("set MCP_LSP_INTEGRATION=1 to run the end-to-end tests")
-	}
-	if _, err := exec.LookPath("gopls"); err != nil {
-		t.Skip("gopls not found on PATH; skipping the end-to-end test")
-	}
+	lsptest.RequireIntegration(t, "gopls")
 
 	bin := buildBinary(t)
 	workspace := newWorkspaceWithFixture(t, definitionFixture)
@@ -136,11 +134,17 @@ func TestE2EDefinition(t *testing.T) {
 	if err != nil {
 		t.Fatalf("connect to mcp-lsp: %v", err)
 	}
-	defer func() { _ = session.Close() }()
+	cleanupSession(t, session.Close)
+
+	waitForGopls := func() {
+		if err := lsptest.SleepOrCancel(ctx, e2eDefinitionRetryDelay); err != nil {
+			t.Fatalf("context canceled while waiting for gopls: %v", err)
+		}
+	}
 
 	var out definitionOutput
 	var lastErr error
-	for range 5 {
+	for range e2eDefinitionAttempts {
 		res, err := session.CallTool(ctx, &mcp.CallToolParams{
 			Name: "lsp_definition",
 			Arguments: map[string]any{
@@ -152,19 +156,19 @@ func TestE2EDefinition(t *testing.T) {
 		})
 		if err != nil {
 			lastErr = err
-			time.Sleep(250 * time.Millisecond)
+			waitForGopls()
 			continue
 		}
 		if res.IsError {
 			lastErr = fmt.Errorf("lsp_definition returned a tool error: %+v", res.Content)
-			time.Sleep(250 * time.Millisecond)
+			waitForGopls()
 			continue
 		}
 		out = decodeStructured[definitionOutput](t, res)
 		if len(out.Definitions) > 0 {
 			break
 		}
-		time.Sleep(250 * time.Millisecond)
+		waitForGopls()
 	}
 	if len(out.Definitions) == 0 {
 		t.Fatalf("expected at least one definition, got none; last error = %v, output = %+v", lastErr, out)
@@ -239,6 +243,20 @@ func decodeStructured[T any](t *testing.T, res *mcp.CallToolResult) T {
 	return out
 }
 
+// cleanupSession closes CommandTransport-backed MCP sessions. The Go SDK
+// returns the subprocess wait status during forced shutdown, commonly
+// "signal: killed", so cleanup logs that transport artifact instead of failing
+// assertions that already verified protocol behavior.
+func cleanupSession(t *testing.T, closeSession func() error) {
+	t.Helper()
+
+	t.Cleanup(func() {
+		if err := closeSession(); err != nil {
+			t.Logf("close MCP session after assertions: %v", err)
+		}
+	})
+}
+
 // buildBinary compiles the mcp-lsp binary into a temp dir and returns its path.
 func buildBinary(t *testing.T) string {
 	t.Helper()
@@ -270,7 +288,7 @@ func newWorkspaceWithFixture(t *testing.T, fixture string) string {
 	writeFile(t, filepath.Join(dir, "main.go"), fixture)
 
 	// Give the filesystem a moment so gopls observes a settled workspace.
-	time.Sleep(100 * time.Millisecond)
+	time.Sleep(e2eWorkspaceSettle)
 	return dir
 }
 
