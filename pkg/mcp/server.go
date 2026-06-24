@@ -23,8 +23,8 @@ import (
 	"github.com/zchee/mcp-lsp/pkg/lsp"
 )
 
-// NewServer assembles an [mcp.Server] that exposes the language server
-// capabilities backed by mgr. It registers the lsp_diagnostics tool.
+// NewServer assembles an [mcp.Server] that exposes language server capabilities
+// backed by mgr as read-only tools.
 func NewServer(mgr *lsp.Manager, logger *slog.Logger) *mcp.Server {
 	s := mcp.NewServer(&mcp.Implementation{
 		Name:    "mcp-lsp",
@@ -38,6 +38,11 @@ func NewServer(mgr *lsp.Manager, logger *slog.Logger) *mcp.Server {
 		Description: "Report LSP diagnostics (errors and warnings) for a file via its language server.",
 		Annotations: &mcp.ToolAnnotations{ReadOnlyHint: true},
 	}, diagnosticsHandler(mgr.Diagnostics(), mgr.WorkspaceRoot()))
+	mcp.AddTool(s, &mcp.Tool{
+		Name:        "lsp_definition",
+		Description: "Find definition locations for a symbol at a file position via its language server.",
+		Annotations: &mcp.ToolAnnotations{ReadOnlyHint: true},
+	}, definitionHandler(mgr.Definition(), mgr.WorkspaceRoot()))
 
 	return s
 }

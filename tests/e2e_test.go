@@ -19,13 +19,16 @@ package tests
 
 import (
 	"encoding/json"
+	"fmt"
 	"os"
 	"os/exec"
 	"path/filepath"
+	"strings"
 	"testing"
 	"time"
 
 	"github.com/modelcontextprotocol/go-sdk/mcp"
+	"go.lsp.dev/uri"
 )
 
 // errorFixture is a Go source file with a deliberate compile error: it calls an
@@ -34,6 +37,17 @@ const errorFixture = `package main
 
 func main() {
 	undeclaredFunction()
+}
+`
+
+// definitionFixture is a clean Go source file with a symbol usage whose
+// declaration is in the same file, making goto-definition deterministic.
+const definitionFixture = `package main
+
+const answer = 42
+
+func main() {
+	println(answer)
 }
 `
 
@@ -76,7 +90,7 @@ func TestE2EDiagnostics(t *testing.T) {
 		t.Fatalf("lsp_diagnostics returned a tool error: %+v", res.Content)
 	}
 
-	out := decodeOutput(t, res)
+	out := decodeStructured[diagnosticsOutput](t, res)
 	if len(out.Diagnostics) == 0 {
 		t.Fatalf("expected at least one diagnostic for a file with a compile error, got none")
 	}
@@ -94,6 +108,77 @@ func TestE2EDiagnostics(t *testing.T) {
 	if !foundError {
 		t.Errorf("no error-severity diagnostic reported; diagnostics = %+v", out.Diagnostics)
 	}
+}
+
+func TestE2EDefinition(t *testing.T) {
+	if os.Getenv("MCP_LSP_INTEGRATION") == "" {
+		t.Skip("set MCP_LSP_INTEGRATION=1 to run the end-to-end tests")
+	}
+	if _, err := exec.LookPath("gopls"); err != nil {
+		t.Skip("gopls not found on PATH; skipping the end-to-end test")
+	}
+
+	bin := buildBinary(t)
+	workspace := newWorkspaceWithFixture(t, definitionFixture)
+	fixture := filepath.Join(workspace, "main.go")
+	queryLine, queryColumn := mustPositionOf(t, definitionFixture, "answer", 2)
+	targetLine, targetColumn := mustPositionOf(t, definitionFixture, "answer", 1)
+	targetURI := string(uri.File(fixture))
+
+	ctx := t.Context()
+
+	cmd := exec.CommandContext(ctx, bin, "-workspace", workspace, "-log-level", "error")
+	cmd.Stderr = os.Stderr
+	transport := &mcp.CommandTransport{Command: cmd}
+
+	client := mcp.NewClient(&mcp.Implementation{Name: "e2e-client", Version: "0.0.0"}, nil)
+	session, err := client.Connect(ctx, transport, nil)
+	if err != nil {
+		t.Fatalf("connect to mcp-lsp: %v", err)
+	}
+	defer func() { _ = session.Close() }()
+
+	var out definitionOutput
+	var lastErr error
+	for range 5 {
+		res, err := session.CallTool(ctx, &mcp.CallToolParams{
+			Name: "lsp_definition",
+			Arguments: map[string]any{
+				"file":     fixture,
+				"line":     queryLine,
+				"column":   queryColumn,
+				"language": "go",
+			},
+		})
+		if err != nil {
+			lastErr = err
+			time.Sleep(250 * time.Millisecond)
+			continue
+		}
+		if res.IsError {
+			lastErr = fmt.Errorf("lsp_definition returned a tool error: %+v", res.Content)
+			time.Sleep(250 * time.Millisecond)
+			continue
+		}
+		out = decodeStructured[definitionOutput](t, res)
+		if len(out.Definitions) > 0 {
+			break
+		}
+		time.Sleep(250 * time.Millisecond)
+	}
+	if len(out.Definitions) == 0 {
+		t.Fatalf("expected at least one definition, got none; last error = %v, output = %+v", lastErr, out)
+	}
+
+	for _, def := range out.Definitions {
+		if def.TargetURI != targetURI {
+			continue
+		}
+		if def.TargetSelectionRange.StartLine == targetLine && def.TargetSelectionRange.StartColumn == targetColumn {
+			return
+		}
+	}
+	t.Fatalf("no definition pointed to %s at %d:%d; definitions = %+v", targetURI, targetLine, targetColumn, out.Definitions)
 }
 
 // diagnosticItem mirrors the tool's output item for decoding the structured
@@ -114,8 +199,30 @@ type diagnosticsOutput struct {
 	Diagnostics []diagnosticItem `json:"diagnostics"`
 }
 
-// decodeOutput extracts the structured tool output from an [mcp.CallToolResult].
-func decodeOutput(t *testing.T, res *mcp.CallToolResult) diagnosticsOutput {
+// definitionRange mirrors the lsp_definition range output for decoding the
+// structured result without importing the server package.
+type definitionRange struct {
+	StartLine   int `json:"startLine"`
+	StartColumn int `json:"startColumn"`
+	EndLine     int `json:"endLine"`
+	EndColumn   int `json:"endColumn"`
+}
+
+type definitionItem struct {
+	TargetURI            string           `json:"targetUri"`
+	TargetRange          definitionRange  `json:"targetRange"`
+	TargetSelectionRange definitionRange  `json:"targetSelectionRange"`
+	OriginSelectionRange *definitionRange `json:"originSelectionRange"`
+}
+
+type definitionOutput struct {
+	File        string           `json:"file"`
+	URI         string           `json:"uri"`
+	Definitions []definitionItem `json:"definitions"`
+}
+
+// decodeStructured extracts structured tool output from an [mcp.CallToolResult].
+func decodeStructured[T any](t *testing.T, res *mcp.CallToolResult) T {
 	t.Helper()
 
 	if res.StructuredContent == nil {
@@ -125,7 +232,7 @@ func decodeOutput(t *testing.T, res *mcp.CallToolResult) diagnosticsOutput {
 	if err != nil {
 		t.Fatalf("marshal structured content: %v", err)
 	}
-	var out diagnosticsOutput
+	var out T
 	if err := json.Unmarshal(raw, &out); err != nil {
 		t.Fatalf("unmarshal structured content: %v", err)
 	}
@@ -153,14 +260,52 @@ func buildBinary(t *testing.T) string {
 func newWorkspace(t *testing.T) string {
 	t.Helper()
 
+	return newWorkspaceWithFixture(t, errorFixture)
+}
+
+// newWorkspaceWithFixture creates a temporary Go module workspace with main.go
+// set to fixture, and waits briefly so the file modification time is stable.
+func newWorkspaceWithFixture(t *testing.T, fixture string) string {
+	t.Helper()
+
 	dir := t.TempDir()
 	writeFile(t, filepath.Join(dir, "go.mod"), "module e2e\n\ngo 1.27\n")
-	writeFile(t, filepath.Join(dir, "main.go"), errorFixture)
+	writeFile(t, filepath.Join(dir, "main.go"), fixture)
 
 	// Give the filesystem a moment so gopls observes a settled workspace.
 	time.Sleep(100 * time.Millisecond)
 
 	return dir
+}
+
+func mustPositionOf(t *testing.T, source, needle string, occurrence int) (int, int) {
+	t.Helper()
+
+	if occurrence <= 0 {
+		t.Fatalf("invalid occurrence %d", occurrence)
+	}
+	searchStart := 0
+	index := -1
+	for range occurrence {
+		offset := strings.Index(source[searchStart:], needle)
+		if offset < 0 {
+			t.Fatalf("could not find occurrence %d of %q in fixture", occurrence, needle)
+		}
+		index = searchStart + offset
+		searchStart = index + len(needle)
+	}
+
+	line, column := 1, 1
+	for _, r := range source[:index] {
+		if r == '\n' {
+			line++
+			column = 1
+			continue
+		}
+		column++
+	}
+
+	return line, column
 }
 
 func writeFile(t *testing.T, path, content string) {

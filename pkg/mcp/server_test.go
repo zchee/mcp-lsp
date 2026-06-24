@@ -23,10 +23,10 @@ import (
 	"github.com/zchee/mcp-lsp/pkg/lsp"
 )
 
-// TestServerExposesDiagnosticsTool drives the assembled server over an in-memory
-// transport with an [mcp.Client] and asserts the lsp_diagnostics tool is listed
-// with a read-only annotation and a non-nil input schema.
-func TestServerExposesDiagnosticsTool(t *testing.T) {
+// TestServerExposesReadOnlyTools drives the assembled server over an in-memory
+// transport with an [mcp.Client] and asserts the language-server tools are
+// listed with read-only annotations and non-nil input schemas.
+func TestServerExposesReadOnlyTools(t *testing.T) {
 	t.Parallel()
 
 	logger := slog.New(slog.DiscardHandler)
@@ -52,18 +52,24 @@ func TestServerExposesDiagnosticsTool(t *testing.T) {
 		t.Fatalf("list tools: %v", err)
 	}
 
-	if len(res.Tools) != 1 {
-		t.Fatalf("server listed %d tools, want exactly 1", len(res.Tools))
+	tools := make(map[string]*mcp.Tool, len(res.Tools))
+	for i := range res.Tools {
+		tool := res.Tools[i]
+		tools[tool.Name] = tool
 	}
-
-	tool := res.Tools[0]
-	if tool.Name != "lsp_diagnostics" {
-		t.Errorf("tool name = %q, want %q", tool.Name, "lsp_diagnostics")
-	}
-	if tool.Annotations == nil || !tool.Annotations.ReadOnlyHint {
-		t.Errorf("tool ReadOnlyHint not set; annotations = %+v", tool.Annotations)
-	}
-	if tool.InputSchema == nil {
-		t.Error("tool input schema is nil")
+	for _, name := range []string{"lsp_diagnostics", "lsp_definition"} {
+		tool := tools[name]
+		if tool == nil {
+			t.Fatalf("tool %q was not listed; got tools %+v", name, res.Tools)
+		}
+		if tool.Annotations == nil || !tool.Annotations.ReadOnlyHint {
+			t.Errorf("tool %q ReadOnlyHint not set; annotations = %+v", name, tool.Annotations)
+		}
+		if tool.InputSchema == nil {
+			t.Errorf("tool %q input schema is nil", name)
+		}
+		if tool.OutputSchema == nil {
+			t.Errorf("tool %q output schema is nil", name)
+		}
 	}
 }
