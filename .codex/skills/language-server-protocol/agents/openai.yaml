@@ -1,0 +1,4 @@
+interface:
+  display_name: "Language Server Protocol"
+  short_description: "Build and debug LSP integrations"
+  default_prompt: "Use $language-server-protocol to design, debug, or implement a Language Server Protocol feature."
