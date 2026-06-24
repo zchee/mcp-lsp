@@ -75,11 +75,12 @@ func (d *Diagnostics) Lookup(ctx context.Context, lang, absPath, text string) ([
 	cfg := d.mgr.cfg[lang]
 	u := uri.File(absPath)
 
+	baselineSeq := sess.store.publishSeq(u)
 	if err := sess.server.DidOpen(ctx, didOpenParams(u, cfg.LanguageID, text)); err != nil {
 		return nil, fmt.Errorf("open document: %w", err)
 	}
 
-	diags, err := d.acquire(ctx, sess, u)
+	diags, err := d.acquire(ctx, sess, u, baselineSeq)
 	if err != nil {
 		return nil, err
 	}
@@ -89,18 +90,12 @@ func (d *Diagnostics) Lookup(ctx context.Context, lang, absPath, text string) ([
 
 // acquire returns the protocol diagnostics for u, using the pull path when the
 // session supports it and falling back to the cached push stream otherwise.
-func (d *Diagnostics) acquire(ctx context.Context, sess *serverSession, u uri.URI) ([]protocol.Diagnostic, error) {
+func (d *Diagnostics) acquire(ctx context.Context, sess *serverSession, u uri.URI, baselineSeq uint64) ([]protocol.Diagnostic, error) {
 	if !sess.pullSupported {
 		ctx, cancel := d.withTimeout(ctx)
 		defer cancel()
 
-		// TODO(zchee): pure settle-debounce can return a premature empty result.
-		// Servers commonly emit an empty pre-analysis publishDiagnostics, then
-		// the real set once analysis finishes. If analysis exceeds settle, the
-		// empty publish settles first and a file with errors looks clean. A
-		// robust fix correlates the awaited publish with the document version
-		// sent in didOpen/didChange rather than waiting for mere quiescence.
-		return sess.store.waitSettled(ctx, u, d.settle)
+		return sess.store.waitSettledAfter(ctx, u, d.settle, baselineSeq)
 	}
 
 	rep, err := sess.server.Diagnostic(ctx, docDiagParams(u))

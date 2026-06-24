@@ -78,6 +78,11 @@ func publishParams(u uri.URI, diags []protocol.Diagnostic) *protocol.PublishDiag
 	}
 }
 
+type waitSettledResult struct {
+	diags []protocol.Diagnostic
+	err   error
+}
+
 func TestStoreWaitSettledLastWins(t *testing.T) {
 	t.Parallel()
 
@@ -93,14 +98,10 @@ func TestStoreWaitSettledLastWins(t *testing.T) {
 
 	parked := armParkSignal(s)
 
-	type result struct {
-		diags []protocol.Diagnostic
-		err   error
-	}
-	resCh := make(chan result, 1)
+	resCh := make(chan waitSettledResult, 1)
 	go func() {
 		diags, err := s.waitSettled(t.Context(), u, settle)
-		resCh <- result{diags: diags, err: err}
+		resCh <- waitSettledResult{diags: diags, err: err}
 	}()
 
 	// Once the waiter is parked, advance past the settle window and wake it.
@@ -114,6 +115,52 @@ func TestStoreWaitSettledLastWins(t *testing.T) {
 	}
 	if diff := cmp.Diff(wantErrDiag(), flattenDiagnostics(got.diags)); diff != "" {
 		t.Errorf("waitSettled diagnostics mismatch (-want +got):\n%s", diff)
+	}
+}
+
+func TestStoreWaitSettledAfterIgnoresBaseline(t *testing.T) {
+	t.Parallel()
+
+	clock := newFakeClock()
+	s := newStoreWithClock(clock.Now)
+	u := uri.File("/tmp/baseline.go")
+	const settle = 250 * time.Millisecond
+
+	// A settled publish at or before the caller's baseline is stale for a fresh
+	// document open. waitSettledAfter must keep waiting until a later publish
+	// arrives, then return that newer snapshot.
+	s.publish(publishParams(u, nil))
+	baselineSeq := s.publishSeq(u)
+	clock.Advance(settle)
+
+	parked := armParkSignal(s)
+
+	resCh := make(chan waitSettledResult, 1)
+	go func() {
+		diags, err := s.waitSettledAfter(t.Context(), u, settle, baselineSeq)
+		resCh <- waitSettledResult{diags: diags, err: err}
+	}()
+
+	waitForPark(t, parked)
+	s.broadcastAll()
+	waitForPark(t, parked)
+	select {
+	case got := <-resCh:
+		t.Fatalf("waitSettledAfter returned stale baseline publish: diags=%v err=%v", got.diags, got.err)
+	default:
+	}
+
+	s.publish(publishParams(u, errDiag()))
+	waitForPark(t, parked)
+	clock.Advance(settle)
+	s.broadcastAll()
+
+	got := <-resCh
+	if got.err != nil {
+		t.Fatalf("waitSettledAfter returned error: %v", got.err)
+	}
+	if diff := cmp.Diff(wantErrDiag(), flattenDiagnostics(got.diags)); diff != "" {
+		t.Errorf("waitSettledAfter diagnostics mismatch (-want +got):\n%s", diff)
 	}
 }
 

@@ -35,8 +35,9 @@ import (
 type fakeServer struct {
 	protocol.UnimplementedServer
 
-	mu     sync.Mutex
-	opened []protocol.DidOpenTextDocumentParams
+	mu        sync.Mutex
+	opened    []protocol.DidOpenTextDocumentParams
+	onDidOpen func(context.Context, *protocol.DidOpenTextDocumentParams) error
 
 	pullSupported bool
 	pullReport    protocol.DocumentDiagnosticReport
@@ -57,10 +58,15 @@ func (f *fakeServer) Initialize(_ context.Context, _ *protocol.InitializeParams)
 	return res, nil
 }
 
-func (f *fakeServer) DidOpen(_ context.Context, params *protocol.DidOpenTextDocumentParams) error {
+func (f *fakeServer) DidOpen(ctx context.Context, params *protocol.DidOpenTextDocumentParams) error {
 	f.mu.Lock()
 	f.opened = append(f.opened, *params)
+	onDidOpen := f.onDidOpen
 	f.mu.Unlock()
+
+	if onDidOpen != nil {
+		return onDidOpen(ctx, params)
+	}
 
 	return nil
 }
@@ -221,11 +227,14 @@ func TestDiagnosticsLookupPush(t *testing.T) {
 	u := uri.File("/workspace/main.go")
 
 	// The server pushes an empty pre-analysis report, then the real diagnostics,
-	// both within the settle window. waitSettled must return the latter.
-	go func() {
-		ctx := context.Background()
-		_ = fake.client.PublishDiagnostics(ctx, &protocol.PublishDiagnosticsParams{URI: u})
-		_ = fake.client.PublishDiagnostics(ctx, &protocol.PublishDiagnosticsParams{
+	// both within the settle window after didOpen. waitSettled must return the
+	// latter.
+	fake.onDidOpen = func(ctx context.Context, _ *protocol.DidOpenTextDocumentParams) error {
+		if err := fake.client.PublishDiagnostics(ctx, &protocol.PublishDiagnosticsParams{URI: u}); err != nil {
+			return err
+		}
+
+		return fake.client.PublishDiagnostics(ctx, &protocol.PublishDiagnosticsParams{
 			URI: u,
 			Diagnostics: []protocol.Diagnostic{
 				{
@@ -238,7 +247,7 @@ func TestDiagnosticsLookupPush(t *testing.T) {
 				},
 			},
 		})
-	}()
+	}
 
 	diags := fakeDiagnostics(sess, "go")
 	got, err := diags.Lookup(t.Context(), "go", "/workspace/main.go", "package main\n")
@@ -250,6 +259,82 @@ func TestDiagnosticsLookupPush(t *testing.T) {
 		{
 			StartLine: 4, StartColumn: 1, EndLine: 4, EndColumn: 6,
 			Severity: "warning", Message: "unused variable",
+		},
+	}
+	if diff := cmp.Diff(want, got); diff != "" {
+		t.Errorf("Lookup diagnostics mismatch (-want +got):\n%s", diff)
+	}
+}
+
+func TestDiagnosticsLookupPushIgnoresCachedBaseline(t *testing.T) {
+	t.Parallel()
+
+	fake := &fakeServer{pullSupported: false}
+	sess := wireSession(t, fake)
+	if sess.pullSupported {
+		t.Fatal("session advertised pull support the fake did not offer")
+	}
+	clock := newFakeClock()
+	sess.store.nowFn = clock.Now
+
+	u := uri.File("/workspace/main.go")
+	sess.store.publish(&protocol.PublishDiagnosticsParams{
+		URI: u,
+		Diagnostics: []protocol.Diagnostic{
+			{
+				Range: protocol.Range{
+					Start: protocol.Position{Line: 1, Character: 0},
+					End:   protocol.Position{Line: 1, Character: 6},
+				},
+				Severity: protocol.DiagnosticSeverityError,
+				Message:  protocol.String("stale cached diagnostic"),
+			},
+		},
+	})
+
+	diags := fakeDiagnostics(sess, "go")
+	clock.Advance(diags.settle + time.Millisecond)
+
+	published := make(chan struct{})
+	fake.onDidOpen = func(_ context.Context, _ *protocol.DidOpenTextDocumentParams) error {
+		go func() {
+			time.Sleep(10 * time.Millisecond)
+			sess.store.publish(&protocol.PublishDiagnosticsParams{
+				URI: u,
+				Diagnostics: []protocol.Diagnostic{
+					{
+						Range: protocol.Range{
+							Start: protocol.Position{Line: 4, Character: 1},
+							End:   protocol.Position{Line: 4, Character: 6},
+						},
+						Severity: protocol.DiagnosticSeverityWarning,
+						Message:  protocol.String("fresh diagnostic"),
+					},
+				},
+			})
+			clock.Advance(diags.settle)
+			sess.store.broadcastAll()
+			close(published)
+		}()
+
+		return nil
+	}
+
+	got, err := diags.Lookup(t.Context(), "go", "/workspace/main.go", "package main\n")
+	if err != nil {
+		t.Fatalf("Lookup: %v", err)
+	}
+
+	select {
+	case <-published:
+	case <-time.After(2 * time.Second):
+		t.Fatal("fresh diagnostics were not published")
+	}
+
+	want := []Diagnostic{
+		{
+			StartLine: 4, StartColumn: 1, EndLine: 4, EndColumn: 6,
+			Severity: "warning", Message: "fresh diagnostic",
 		},
 	}
 	if diff := cmp.Diff(want, got); diff != "" {

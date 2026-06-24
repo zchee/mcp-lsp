@@ -106,6 +106,21 @@ func (s *store) snapshot(u uri.URI) ([]protocol.Diagnostic, bool) {
 	return slices.Clone(doc.diags), true
 }
 
+// publishSeq returns the latest publish sequence observed for u. Callers use the
+// value as a baseline before mutating a document, then wait for a later publish
+// so stale diagnostics from an earlier lookup cannot satisfy the new request.
+func (s *store) publishSeq(u uri.URI) uint64 {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+
+	doc := s.docs[u]
+	if doc == nil {
+		return 0
+	}
+
+	return doc.seq
+}
+
 // waitSettled blocks until the publish stream for u has been quiet for at least
 // settle since the last publish, returning the last-published diagnostics. It
 // returns ctx.Err() if ctx is canceled or its deadline passes first, and
@@ -116,6 +131,14 @@ func (s *store) snapshot(u uri.URI) ([]protocol.Diagnostic, bool) {
 // time.AfterFunc watchdog wake the Cond when the deadline or settle boundary is
 // reached; both are stopped on return.
 func (s *store) waitSettled(ctx context.Context, u uri.URI, settle time.Duration) ([]protocol.Diagnostic, error) {
+	return s.waitSettledAfter(ctx, u, settle, 0)
+}
+
+// waitSettledAfter is waitSettled scoped to publishes that happen after
+// baselineSeq. It is the push-diagnostics read path used after didOpen/didChange
+// so a cached publish from a previous document version cannot make a fresh
+// lookup return stale or prematurely empty diagnostics.
+func (s *store) waitSettledAfter(ctx context.Context, u uri.URI, settle time.Duration, baselineSeq uint64) ([]protocol.Diagnostic, error) {
 	stopCtx := context.AfterFunc(ctx, s.broadcastAll)
 	defer stopCtx()
 
@@ -128,7 +151,7 @@ func (s *store) waitSettled(ctx context.Context, u uri.URI, settle time.Duration
 		}
 
 		doc := s.docs[u]
-		if doc != nil && doc.seq > 0 {
+		if doc != nil && doc.seq > baselineSeq {
 			elapsed := s.nowFn().Sub(doc.lastPub)
 			if elapsed >= settle {
 				return slices.Clone(doc.diags), nil
