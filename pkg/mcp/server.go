@@ -37,7 +37,7 @@ func NewServer(mgr *lsp.Manager, logger *slog.Logger) *mcp.Server {
 		Name:        "lsp_diagnostics",
 		Description: "Report LSP diagnostics (errors and warnings) for a file via its language server.",
 		Annotations: &mcp.ToolAnnotations{ReadOnlyHint: true},
-	}, diagnosticsHandler(mgr.Diagnostics()))
+	}, diagnosticsHandler(mgr.Diagnostics(), mgr.WorkspaceRoot()))
 
 	return s
 }

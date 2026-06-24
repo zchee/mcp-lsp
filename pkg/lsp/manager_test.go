@@ -17,6 +17,7 @@ package lsp
 import (
 	"context"
 	"log/slog"
+	"path/filepath"
 	"sync"
 	"sync/atomic"
 	"testing"
@@ -59,6 +60,15 @@ func TestManagerSessionUnknownLanguage(t *testing.T) {
 	}
 	if got := spawns.Load(); got != 0 {
 		t.Errorf("unknown language spawned %d servers, want 0", got)
+	}
+}
+
+func TestNewManagerWorkspaceRootIsAbsolute(t *testing.T) {
+	t.Parallel()
+
+	m := NewManager(nil, ".", nil)
+	if !filepath.IsAbs(m.WorkspaceRoot()) {
+		t.Errorf("WorkspaceRoot = %q, want an absolute path", m.WorkspaceRoot())
 	}
 }
 

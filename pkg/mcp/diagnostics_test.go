@@ -69,7 +69,7 @@ func TestDiagnosticsHandlerEmptyFile(t *testing.T) {
 	t.Parallel()
 
 	looker := &fakeLooker{}
-	handler := diagnosticsHandler(looker)
+	handler := diagnosticsHandler(looker, t.TempDir())
 
 	_, _, err := handler(t.Context(), nil, DiagnosticsInput{File: ""})
 	if err == nil {
@@ -85,7 +85,7 @@ func TestDiagnosticsHandlerDefaultsLanguage(t *testing.T) {
 
 	path := writeTempFile(t)
 	looker := &fakeLooker{}
-	handler := diagnosticsHandler(looker)
+	handler := diagnosticsHandler(looker, t.TempDir())
 
 	_, _, err := handler(t.Context(), nil, DiagnosticsInput{File: path})
 	if err != nil {
@@ -102,6 +102,30 @@ func TestDiagnosticsHandlerDefaultsLanguage(t *testing.T) {
 	}
 }
 
+func TestDiagnosticsHandlerResolvesRelativeFileFromWorkspaceRoot(t *testing.T) {
+	t.Parallel()
+
+	workspace := t.TempDir()
+	path := filepath.Join(workspace, "main.go")
+	if err := os.WriteFile(path, []byte(fileContent), 0o600); err != nil {
+		t.Fatalf("write workspace file: %v", err)
+	}
+
+	looker := &fakeLooker{}
+	handler := diagnosticsHandler(looker, workspace)
+
+	_, out, err := handler(t.Context(), nil, DiagnosticsInput{File: "main.go"})
+	if err != nil {
+		t.Fatalf("handler: %v", err)
+	}
+	if looker.gotPath != path {
+		t.Errorf("Lookup path = %q, want workspace-relative path %q", looker.gotPath, path)
+	}
+	if out.File != path {
+		t.Errorf("handler output File = %q, want %q", out.File, path)
+	}
+}
+
 func TestDiagnosticsHandlerOneBasedConversion(t *testing.T) {
 	t.Parallel()
 
@@ -115,7 +139,7 @@ func TestDiagnosticsHandlerOneBasedConversion(t *testing.T) {
 			},
 		},
 	}
-	handler := diagnosticsHandler(looker)
+	handler := diagnosticsHandler(looker, t.TempDir())
 
 	_, out, err := handler(t.Context(), nil, DiagnosticsInput{File: path, Language: "go"})
 	if err != nil {
@@ -142,7 +166,7 @@ func TestDiagnosticsHandlerSurfacesLookupError(t *testing.T) {
 	path := writeTempFile(t)
 	sentinel := errors.New("language server initialize failed")
 	looker := &fakeLooker{err: sentinel}
-	handler := diagnosticsHandler(looker)
+	handler := diagnosticsHandler(looker, t.TempDir())
 
 	_, _, err := handler(t.Context(), nil, DiagnosticsInput{File: path})
 	if !errors.Is(err, sentinel) {
@@ -154,7 +178,7 @@ func TestDiagnosticsHandlerMissingFile(t *testing.T) {
 	t.Parallel()
 
 	looker := &fakeLooker{}
-	handler := diagnosticsHandler(looker)
+	handler := diagnosticsHandler(looker, t.TempDir())
 
 	missing := filepath.Join(t.TempDir(), "does-not-exist.go")
 	_, _, err := handler(t.Context(), nil, DiagnosticsInput{File: missing})
@@ -171,7 +195,7 @@ func TestDiagnosticsHandlerEmptyResult(t *testing.T) {
 
 	path := writeTempFile(t)
 	looker := &fakeLooker{diags: nil}
-	handler := diagnosticsHandler(looker)
+	handler := diagnosticsHandler(looker, t.TempDir())
 
 	_, out, err := handler(t.Context(), nil, DiagnosticsInput{File: path})
 	if err != nil {

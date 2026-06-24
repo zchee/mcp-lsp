@@ -64,13 +64,13 @@ type DiagnosticsOutput struct {
 // diagnosticsHandler returns the tool handler bound to looker. The handler
 // validates the input, reads the file, looks up diagnostics, and converts the
 // zero-based LSP positions to one-based agent positions.
-func diagnosticsHandler(looker diagLooker) mcp.ToolHandlerFor[DiagnosticsInput, DiagnosticsOutput] {
+func diagnosticsHandler(looker diagLooker, workspaceRoot string) mcp.ToolHandlerFor[DiagnosticsInput, DiagnosticsOutput] {
 	return func(ctx context.Context, _ *mcp.CallToolRequest, in DiagnosticsInput) (*mcp.CallToolResult, DiagnosticsOutput, error) {
 		if in.File == "" {
 			return nil, DiagnosticsOutput{}, fmt.Errorf("file is required")
 		}
 
-		absPath, err := filepath.Abs(in.File)
+		absPath, err := resolveFilePath(workspaceRoot, in.File)
 		if err != nil {
 			return nil, DiagnosticsOutput{}, fmt.Errorf("resolve file path %q: %w", in.File, err)
 		}
@@ -95,6 +95,24 @@ func diagnosticsHandler(looker diagLooker) mcp.ToolHandlerFor[DiagnosticsInput, 
 			Diagnostics: toItems(diags),
 		}, nil
 	}
+}
+
+// resolveFilePath resolves name as an absolute path or relative to workspaceRoot.
+func resolveFilePath(workspaceRoot, name string) (string, error) {
+	if filepath.IsAbs(name) {
+		return filepath.Clean(name), nil
+	}
+
+	root := workspaceRoot
+	if root == "" {
+		root = "."
+	}
+	absRoot, err := filepath.Abs(root)
+	if err != nil {
+		return "", fmt.Errorf("resolve workspace root %q: %w", workspaceRoot, err)
+	}
+
+	return filepath.Abs(filepath.Join(absRoot, name))
 }
 
 // toItems converts zero-based [lsp.Diagnostic] values into one-based tool items.

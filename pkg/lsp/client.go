@@ -19,6 +19,7 @@ import (
 	"errors"
 	"fmt"
 	"log/slog"
+	"path/filepath"
 	"sync"
 
 	"go.lsp.dev/protocol"
@@ -78,6 +79,7 @@ type Manager struct {
 	cfg      map[string]ServerConfig
 	sessions map[string]*serverSession
 	logger   *slog.Logger
+	rootDir  string
 	rootURI  uri.URI
 
 	// newSessionFn constructs an unstarted session. It defaults to newSession
@@ -92,14 +94,23 @@ func NewManager(cfg map[string]ServerConfig, rootDir string, logger *slog.Logger
 	if logger == nil {
 		logger = slog.New(slog.DiscardHandler)
 	}
+	if absRoot, err := filepath.Abs(rootDir); err == nil {
+		rootDir = absRoot
+	}
 
 	return &Manager{
 		cfg:          cfg,
 		sessions:     make(map[string]*serverSession),
 		logger:       logger,
+		rootDir:      rootDir,
 		rootURI:      uri.File(rootDir),
 		newSessionFn: newSession,
 	}
+}
+
+// WorkspaceRoot returns the absolute workspace root directory configured on m.
+func (m *Manager) WorkspaceRoot() string {
+	return m.rootDir
 }
 
 // session returns the initialized server session for lang, spawning it on first
