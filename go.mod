@@ -14,6 +14,7 @@ require (
 	go.lsp.dev/jsonrpc2 v1.0.0
 	go.lsp.dev/protocol v1.0.1-0.20260623001938-8bb731f68700
 	go.lsp.dev/uri v1.0.0
+	golang.org/x/tools v0.46.0
 )
 
 require (
@@ -26,5 +27,4 @@ require (
 	golang.org/x/sync v0.21.0 // indirect
 	golang.org/x/sys v0.46.0 // indirect
 	golang.org/x/time v0.15.0 // indirect
-	golang.org/x/tools v0.46.0 // indirect
 )
