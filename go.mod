@@ -9,7 +9,7 @@ replace (
 
 require (
 	github.com/google/go-cmp v0.7.0
-	github.com/modelcontextprotocol/go-sdk v1.6.1-0.20260622082731-3486f6bcaf3c // main
+	github.com/modelcontextprotocol/go-sdk v1.6.1-0.20260624100256-7f4aa4a0cec8 // main
 	github.com/phuslu/log v1.0.127
 	go.lsp.dev/jsonrpc2 v1.0.0
 	go.lsp.dev/protocol v1.0.1-0.20260623001938-8bb731f68700
