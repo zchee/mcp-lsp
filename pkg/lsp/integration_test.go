@@ -35,9 +35,8 @@ import (
 type fakeServer struct {
 	protocol.UnimplementedServer
 
-	mu        sync.Mutex
-	opened    []protocol.DidOpenTextDocumentParams
-	initCount int
+	mu     sync.Mutex
+	opened []protocol.DidOpenTextDocumentParams
 
 	pullSupported bool
 	pullReport    protocol.DocumentDiagnosticReport
@@ -46,10 +45,6 @@ type fakeServer struct {
 }
 
 func (f *fakeServer) Initialize(_ context.Context, _ *protocol.InitializeParams) (*protocol.InitializeResult, error) {
-	f.mu.Lock()
-	f.initCount++
-	f.mu.Unlock()
-
 	res := &protocol.InitializeResult{
 		ServerInfo: protocol.ServerInfo{Name: "fake"},
 	}
@@ -81,16 +76,18 @@ func (f *fakeServer) openedDocs() []protocol.DidOpenTextDocumentParams {
 	return append([]protocol.DidOpenTextDocumentParams(nil), f.opened...)
 }
 
-// wireSession connects fake to a ready serverSession over an in-memory pipe and
-// returns the session. The fake's pull capability is reflected on the session.
-func wireSession(t *testing.T, fake *fakeServer) *serverSession {
+// wireSessionCore connects srv to a ready serverSession over an in-memory pipe
+// and returns the session together with the server-side dispatcher used to push
+// notifications back to the client. pullSupported reflects the capabilities srv
+// advertised in its initialize response. Cleanup of both connections and their
+// contexts is registered on t.
+func wireSessionCore(t *testing.T, srv protocol.Server) (*serverSession, protocol.Client) {
 	t.Helper()
 
 	clientEnd, serverEnd := net.Pipe()
 
 	serverCtx, serverCancel := context.WithCancel(context.Background())
-	_, serverConn, client := protocol.NewServer(serverCtx, fake, jsonrpc2.NewHeaderStream(serverEnd))
-	fake.client = client
+	_, serverConn, client := protocol.NewServer(serverCtx, srv, jsonrpc2.NewHeaderStream(serverEnd))
 
 	st := newStore()
 	logger := slog.New(slog.DiscardHandler)
@@ -127,6 +124,19 @@ func wireSession(t *testing.T, fake *fakeServer) *serverSession {
 		clientCancel()
 		serverCancel()
 	})
+
+	return sess, client
+}
+
+// wireSession connects fake to a ready serverSession over an in-memory pipe and
+// returns the session. The fake's pull capability is reflected on the session,
+// and the server-side dispatcher is wired into fake.client so the fake can push
+// publishDiagnostics back to the client.
+func wireSession(t *testing.T, fake *fakeServer) *serverSession {
+	t.Helper()
+
+	sess, client := wireSessionCore(t, fake)
+	fake.client = client
 
 	return sess
 }

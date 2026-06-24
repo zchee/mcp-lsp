@@ -17,7 +17,6 @@ package lsp
 import (
 	"context"
 	"log/slog"
-	"net"
 	"os"
 	"os/exec"
 	"runtime"
@@ -25,7 +24,6 @@ import (
 	"testing"
 	"time"
 
-	"go.lsp.dev/jsonrpc2"
 	"go.lsp.dev/protocol"
 	"go.lsp.dev/uri"
 )
@@ -172,47 +170,13 @@ func waitForGoroutines(t *testing.T, baseline int, timeout time.Duration) {
 
 // wireSessionWithServer connects an arbitrary protocol.Server to a ready
 // serverSession over an in-memory pipe, mirroring wireSession but accepting a
-// custom server implementation.
+// custom server implementation and an explicit pull-support flag rather than
+// deriving it from the server's advertised capabilities.
 func wireSessionWithServer(t *testing.T, srv protocol.Server, pull bool) *serverSession {
 	t.Helper()
 
-	clientEnd, serverEnd := net.Pipe()
-
-	serverCtx, serverCancel := context.WithCancel(context.Background())
-	_, serverConn, _ := protocol.NewServer(serverCtx, srv, jsonrpc2.NewHeaderStream(serverEnd))
-
-	st := newStore()
-	logger := slog.New(slog.DiscardHandler)
-	clientCtx, clientCancel := context.WithCancel(context.Background())
-	lspClient := newClient(st, logger)
-	_, clientConn, server := protocol.NewClient(clientCtx, lspClient, jsonrpc2.NewHeaderStream(clientEnd))
-
-	if _, err := server.Initialize(clientCtx, initializeParams(uri.File(t.TempDir()))); err != nil {
-		t.Fatalf("initialize: %v", err)
-	}
-	if err := server.Initialized(clientCtx, &protocol.InitializedParams{}); err != nil {
-		t.Fatalf("initialized: %v", err)
-	}
-
-	sess := &serverSession{
-		ready:         make(chan struct{}),
-		pullSupported: pull,
-		conn:          clientConn,
-		server:        server,
-		client:        lspClient,
-		store:         st,
-		logger:        logger,
-		cancel:        clientCancel,
-	}
-	sess.once.Do(func() {})
-	close(sess.ready)
-
-	t.Cleanup(func() {
-		_ = clientConn.Close()
-		_ = serverConn.Close()
-		clientCancel()
-		serverCancel()
-	})
+	sess, _ := wireSessionCore(t, srv)
+	sess.pullSupported = pull
 
 	return sess
 }
