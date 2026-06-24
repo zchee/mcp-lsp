@@ -36,9 +36,9 @@ import (
 const shutdownWait = 5 * time.Second
 
 // serverSession is one language server subprocess together with its jsonrpc2
-// connection and lifecycle state. Its sync.Once guards a single start; because
-// a fired Once cannot be reused, a dead session is replaced wholesale by the
-// Manager rather than restarted in place.
+// connection and lifecycle state. Its [sync.Once] guards a single start; because
+// a fired [sync.Once] cannot be reused, a dead session is replaced wholesale by
+// the [Manager] rather than restarted in place.
 type serverSession struct {
 	once          sync.Once
 	ready         chan struct{}
@@ -58,7 +58,7 @@ type serverSession struct {
 	shutdownErr  error
 
 	// startFn performs the one-time spawn-and-initialize. It defaults to the
-	// real start method and is a seam for tests that exercise the Manager's
+	// real start method and is a seam for tests that exercise the [Manager]'s
 	// session lifecycle without spawning a subprocess.
 	startFn func(ctx context.Context, cfg ServerConfig, rootURI uri.URI)
 }
@@ -78,9 +78,9 @@ func newSession(store *store, logger *slog.Logger) *serverSession {
 // start spawns the server, wires the jsonrpc2 connection, performs the
 // initialize handshake, and records whether pull diagnostics are supported. It
 // closes ready when finished, with initErr set on failure. It runs exactly once
-// under the session's sync.Once.
+// under the session's [sync.Once].
 //
-// The connection context is rooted with context.WithoutCancel(parent) so it
+// The connection context is rooted with [context.WithoutCancel] so it
 // keeps parent's values but is detached from a tool call's cancellation:
 // otherwise canceling the first call would tear down the read loop and hang
 // every later call on a dead connection.
@@ -140,13 +140,14 @@ func (s *serverSession) start(parent context.Context, cfg ServerConfig, rootURI 
 // failStart records an initialization failure and tears down everything the
 // partially started session created. It is fully self-cleaning rather than
 // relying on a later shutdown: a failed session is marked dead and is replaced
-// wholesale by the Manager on the next request, which drops this pointer, so if
+// wholesale by the [Manager] on the next request, which drops this pointer, so if
 // failStart did not reap the child and close the pipes here they would leak (a
 // zombie process plus its stdio descriptors) on every failed handshake.
 //
-// conn.Close is called explicitly because, per the jsonrpc2 contract, canceling
-// the context is observed only between frames: a reader already parked mid-frame
-// is unblocked promptly only by closing the stream, not by ctx cancellation.
+// [jsonrpc2.Conn.Close] is called explicitly because, per the jsonrpc2 contract,
+// canceling the context is observed only between frames: a reader already parked
+// mid-frame is unblocked promptly only by closing the stream, not by ctx
+// cancellation.
 func (s *serverSession) failStart(err error) {
 	s.initErr = err
 	s.dead.Store(true)
@@ -188,11 +189,11 @@ func (s *serverSession) doShutdown(ctx context.Context) error {
 	<-s.ready
 
 	// Bound the LSP handshake independently of the caller's context, which may
-	// have no deadline (Manager.Close is invoked with a non-cancelable context
+	// have no deadline ([Manager.Close] is invoked with a non-cancelable context
 	// during process teardown). A wedged server that never answers shutdown/exit
-	// would otherwise block here forever, since jsonrpc2 Call returns only on a
-	// response, a write error, or ctx cancellation. conn.Close below then
-	// guarantees teardown even when the handshake timed out.
+	// would otherwise block here forever, since [jsonrpc2.Conn.Call] returns only
+	// on a response, a write error, or ctx cancellation. [jsonrpc2.Conn.Close]
+	// below then guarantees teardown even when the handshake timed out.
 	if s.server != nil {
 		hctx, cancel := context.WithTimeout(ctx, shutdownWait)
 		if err := s.server.Shutdown(hctx); err != nil {
@@ -238,16 +239,16 @@ func (s *serverSession) waitProcess() error {
 	}
 }
 
-// isCleanExit reports whether a cmd.Wait error is the expected consequence of a
-// requested shutdown rather than a genuine failure.
+// isCleanExit reports whether an [exec.Cmd.Wait] error is the expected
+// consequence of a requested shutdown rather than a genuine failure.
 func isCleanExit(err error) bool {
 	var exitErr *exec.ExitError
 
 	return errors.As(err, &exitErr)
 }
 
-// initializeParams builds the InitializeParams advertising support for push and
-// pull diagnostics and document synchronization rooted at rootURI.
+// initializeParams builds the [protocol.InitializeParams] advertising support
+// for push and pull diagnostics and document synchronization rooted at rootURI.
 func initializeParams(rootURI uri.URI) *protocol.InitializeParams {
 	pid := int32(os.Getpid()) //nolint:gosec // a process id fits in int32 on every supported platform
 	ptrTrue := func() *bool { b := true; return &b }
@@ -279,8 +280,8 @@ func initializeParams(rootURI uri.URI) *protocol.InitializeParams {
 }
 
 // pipeRWC adapts the subprocess's separate stdout (read) and stdin (write)
-// pipes into a single io.ReadWriteCloser for the jsonrpc2 header stream. Close
-// closes both ends.
+// pipes into a single [io.ReadWriteCloser] for the jsonrpc2 header stream.
+// [pipeRWC.Close] closes both ends.
 type pipeRWC struct {
 	r io.ReadCloser
 	w io.WriteCloser

@@ -64,9 +64,10 @@ func errDiag() []protocol.Diagnostic {
 	}
 }
 
-// wantErrDiag is the flattened, comparable projection of errDiag. protocol
-// diagnostics carry unexported union/optional fields that go-cmp cannot inspect,
-// so assertions compare the domain projection produced by flattenDiagnostics.
+// wantErrDiag is the flattened, comparable projection of errDiag.
+// [protocol.Diagnostic] values carry unexported union/optional fields that
+// go-cmp cannot inspect, so assertions compare the domain projection produced by
+// flattenDiagnostics.
 func wantErrDiag() []Diagnostic {
 	return flattenDiagnostics(errDiag())
 }

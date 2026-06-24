@@ -25,7 +25,7 @@ import (
 	"go.lsp.dev/uri"
 )
 
-// newTestManager returns a Manager whose sessions never spawn a subprocess: each
+// newTestManager returns a [Manager] whose sessions never spawn a subprocess: each
 // session's startFn merely closes ready, incrementing spawns so tests can assert
 // how many times a server would have been launched.
 func newTestManager(spawns *atomic.Int64) *Manager {

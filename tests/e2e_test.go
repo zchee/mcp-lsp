@@ -114,7 +114,7 @@ type diagnosticsOutput struct {
 	Diagnostics []diagnosticItem `json:"diagnostics"`
 }
 
-// decodeOutput extracts the structured tool output from a call result.
+// decodeOutput extracts the structured tool output from an [mcp.CallToolResult].
 func decodeOutput(t *testing.T, res *mcp.CallToolResult) diagnosticsOutput {
 	t.Helper()
 

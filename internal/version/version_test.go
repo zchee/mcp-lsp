@@ -57,7 +57,7 @@ func TestCommitAbbrev(t *testing.T) {
 	}
 }
 
-// settings builds a *debug.BuildInfo carrying the given VCS settings so
+// settings builds a [debug.BuildInfo] carrying the given VCS settings so
 // parseBuildInfo can be driven without a real binary's embedded build info.
 func settings(kv map[string]string) *debug.BuildInfo {
 	bi := &debug.BuildInfo{}
@@ -134,7 +134,7 @@ func TestParseBuildInfo(t *testing.T) {
 	}
 }
 
-// TestBuildVersion locks the exact Version string buildVersion assembles from
+// TestBuildVersion locks the exact [Version] string buildVersion assembles from
 // the injected stamp and parsed build info, the contract init commits to for
 // both the embedded and fallback cases. It exercises the production helper
 // directly so a change to the assembly format is caught here.

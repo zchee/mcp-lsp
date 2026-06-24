@@ -43,7 +43,7 @@ type Diagnostic struct {
 	Message     string
 }
 
-// Diagnostics is the diagnostics feature bound to a Manager. settle is how long
+// Diagnostics is the diagnostics feature bound to a [Manager]. settle is how long
 // the push path waits for the publish stream to go quiet; timeout bounds the
 // whole acquisition when the caller's context has no deadline.
 type Diagnostics struct {
@@ -88,8 +88,8 @@ func (d *Diagnostics) Lookup(ctx context.Context, lang, absPath, text string) ([
 	return flattenDiagnostics(diags), nil
 }
 
-// acquire returns the protocol diagnostics for u, using the pull path when the
-// session supports it and falling back to the cached push stream otherwise.
+// acquire returns [protocol.Diagnostic] values for u, using the pull path when
+// the session supports it and falling back to the cached push stream otherwise.
 func (d *Diagnostics) acquire(ctx context.Context, sess *serverSession, u uri.URI, baselineSeq uint64) ([]protocol.Diagnostic, error) {
 	if !sess.pullSupported {
 		ctx, cancel := d.withTimeout(ctx)
@@ -129,7 +129,7 @@ func (d *Diagnostics) withTimeout(ctx context.Context) (context.Context, context
 	return context.WithTimeout(ctx, d.timeout)
 }
 
-// flattenDiagnostics converts protocol diagnostics into the domain DTO,
+// flattenDiagnostics converts [protocol.Diagnostic] values into the domain DTO,
 // flattening the union-typed message and code fields. Positions stay zero-based.
 func flattenDiagnostics(in []protocol.Diagnostic) []Diagnostic {
 	out := make([]Diagnostic, 0, len(in))
@@ -153,8 +153,8 @@ func flattenDiagnostics(in []protocol.Diagnostic) []Diagnostic {
 // didOpenParams builds a textDocument/didOpen notification for u with the given
 // language and contents.
 //
-// TODO(zchee): this re-sends didOpen on every Lookup with a fixed version and
-// never sends didClose. gopls tolerates a repeated didOpen as an overlay
+// TODO(zchee): this re-sends didOpen on every [Diagnostics.Lookup] with a fixed
+// version and never sends didClose. gopls tolerates a repeated didOpen as an overlay
 // replacement, but this is a deviation from LSP text-document synchronization:
 // strictly, a document should be opened once, then mutated via didChange with a
 // monotonically increasing version, then closed via didClose. Other servers may

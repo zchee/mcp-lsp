@@ -24,7 +24,7 @@ import (
 )
 
 // TestServerExposesDiagnosticsTool drives the assembled server over an in-memory
-// transport with an SDK client and asserts the lsp_diagnostics tool is listed
+// transport with an [mcp.Client] and asserts the lsp_diagnostics tool is listed
 // with a read-only annotation and a non-nil input schema.
 func TestServerExposesDiagnosticsTool(t *testing.T) {
 	t.Parallel()

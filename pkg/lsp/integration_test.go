@@ -28,10 +28,10 @@ import (
 	"go.lsp.dev/uri"
 )
 
-// fakeServer is an in-memory protocol.Server test double. It records the
-// requests mcp-lsp issues and answers Diagnostic with a configurable report. It
+// fakeServer is an in-memory [protocol.Server] test double. It records the
+// requests mcp-lsp issues and answers diagnostic requests with a configurable report. It
 // can also push publishDiagnostics to the client through the dispatcher handed
-// back by protocol.NewServer.
+// back by [protocol.NewServer].
 type fakeServer struct {
 	protocol.UnimplementedServer
 
@@ -119,8 +119,8 @@ func wireSessionCore(t *testing.T, srv protocol.Server) (*serverSession, protoco
 		logger:        logger,
 		cancel:        clientCancel,
 	}
-	// Consume the sync.Once so Manager.session does not attempt a real spawn for
-	// this pre-wired session, and signal readiness.
+	// Consume the [sync.Once] so [Manager.session] does not attempt a real spawn
+	// for this pre-wired session, and signal readiness.
 	sess.once.Do(func() {})
 	close(sess.ready)
 
@@ -147,8 +147,8 @@ func wireSession(t *testing.T, fake *fakeServer) *serverSession {
 	return sess
 }
 
-// fakeManager wraps a wired session so Diagnostics.Lookup can drive it without a
-// real Manager.session spawn.
+// fakeManager wraps a wired session so [Diagnostics.Lookup] can drive it without
+// a real [Manager.session] spawn.
 func fakeDiagnostics(sess *serverSession, lang string) *Diagnostics {
 	mgr := &Manager{
 		cfg:      map[string]ServerConfig{lang: {LanguageID: protocol.LanguageKindGo}},

@@ -97,7 +97,7 @@ func diagnosticsHandler(looker diagLooker) mcp.ToolHandlerFor[DiagnosticsInput, 
 	}
 }
 
-// toItems converts zero-based domain diagnostics into one-based tool items.
+// toItems converts zero-based [lsp.Diagnostic] values into one-based tool items.
 func toItems(diags []lsp.Diagnostic) []DiagnosticItem {
 	items := make([]DiagnosticItem, 0, len(diags))
 	for _, d := range diags {

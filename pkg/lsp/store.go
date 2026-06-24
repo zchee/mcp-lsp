@@ -53,7 +53,7 @@ type store struct {
 	onWait func()
 }
 
-// newStore returns a store whose clock is time.Now. Tests inject a fake clock
+// newStore returns a store whose clock is [time.Now]. Tests inject a fake clock
 // with newStoreWithClock to drive the settle window deterministically.
 func newStore() *store {
 	return newStoreWithClock(time.Now)
@@ -123,13 +123,13 @@ func (s *store) publishSeq(u uri.URI) uint64 {
 
 // waitSettled blocks until the publish stream for u has been quiet for at least
 // settle since the last publish, returning the last-published diagnostics. It
-// returns ctx.Err() if ctx is canceled or its deadline passes first, and
+// returns [context.Context.Err] if ctx is canceled or its deadline passes first, and
 // returns promptly with the latest snapshot if broadcastAll fires (server
 // death). It never sleeps past the context deadline.
 //
-// Cond.Wait cannot select on ctx, so a context.AfterFunc and a per-iteration
-// time.AfterFunc watchdog wake the Cond when the deadline or settle boundary is
-// reached; both are stopped on return.
+// [sync.Cond.Wait] cannot select on ctx, so a [context.AfterFunc] and a
+// per-iteration [time.AfterFunc] watchdog wake the condition variable when the
+// deadline or settle boundary is reached; both are stopped on return.
 func (s *store) waitSettled(ctx context.Context, u uri.URI, settle time.Duration) ([]protocol.Diagnostic, error) {
 	return s.waitSettledAfter(ctx, u, settle, 0)
 }

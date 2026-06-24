@@ -86,7 +86,7 @@ func run(args []string) error {
 	return nil
 }
 
-// parseLevel maps a log level name to its slog.Level, defaulting to info.
+// parseLevel maps a log level name to its [slog.Level], defaulting to info.
 func parseLevel(name string) slog.Level {
 	switch name {
 	case "debug":

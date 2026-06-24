@@ -26,11 +26,11 @@ type ServerConfig struct {
 	// Command is the language server executable resolved on PATH.
 	Command string
 
-	// Args are the arguments passed to Command when spawning the server.
+	// Args are the arguments passed to [ServerConfig.Command] when spawning the server.
 	Args []string
 
 	// LanguageID is the LSP language kind advertised for documents of this
-	// language (for example protocol.LanguageKindGo).
+	// language (for example [protocol.LanguageKindGo]).
 	LanguageID protocol.LanguageKind
 }
 

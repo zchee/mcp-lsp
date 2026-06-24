@@ -25,8 +25,8 @@ import (
 	"go.lsp.dev/uri"
 )
 
-// Client implements the subset of protocol.Client that mcp-lsp needs. It
-// embeds protocol.UnimplementedClient so un-overridden server->client requests
+// Client implements the subset of [protocol.Client] that mcp-lsp needs. It
+// embeds [protocol.UnimplementedClient] so un-overridden server->client requests
 // return a well-formed "method not found" and un-overridden notifications are
 // ignored, and overrides only the handlers that carry diagnostics or logs.
 type Client struct {
@@ -38,7 +38,7 @@ type Client struct {
 
 var _ protocol.Client = (*Client)(nil)
 
-// newClient returns a Client that records diagnostics into store and logs
+// newClient returns a [Client] that records diagnostics into store and logs
 // through logger.
 func newClient(store *store, logger *slog.Logger) *Client {
 	return &Client{
@@ -85,7 +85,7 @@ type Manager struct {
 	newSessionFn func(store *store, logger *slog.Logger) *serverSession
 }
 
-// NewManager returns a Manager that spawns the servers described by cfg, rooted
+// NewManager returns a [Manager] that spawns the servers described by cfg, rooted
 // at the workspace directory rootDir, logging through logger. A nil logger is
 // replaced with a discarding logger.
 func NewManager(cfg map[string]ServerConfig, rootDir string, logger *slog.Logger) *Manager {
@@ -104,9 +104,9 @@ func NewManager(cfg map[string]ServerConfig, rootDir string, logger *slog.Logger
 
 // session returns the initialized server session for lang, spawning it on first
 // use. Concurrent first calls for the same language observe a single spawn via
-// the session's sync.Once and block on the same ready signal. A session marked
-// dead is discarded and replaced. It returns ctx.Err() if ctx is canceled while
-// the session initializes.
+// the session's [sync.Once] and block on the same ready signal. A session marked
+// dead is discarded and replaced. It returns [context.Context.Err] if ctx is
+// canceled while the session initializes.
 func (m *Manager) session(ctx context.Context, lang string) (*serverSession, error) {
 	cfg, ok := m.cfg[lang]
 	if !ok {

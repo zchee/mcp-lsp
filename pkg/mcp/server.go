@@ -23,7 +23,7 @@ import (
 	"github.com/zchee/mcp-lsp/pkg/lsp"
 )
 
-// NewServer assembles an MCP server that exposes the language server
+// NewServer assembles an [mcp.Server] that exposes the language server
 // capabilities backed by mgr. It registers the lsp_diagnostics tool.
 func NewServer(mgr *lsp.Manager, logger *slog.Logger) *mcp.Server {
 	s := mcp.NewServer(&mcp.Implementation{

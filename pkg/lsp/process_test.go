@@ -35,7 +35,7 @@ const fakeServerEnv = "MCP_LSP_FAKE_SERVER"
 // TestMain intercepts re-executions of the test binary that carry fakeServerEnv
 // and runs the requested fake-server behavior instead of the test suite. This
 // gives the partial-init lifecycle test a real OS subprocess with real stdio
-// pipes, so the genuine exec.Cmd spawn and wait paths are exercised without
+// pipes, so the genuine [exec.Cmd] spawn and wait paths are exercised without
 // depending on an installed language server.
 func TestMain(m *testing.M) {
 	if os.Getenv(fakeServerEnv) == "exit-immediately" {
@@ -51,10 +51,11 @@ func TestMain(m *testing.M) {
 
 // TestSessionStartReapsProcessOnInitFailure verifies the partial-init cleanup
 // fix: when the subprocess starts but the initialize handshake fails, start ->
-// failStart must reap the child (so cmd.Wait was called and ProcessState is
-// populated) rather than leaving a zombie that a later, never-arriving shutdown
-// was supposed to collect. A failed session is replaced wholesale by the
-// Manager, dropping this pointer, so the cleanup must happen in failStart.
+// failStart must reap the child (so [exec.Cmd.Wait] was called and
+// [exec.Cmd.ProcessState] is populated) rather than leaving a zombie that a
+// later, never-arriving shutdown was supposed to collect. A failed session is
+// replaced wholesale by the [Manager], dropping this pointer, so the cleanup
+// must happen in failStart.
 func TestSessionStartReapsProcessOnInitFailure(t *testing.T) {
 	before := runtime.NumGoroutine()
 
@@ -84,10 +85,10 @@ func TestSessionStartReapsProcessOnInitFailure(t *testing.T) {
 	waitForGoroutines(t, before, 5*time.Second)
 }
 
-// blockingShutdownServer is an in-memory protocol.Server whose Shutdown blocks
-// until its context is canceled, emulating a wedged server that never answers
-// the shutdown request. It completes the initialize handshake normally so the
-// session reaches a ready state before shutdown is exercised.
+// blockingShutdownServer is an in-memory [protocol.Server] whose Shutdown
+// blocks until its context is canceled, emulating a wedged server that never
+// answers the shutdown request. It completes the initialize handshake normally
+// so the session reaches a ready state before shutdown is exercised.
 type blockingShutdownServer struct {
 	protocol.UnimplementedServer
 
@@ -108,10 +109,10 @@ func (s *blockingShutdownServer) Shutdown(ctx context.Context) error {
 
 // TestSessionShutdownBoundedOnWedgedServer verifies the bounded-handshake fix:
 // doShutdown called with a context that has no deadline (exactly what
-// Manager.Close passes) must still return promptly when the server never
+// [Manager.Close] passes) must still return promptly when the server never
 // answers shutdown, because the handshake is bounded by shutdownWait and
-// conn.Close forces teardown. The server runs in-memory over a pipe so the
-// blocking-Shutdown scenario is deterministic without a real subprocess.
+// closing the connection forces teardown. The server runs in-memory over a pipe
+// so the blocking-Shutdown scenario is deterministic without a real subprocess.
 func TestSessionShutdownBoundedOnWedgedServer(t *testing.T) {
 	t.Parallel()
 
@@ -138,8 +139,8 @@ func TestSessionShutdownBoundedOnWedgedServer(t *testing.T) {
 	}
 }
 
-// waitForProcessState polls until cmd.ProcessState is populated (the process was
-// waited on) or the timeout elapses.
+// waitForProcessState polls until [exec.Cmd.ProcessState] is populated (the
+// process was waited on) or the timeout elapses.
 func waitForProcessState(t *testing.T, cmd *exec.Cmd, timeout time.Duration) {
 	t.Helper()
 
@@ -168,7 +169,7 @@ func waitForGoroutines(t *testing.T, baseline int, timeout time.Duration) {
 	t.Errorf("goroutine count %d did not return near baseline %d; a goroutine may have leaked", runtime.NumGoroutine(), baseline)
 }
 
-// wireSessionWithServer connects an arbitrary protocol.Server to a ready
+// wireSessionWithServer connects an arbitrary [protocol.Server] to a ready
 // serverSession over an in-memory pipe, mirroring wireSession but accepting a
 // custom server implementation and an explicit pull-support flag rather than
 // deriving it from the server's advertised capabilities.

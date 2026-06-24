@@ -20,8 +20,9 @@ import (
 	"go.lsp.dev/protocol"
 )
 
-// messageText flattens a diagnostic message union (String | *MarkupContent)
-// into plain text. A nil message yields the empty string.
+// messageText flattens a diagnostic message union ([protocol.String] |
+// [protocol.MarkupContent]) into plain text. A nil message yields the empty
+// string.
 func messageText(msg protocol.InlayHintTooltip) string {
 	switch v := msg.(type) {
 	case protocol.String:
@@ -37,8 +38,8 @@ func messageText(msg protocol.InlayHintTooltip) string {
 	}
 }
 
-// codeString flattens a diagnostic code union (Integer | String) into its
-// string form. A nil code yields the empty string.
+// codeString flattens a diagnostic code union ([protocol.Integer] |
+// [protocol.String]) into its string form. A nil code yields the empty string.
 func codeString(code protocol.ProgressToken) string {
 	switch v := code.(type) {
 	case protocol.Integer:
@@ -50,8 +51,8 @@ func codeString(code protocol.ProgressToken) string {
 	}
 }
 
-// severityString maps an LSP diagnostic severity to a human-readable label. An
-// unset severity (0) yields the empty string.
+// severityString maps a [protocol.DiagnosticSeverity] to a human-readable
+// label. An unset severity (0) yields the empty string.
 func severityString(sev protocol.DiagnosticSeverity) string {
 	switch sev {
 	case protocol.DiagnosticSeverityError:
