@@ -80,7 +80,6 @@ func (d *Definition) Lookup(ctx context.Context, lang, absPath, text string, pos
 	if err != nil {
 		return nil, fmt.Errorf("definition request: %w", err)
 	}
-
 	return flattenDefinitionResult(result)
 }
 
@@ -90,7 +89,6 @@ func (d *Definition) withTimeout(ctx context.Context) (context.Context, context.
 	if _, ok := ctx.Deadline(); ok {
 		return ctx, func() {}
 	}
-
 	return context.WithTimeout(ctx, d.timeout)
 }
 
@@ -111,21 +109,18 @@ func flattenDefinitionResult(result protocol.DefinitionResult) ([]DefinitionLoca
 		if r == nil {
 			return []DefinitionLocation{}, nil
 		}
-
 		return []DefinitionLocation{definitionLocationFromLocation(*r)}, nil
 	case protocol.LocationSlice:
 		out := make([]DefinitionLocation, 0, len(r))
 		for _, loc := range r {
 			out = append(out, definitionLocationFromLocation(loc))
 		}
-
 		return out, nil
 	case protocol.DefinitionLinkSlice:
 		out := make([]DefinitionLocation, 0, len(r))
 		for _, link := range r {
 			out = append(out, definitionLocationFromLink(link))
 		}
-
 		return out, nil
 	default:
 		return nil, fmt.Errorf("unsupported definition result %T", result)
@@ -134,7 +129,6 @@ func flattenDefinitionResult(result protocol.DefinitionResult) ([]DefinitionLoca
 
 func definitionLocationFromLocation(loc protocol.Location) DefinitionLocation {
 	rng := definitionRangeFromProtocol(loc.Range)
-
 	return DefinitionLocation{
 		TargetURI:            string(loc.URI),
 		TargetRange:          rng,
@@ -152,7 +146,6 @@ func definitionLocationFromLink(link protocol.DefinitionLink) DefinitionLocation
 		rng := definitionRangeFromProtocol(*link.OriginSelectionRange)
 		out.OriginSelectionRange = &rng
 	}
-
 	return out
 }
 

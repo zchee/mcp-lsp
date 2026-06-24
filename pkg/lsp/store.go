@@ -66,7 +66,6 @@ func newStoreWithClock(nowFn func() time.Time) *store {
 		nowFn: nowFn,
 	}
 	s.cond = sync.NewCond(&s.mu)
-
 	return s
 }
 
@@ -102,7 +101,6 @@ func (s *store) snapshot(u uri.URI) ([]protocol.Diagnostic, bool) {
 	if doc == nil {
 		return nil, false
 	}
-
 	return slices.Clone(doc.diags), true
 }
 
@@ -117,7 +115,6 @@ func (s *store) publishSeq(u uri.URI) uint64 {
 	if doc == nil {
 		return 0
 	}
-
 	return doc.seq
 }
 
@@ -160,7 +157,6 @@ func (s *store) waitSettledAfter(ctx context.Context, u uri.URI, settle time.Dur
 			timer := time.AfterFunc(settle-elapsed, s.broadcastAll)
 			s.wait()
 			timer.Stop()
-
 			continue
 		}
 

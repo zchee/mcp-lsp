@@ -55,7 +55,6 @@ func run(args []string) error {
 
 	if *showVersion {
 		fmt.Fprintln(os.Stdout, version.Version)
-
 		return nil
 	}
 
@@ -82,7 +81,6 @@ func run(args []string) error {
 	if err := srv.Run(ctx, &mcp.StdioTransport{}); err != nil {
 		return fmt.Errorf("run mcp server: %w", err)
 	}
-
 	return nil
 }
 

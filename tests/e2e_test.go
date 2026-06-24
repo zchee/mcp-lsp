@@ -236,7 +236,6 @@ func decodeStructured[T any](t *testing.T, res *mcp.CallToolResult) T {
 	if err := json.Unmarshal(raw, &out); err != nil {
 		t.Fatalf("unmarshal structured content: %v", err)
 	}
-
 	return out
 }
 
@@ -251,7 +250,6 @@ func buildBinary(t *testing.T) string {
 	if out, err := cmd.CombinedOutput(); err != nil {
 		t.Fatalf("build mcp-lsp: %v\n%s", err, out)
 	}
-
 	return bin
 }
 
@@ -259,7 +257,6 @@ func buildBinary(t *testing.T) string {
 // compile error, and waits briefly so the file modification time is stable.
 func newWorkspace(t *testing.T) string {
 	t.Helper()
-
 	return newWorkspaceWithFixture(t, errorFixture)
 }
 
@@ -274,7 +271,6 @@ func newWorkspaceWithFixture(t *testing.T, fixture string) string {
 
 	// Give the filesystem a moment so gopls observes a settled workspace.
 	time.Sleep(100 * time.Millisecond)
-
 	return dir
 }
 
@@ -304,7 +300,6 @@ func mustPositionOf(t *testing.T, source, needle string, occurrence int) (line, 
 		}
 		column++
 	}
-
 	return line, column
 }
 

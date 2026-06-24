@@ -98,7 +98,6 @@ func definitionHandler(looker defLooker, workspaceRoot string) mcp.ToolHandlerFo
 		if err != nil {
 			return nil, DefinitionOutput{}, err
 		}
-
 		return nil, DefinitionOutput{
 			File:        absPath,
 			URI:         string(uri.File(absPath)),
@@ -116,7 +115,6 @@ func definitionInputPosition(line, column int) (protocol.Position, error) {
 	if err != nil {
 		return protocol.Position{}, err
 	}
-
 	return protocol.Position{Line: protocolLine, Character: protocolColumn}, nil
 }
 
@@ -127,7 +125,6 @@ func definitionInputCoordinate(name string, value int) (uint32, error) {
 	if int64(value) > maxProtocolPositionInput {
 		return 0, fmt.Errorf("%s must be less than or equal to %d", name, maxProtocolPositionInput)
 	}
-
 	return uint32(value - 1), nil
 }
 
@@ -147,7 +144,6 @@ func toDefinitionItems(defs []lsp.DefinitionLocation) []DefinitionItem {
 		}
 		items = append(items, item)
 	}
-
 	return items
 }
 

@@ -42,10 +42,8 @@ func newTestManager(spawns *atomic.Int64) *Manager {
 			spawns.Add(1)
 			close(sess.ready)
 		}
-
 		return sess
 	}
-
 	return m
 }
 
@@ -97,7 +95,6 @@ func TestManagerSessionSpawnsOnceConcurrently(t *testing.T) {
 	for i := range callers {
 		if errs[i] != nil {
 			t.Errorf("caller %d: unexpected error: %v", i, errs[i])
-
 			continue
 		}
 		if sessions[i] != sessions[0] {
@@ -150,7 +147,6 @@ func TestManagerSessionContextCanceled(t *testing.T) {
 	m.newSessionFn = func(store *store, logger *slog.Logger) *serverSession {
 		sess := newSession(store, logger)
 		sess.startFn = func(context.Context, ServerConfig, uri.URI) {}
-
 		return sess
 	}
 

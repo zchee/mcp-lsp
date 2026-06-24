@@ -43,7 +43,6 @@ func commitAbbrev(commit string) string {
 	if len(commit) >= 9 {
 		return commit[:9]
 	}
-
 	return commit
 }
 
@@ -71,7 +70,6 @@ func parseBuildInfo(bi *debug.BuildInfo, ok bool) embeddedInfo {
 		// it is missing.
 		return embeddedInfo{}
 	}
-
 	return ret
 }
 
@@ -90,7 +88,6 @@ func buildVersion(stamp string, info embeddedInfo) string {
 	}
 
 	gitCommit := fmt.Sprintf("%s-%s-t%s", info.commit, info.commitDate, commitAbbrev(info.commit))
-
 	return stamp + "-" + gitCommit
 }
 

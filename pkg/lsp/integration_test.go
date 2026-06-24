@@ -58,7 +58,6 @@ func (f *fakeServer) Initialize(_ context.Context, _ *protocol.InitializeParams)
 			InterFileDependencies: true,
 		}
 	}
-
 	return res, nil
 }
 
@@ -71,7 +70,6 @@ func (f *fakeServer) DidOpen(ctx context.Context, params *protocol.DidOpenTextDo
 	if onDidOpen != nil {
 		return onDidOpen(ctx, params)
 	}
-
 	return nil
 }
 
@@ -82,7 +80,6 @@ func (f *fakeServer) Diagnostic(_ context.Context, _ *protocol.DocumentDiagnosti
 func (f *fakeServer) openedDocs() []protocol.DidOpenTextDocumentParams {
 	f.mu.Lock()
 	defer f.mu.Unlock()
-
 	return append([]protocol.DidOpenTextDocumentParams(nil), f.opened...)
 }
 
@@ -134,7 +131,6 @@ func wireSessionCore(t *testing.T, srv protocol.Server) (*serverSession, protoco
 		clientCancel()
 		serverCancel()
 	})
-
 	return sess, client
 }
 
@@ -147,7 +143,6 @@ func wireSession(t *testing.T, fake *fakeServer) *serverSession {
 
 	sess, client := wireSessionCore(t, fake)
 	fake.client = client
-
 	return sess
 }
 
@@ -159,7 +154,6 @@ func fakeDiagnostics(sess *serverSession, lang string) *Diagnostics {
 		sessions: map[string]*serverSession{lang: sess},
 		logger:   slog.New(slog.DiscardHandler),
 	}
-
 	return &Diagnostics{mgr: mgr, settle: 50 * time.Millisecond, timeout: 2 * time.Second}
 }
 
@@ -237,7 +231,6 @@ func TestDiagnosticsLookupPush(t *testing.T) {
 		if err := fake.client.PublishDiagnostics(ctx, &protocol.PublishDiagnosticsParams{URI: u}); err != nil {
 			return err
 		}
-
 		return fake.client.PublishDiagnostics(ctx, &protocol.PublishDiagnosticsParams{
 			URI: u,
 			Diagnostics: []protocol.Diagnostic{
@@ -320,7 +313,6 @@ func TestDiagnosticsLookupPushIgnoresCachedBaseline(t *testing.T) {
 			sess.store.broadcastAll()
 			close(published)
 		}()
-
 		return nil
 	}
 

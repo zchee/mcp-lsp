@@ -84,7 +84,6 @@ func (d *Diagnostics) Lookup(ctx context.Context, lang, absPath, text string) ([
 	if err != nil {
 		return nil, err
 	}
-
 	return flattenDiagnostics(diags), nil
 }
 
@@ -94,7 +93,6 @@ func (d *Diagnostics) acquire(ctx context.Context, sess *serverSession, u uri.UR
 	if !sess.pullSupported {
 		ctx, cancel := d.withTimeout(ctx)
 		defer cancel()
-
 		return sess.store.waitSettledAfter(ctx, u, d.settle, baselineSeq)
 	}
 
@@ -110,11 +108,9 @@ func (d *Diagnostics) acquire(ctx context.Context, sess *serverSession, u uri.UR
 		// The server reports the previous result is still accurate; serve the
 		// authoritative push cache.
 		diags, _ := sess.store.snapshot(u)
-
 		return diags, nil
 	default:
 		diags, _ := sess.store.snapshot(u)
-
 		return diags, nil
 	}
 }
@@ -125,7 +121,6 @@ func (d *Diagnostics) withTimeout(ctx context.Context) (context.Context, context
 	if _, ok := ctx.Deadline(); ok {
 		return ctx, func() {}
 	}
-
 	return context.WithTimeout(ctx, d.timeout)
 }
 
@@ -146,7 +141,6 @@ func flattenDiagnostics(in []protocol.Diagnostic) []Diagnostic {
 			Message:     messageText(d.Message),
 		})
 	}
-
 	return out
 }
 

@@ -31,7 +31,6 @@ func messageText(msg protocol.InlayHintTooltip) string {
 		if v == nil {
 			return ""
 		}
-
 		return v.Value
 	default:
 		return ""
@@ -72,6 +71,5 @@ func severityString(sev protocol.DiagnosticSeverity) string {
 // string when it is absent.
 func optString(opt protocol.Optional[string]) string {
 	v, _ := opt.Get()
-
 	return v
 }

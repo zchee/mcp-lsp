@@ -45,7 +45,6 @@ func (f *fakeLooker) Lookup(_ context.Context, lang, absPath, text string) ([]ls
 	if f.err != nil {
 		return nil, f.err
 	}
-
 	return f.diags, nil
 }
 
@@ -61,7 +60,6 @@ func writeTempFile(t *testing.T) string {
 	if err := os.WriteFile(path, []byte(fileContent), 0o600); err != nil {
 		t.Fatalf("write temp file: %v", err)
 	}
-
 	return path
 }
 

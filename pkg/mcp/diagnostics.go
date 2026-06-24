@@ -89,7 +89,6 @@ func diagnosticsHandler(looker diagLooker, workspaceRoot string) mcp.ToolHandler
 		if err != nil {
 			return nil, DiagnosticsOutput{}, err
 		}
-
 		return nil, DiagnosticsOutput{
 			File:        absPath,
 			Diagnostics: toItems(diags),
@@ -111,7 +110,6 @@ func resolveFilePath(workspaceRoot, name string) (string, error) {
 	if err != nil {
 		return "", fmt.Errorf("resolve workspace root %q: %w", workspaceRoot, err)
 	}
-
 	return filepath.Abs(filepath.Join(absRoot, name))
 }
 
@@ -130,6 +128,5 @@ func toItems(diags []lsp.Diagnostic) []DiagnosticItem {
 			EndColumn:   d.EndColumn + 1,
 		})
 	}
-
 	return items
 }

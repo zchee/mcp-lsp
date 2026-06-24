@@ -64,7 +64,6 @@ func settings(kv map[string]string) *debug.BuildInfo {
 	for k, v := range kv {
 		bi.Settings = append(bi.Settings, debug.BuildSetting{Key: k, Value: v})
 	}
-
 	return bi
 }
 

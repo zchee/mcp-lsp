@@ -53,21 +53,18 @@ func newClient(store *store, logger *slog.Logger) *Client {
 // the cache and broadcasts.
 func (c *Client) PublishDiagnostics(_ context.Context, params *protocol.PublishDiagnosticsParams) error {
 	c.store.publish(params)
-
 	return nil
 }
 
 // LogMessage forwards a window/logMessage notification to the structured logger.
 func (c *Client) LogMessage(_ context.Context, params *protocol.LogMessageParams) error {
 	c.logger.Debug("lsp log message", slog.String("message", params.Message))
-
 	return nil
 }
 
 // ShowMessage forwards a window/showMessage notification to the structured logger.
 func (c *Client) ShowMessage(_ context.Context, params *protocol.ShowMessageParams) error {
 	c.logger.Info("lsp show message", slog.String("message", params.Message))
-
 	return nil
 }
 
@@ -97,7 +94,6 @@ func NewManager(cfg map[string]ServerConfig, rootDir string, logger *slog.Logger
 	if absRoot, err := filepath.Abs(rootDir); err == nil {
 		rootDir = absRoot
 	}
-
 	return &Manager{
 		cfg:          cfg,
 		sessions:     make(map[string]*serverSession),
@@ -151,7 +147,6 @@ func (m *Manager) store(prev *serverSession) *store {
 	if prev != nil && prev.store != nil {
 		return prev.store
 	}
-
 	return newStore()
 }
 
@@ -171,6 +166,5 @@ func (m *Manager) Close(ctx context.Context) error {
 			errs = append(errs, err)
 		}
 	}
-
 	return errors.Join(errs...)
 }

@@ -103,7 +103,6 @@ func (s *blockingShutdownServer) Initialize(_ context.Context, _ *protocol.Initi
 func (s *blockingShutdownServer) Shutdown(ctx context.Context) error {
 	s.once.Do(func() { close(s.shutdownEntered) })
 	<-ctx.Done() // never returns until the caller's bounded context expires
-
 	return ctx.Err()
 }
 
@@ -178,6 +177,5 @@ func wireSessionWithServer(t *testing.T, srv protocol.Server, pull bool) *server
 
 	sess, _ := wireSessionCore(t, srv)
 	sess.pullSupported = pull
-
 	return sess
 }

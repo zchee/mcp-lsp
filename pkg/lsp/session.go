@@ -71,7 +71,6 @@ func newSession(store *store, logger *slog.Logger) *serverSession {
 		logger: logger,
 	}
 	s.startFn = s.start
-
 	return s
 }
 
@@ -98,19 +97,16 @@ func (s *serverSession) start(parent context.Context, cfg ServerConfig, rootURI 
 	stdin, err := cmd.StdinPipe()
 	if err != nil {
 		s.failStart(fmt.Errorf("open language server stdin: %w", err))
-
 		return
 	}
 	stdout, err := cmd.StdoutPipe()
 	if err != nil {
 		s.failStart(fmt.Errorf("open language server stdout: %w", err))
-
 		return
 	}
 
 	if err := cmd.Start(); err != nil {
 		s.failStart(fmt.Errorf("start language server %q: %w", cfg.Command, err))
-
 		return
 	}
 	s.cmd = cmd
@@ -124,12 +120,10 @@ func (s *serverSession) start(parent context.Context, cfg ServerConfig, rootURI 
 	res, err := server.Initialize(sctx, initializeParams(rootURI))
 	if err != nil {
 		s.failStart(fmt.Errorf("language server initialize failed: %w", err))
-
 		return
 	}
 	if err := server.Initialized(sctx, &protocol.InitializedParams{}); err != nil {
 		s.failStart(fmt.Errorf("language server initialized failed: %w", err))
-
 		return
 	}
 	s.pullSupported = res.Capabilities.DiagnosticProvider != nil
@@ -181,7 +175,6 @@ func (s *serverSession) shutdown(ctx context.Context) error {
 	s.shutdownOnce.Do(func() {
 		s.shutdownErr = s.doShutdown(ctx)
 	})
-
 	return s.shutdownErr
 }
 
@@ -210,7 +203,6 @@ func (s *serverSession) doShutdown(ctx context.Context) error {
 	if s.cancel != nil {
 		s.cancel()
 	}
-
 	return s.waitProcess()
 }
 
@@ -229,12 +221,10 @@ func (s *serverSession) waitProcess() error {
 		if err != nil && !isCleanExit(err) {
 			return fmt.Errorf("language server exited: %w", err)
 		}
-
 		return nil
 	case <-time.After(shutdownWait):
 		_ = s.cmd.Process.Kill()
 		<-done
-
 		return fmt.Errorf("language server did not exit within %s; killed", shutdownWait)
 	}
 }
@@ -243,7 +233,6 @@ func (s *serverSession) waitProcess() error {
 // consequence of a requested shutdown rather than a genuine failure.
 func isCleanExit(err error) bool {
 	var exitErr *exec.ExitError
-
 	return errors.As(err, &exitErr)
 }
 
@@ -299,7 +288,6 @@ func (p *pipeRWC) Close() error {
 	if werr != nil {
 		return werr
 	}
-
 	return rerr
 }
 
@@ -315,6 +303,5 @@ func newLogWriter(logger *slog.Logger) *logWriter {
 
 func (w *logWriter) Write(b []byte) (int, error) {
 	w.logger.Debug("lsp stderr", slog.String("output", string(b)))
-
 	return len(b), nil
 }

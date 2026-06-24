@@ -39,7 +39,6 @@ func newFakeClock() *fakeClock {
 func (c *fakeClock) Now() time.Time {
 	c.mu.Lock()
 	defer c.mu.Unlock()
-
 	return c.now
 }
 
@@ -284,7 +283,6 @@ func armParkSignal(s *store) <-chan struct{} {
 		default:
 		}
 	}
-
 	return parked
 }
 

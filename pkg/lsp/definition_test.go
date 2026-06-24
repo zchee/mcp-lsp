@@ -35,14 +35,12 @@ func (f *fakeServer) Definition(_ context.Context, params *protocol.DefinitionPa
 	if f.definitionErr != nil {
 		return nil, f.definitionErr
 	}
-
 	return f.definitionResult, nil
 }
 
 func (f *fakeServer) definitionCalls() []protocol.DefinitionParams {
 	f.mu.Lock()
 	defer f.mu.Unlock()
-
 	return append([]protocol.DefinitionParams(nil), f.definitionRequests...)
 }
 
@@ -52,7 +50,6 @@ func fakeDefinition(sess *serverSession) *Definition {
 		sessions: map[string]*serverSession{"go": sess},
 		logger:   slog.New(slog.DiscardHandler),
 	}
-
 	return &Definition{mgr: mgr, timeout: 2 * time.Second}
 }
 

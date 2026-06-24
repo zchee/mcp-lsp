@@ -51,7 +51,6 @@ func (f *fakeDefLooker) Lookup(_ context.Context, lang, absPath, text string, po
 	if f.err != nil {
 		return nil, f.err
 	}
-
 	return f.defs, nil
 }
 
