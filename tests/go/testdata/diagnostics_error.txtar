@@ -1,0 +1,18 @@
+This fixture is a single-file Go module whose main function calls an
+undeclared identifier. gopls reports an error-severity diagnostic for the
+undeclared name, which the diagnostics integration test asserts on.
+
+The integration test queries diagnostics for main.go and expects at least one
+error-severity diagnostic.
+
+-- go.mod --
+module diagnosticsfixture
+
+go 1.27
+
+-- main.go --
+package main
+
+func main() {
+	undeclaredFunction()
+}

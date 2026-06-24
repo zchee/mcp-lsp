@@ -1,0 +1,27 @@
+This fixture is a single-file Go module where main references a package-level
+constant declared in the same file. goto-definition on the reference must
+resolve to the constant declaration.
+
+Markers embedded in the source drive the test:
+
+  query=answer  marks the identifier occurrence to query (the reference).
+  target=answer marks the identifier occurrence the definition must resolve to
+                (the declaration).
+
+The harness reads these markers to compute query and expected-target positions,
+so the fixture stays self-describing without hardcoded line/column numbers in
+the test.
+
+-- go.mod --
+module definitionlocal
+
+go 1.27
+
+-- main.go --
+package main
+
+const answer = 42 // target=answer
+
+func main() {
+	println(answer) // query=answer
+}

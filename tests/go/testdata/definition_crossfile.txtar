@@ -1,0 +1,32 @@
+This fixture is a Go module split across two files in one package. main.go
+references a function declared in lib.go. goto-definition on the reference must
+resolve into lib.go, exercising gopls cross-file workspace resolution.
+
+Markers embedded in the source drive the test:
+
+  query=Greeting  marks the identifier occurrence to query, in main.go.
+  target=Greeting marks the declaration the definition must resolve to, in
+                  lib.go. The resolved target URI must therefore be lib.go, not
+                  the queried main.go.
+
+The harness reads these markers to compute query and expected-target positions
+and to identify the file each marker lives in.
+
+-- go.mod --
+module definitioncrossfile
+
+go 1.27
+
+-- main.go --
+package main
+
+func main() {
+	println(Greeting()) // query=Greeting
+}
+
+-- lib.go --
+package main
+
+func Greeting() string { // target=Greeting
+	return "hello"
+}
