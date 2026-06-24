@@ -1,0 +1,21 @@
+-- Cargo.toml --
+[package]
+name = "mcp_lsp_rust_fixture"
+version = "0.1.0"
+edition = "2024"
+
+[dependencies]
+-- src/lib.rs --
+pub struct Greeting; // target=Greeting
+
+impl Greeting {
+    pub fn new() -> Self {
+        Self
+    }
+}
+-- src/main.rs --
+use mcp_lsp_rust_fixture::Greeting;
+
+fn main() {
+    let _message = Greeting::new(); // query=Greeting
+}

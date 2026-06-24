@@ -15,7 +15,6 @@
 package gointegration
 
 import (
-	"context"
 	"testing"
 	"time"
 
@@ -23,6 +22,7 @@ import (
 	"go.lsp.dev/uri"
 
 	"github.com/zchee/mcp-lsp/pkg/lsp"
+	"github.com/zchee/mcp-lsp/tests/internal/lsptest"
 )
 
 // definitionAttempts bounds how many times a definition lookup is retried while
@@ -39,8 +39,8 @@ func TestIntegrationDiagnosticsReportsCompileError(t *testing.T) {
 	ws := extractFixture(t, "diagnostics_error.txtar")
 	mgr := newManager(t, ws)
 
-	mainFile := ws.path("main.go")
-	text := ws.source(t, "main.go")
+	mainFile := ws.Path("main.go")
+	text := ws.Source(t, "main.go")
 
 	diags, err := mgr.Diagnostics().Lookup(t.Context(), "go", mainFile, text)
 	if err != nil {
@@ -73,10 +73,10 @@ func TestIntegrationDefinitionResolvesLocalSymbol(t *testing.T) {
 	ws := extractFixture(t, "definition_local.txtar")
 	mgr := newManager(t, ws)
 
-	mainFile := ws.path("main.go")
-	text := ws.source(t, "main.go")
-	query := ws.markerPosition(t, "main.go", "query", "answer")
-	target := ws.markerPosition(t, "main.go", "target", "answer")
+	mainFile := ws.Path("main.go")
+	text := ws.Source(t, "main.go")
+	query := ws.MarkerPosition(t, "main.go", "query", "answer")
+	target := ws.MarkerPosition(t, "main.go", "target", "answer")
 	wantURI := string(uri.File(mainFile))
 
 	defs := lookupDefinition(t, mgr, mainFile, text, query)
@@ -89,11 +89,11 @@ func TestIntegrationDefinitionResolvesAcrossFiles(t *testing.T) {
 	ws := extractFixture(t, "definition_crossfile.txtar")
 	mgr := newManager(t, ws)
 
-	mainFile := ws.path("main.go")
-	text := ws.source(t, "main.go")
-	query := ws.markerPosition(t, "main.go", "query", "Greeting")
-	target := ws.markerPosition(t, "lib.go", "target", "Greeting")
-	wantURI := string(uri.File(ws.path("lib.go")))
+	mainFile := ws.Path("main.go")
+	text := ws.Source(t, "main.go")
+	query := ws.MarkerPosition(t, "main.go", "query", "Greeting")
+	target := ws.MarkerPosition(t, "lib.go", "target", "Greeting")
+	wantURI := string(uri.File(ws.Path("lib.go")))
 
 	defs := lookupDefinition(t, mgr, mainFile, text, query)
 	assertResolvesTo(t, defs, wantURI, target)
@@ -114,7 +114,7 @@ func lookupDefinition(t *testing.T, mgr *lsp.Manager, absPath, text string, pos 
 		if lastErr == nil && len(defs) > 0 {
 			return defs
 		}
-		if ctxErr := sleepOrCancel(t.Context(), definitionRetryDelay); ctxErr != nil {
+		if ctxErr := lsptest.SleepOrCancel(t.Context(), definitionRetryDelay); ctxErr != nil {
 			t.Fatalf("context canceled while waiting for gopls: %v", ctxErr)
 		}
 	}
@@ -137,17 +137,4 @@ func assertResolvesTo(t *testing.T, defs []lsp.DefinitionLocation, wantURI strin
 		}
 	}
 	t.Fatalf("no definition pointed to %s at %d:%d (zero-based); defs = %+v", wantURI, want.Line, want.Character, defs)
-}
-
-// sleepOrCancel waits for d or returns the context error if ctx is canceled
-// first.
-func sleepOrCancel(ctx context.Context, d time.Duration) error {
-	timer := time.NewTimer(d)
-	defer timer.Stop()
-	select {
-	case <-timer.C:
-		return nil
-	case <-ctx.Done():
-		return ctx.Err()
-	}
 }
