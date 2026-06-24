@@ -128,6 +128,9 @@ Notes:
   the opt-in `tests` package by construction.
 - `make test/integration` and `make coverage` set `MCP_LSP_INTEGRATION=1` and
   require real language servers such as `gopls` on `PATH`.
+- Use `https://github.com/modelcontextprotocol/inspector` for MCP test/debug
+  workflows.
+    - https://modelcontextprotocol.io/docs/tools/inspector
 - `make lint` installs/uses the pinned `hack/tools` `golangci-lint` and expects
   the worktree diff to stay stable after formatting in CI.
 - For documentation-only changes, `git diff --check` plus a content review is
