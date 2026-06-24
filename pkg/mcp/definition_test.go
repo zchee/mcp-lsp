@@ -19,6 +19,7 @@ import (
 	"errors"
 	"os"
 	"path/filepath"
+	"strconv"
 	"strings"
 	"testing"
 
@@ -98,6 +99,51 @@ func TestDefinitionHandlerInvalidColumn(t *testing.T) {
 	}
 	if looker.calls != 0 {
 		t.Errorf("handler called Lookup %d times for invalid input, want 0", looker.calls)
+	}
+}
+
+func TestDefinitionHandlerRejectsPositionBeyondProtocolRange(t *testing.T) {
+	t.Parallel()
+
+	if strconv.IntSize <= 32 {
+		t.Skip("int cannot represent values beyond the LSP uint32 position range")
+	}
+
+	tooLarge64 := maxProtocolPositionInput
+	tooLarge64++
+	tooLarge := int(tooLarge64)
+	path := writeTempFile(t)
+
+	tests := []struct {
+		name  string
+		input DefinitionInput
+		want  string
+	}{
+		{
+			name:  "line",
+			input: DefinitionInput{File: path, Line: tooLarge, Column: 1},
+			want:  "line must be less than or equal to",
+		},
+		{
+			name:  "column",
+			input: DefinitionInput{File: path, Line: 1, Column: tooLarge},
+			want:  "column must be less than or equal to",
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			looker := &fakeDefLooker{}
+			handler := definitionHandler(looker, t.TempDir())
+
+			_, _, err := handler(t.Context(), nil, tt.input)
+			if err == nil || !strings.Contains(err.Error(), tt.want) {
+				t.Fatalf("handler error = %v, want %q", err, tt.want)
+			}
+			if looker.calls != 0 {
+				t.Errorf("handler called Lookup %d times for invalid input, want 0", looker.calls)
+			}
+		})
 	}
 }
 

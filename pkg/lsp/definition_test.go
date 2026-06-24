@@ -46,10 +46,10 @@ func (f *fakeServer) definitionCalls() []protocol.DefinitionParams {
 	return append([]protocol.DefinitionParams(nil), f.definitionRequests...)
 }
 
-func fakeDefinition(sess *serverSession, lang string) *Definition {
+func fakeDefinition(sess *serverSession) *Definition {
 	mgr := &Manager{
-		cfg:      map[string]ServerConfig{lang: {LanguageID: protocol.LanguageKindGo}},
-		sessions: map[string]*serverSession{lang: sess},
+		cfg:      map[string]ServerConfig{"go": {LanguageID: protocol.LanguageKindGo}},
+		sessions: map[string]*serverSession{"go": sess},
 		logger:   slog.New(slog.DiscardHandler),
 	}
 
@@ -72,7 +72,7 @@ func TestDefinitionLookupLocation(t *testing.T) {
 	}
 	sess := wireSession(t, fake)
 
-	defs := fakeDefinition(sess, "go")
+	defs := fakeDefinition(sess)
 	got, err := defs.Lookup(t.Context(), "go", "/workspace/main.go", "package main\n", protocol.Position{Line: 3, Character: 4})
 	if err != nil {
 		t.Fatalf("Lookup: %v", err)
@@ -127,7 +127,7 @@ func TestDefinitionLookupLocationSlice(t *testing.T) {
 	}
 	sess := wireSession(t, fake)
 
-	got, err := fakeDefinition(sess, "go").Lookup(t.Context(), "go", "/workspace/main.go", "package main\n", protocol.Position{})
+	got, err := fakeDefinition(sess).Lookup(t.Context(), "go", "/workspace/main.go", "package main\n", protocol.Position{})
 	if err != nil {
 		t.Fatalf("Lookup: %v", err)
 	}
@@ -169,7 +169,7 @@ func TestDefinitionLookupDefinitionLinkSlice(t *testing.T) {
 	}
 	sess := wireSession(t, fake)
 
-	got, err := fakeDefinition(sess, "go").Lookup(t.Context(), "go", "/workspace/main.go", "package main\n", protocol.Position{})
+	got, err := fakeDefinition(sess).Lookup(t.Context(), "go", "/workspace/main.go", "package main\n", protocol.Position{})
 	if err != nil {
 		t.Fatalf("Lookup: %v", err)
 	}
@@ -192,7 +192,7 @@ func TestDefinitionLookupNil(t *testing.T) {
 	t.Parallel()
 
 	sess := wireSession(t, &fakeServer{})
-	got, err := fakeDefinition(sess, "go").Lookup(t.Context(), "go", "/workspace/main.go", "package main\n", protocol.Position{})
+	got, err := fakeDefinition(sess).Lookup(t.Context(), "go", "/workspace/main.go", "package main\n", protocol.Position{})
 	if err != nil {
 		t.Fatalf("Lookup: %v", err)
 	}
@@ -207,7 +207,7 @@ func TestDefinitionLookupRequestParams(t *testing.T) {
 	fake := &fakeServer{}
 	sess := wireSession(t, fake)
 	pos := protocol.Position{Line: 9, Character: 17}
-	if _, err := fakeDefinition(sess, "go").Lookup(t.Context(), "go", "/workspace/main.go", "package main\n", pos); err != nil {
+	if _, err := fakeDefinition(sess).Lookup(t.Context(), "go", "/workspace/main.go", "package main\n", pos); err != nil {
 		t.Fatalf("Lookup: %v", err)
 	}
 
@@ -230,7 +230,7 @@ func TestDefinitionLookupSurfacesServerError(t *testing.T) {
 	fake := &fakeServer{definitionErr: sentinel}
 	sess := wireSession(t, fake)
 
-	_, err := fakeDefinition(sess, "go").Lookup(t.Context(), "go", "/workspace/main.go", "package main\n", protocol.Position{})
+	_, err := fakeDefinition(sess).Lookup(t.Context(), "go", "/workspace/main.go", "package main\n", protocol.Position{})
 	if err == nil {
 		t.Fatal("Lookup returned nil error for a server failure")
 	}

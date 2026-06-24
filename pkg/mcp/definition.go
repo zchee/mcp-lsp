@@ -26,6 +26,8 @@ import (
 	"github.com/zchee/mcp-lsp/pkg/lsp"
 )
 
+const maxProtocolPositionInput = int64(1) << 32
+
 // defLooker is the narrow dependency the definition handler needs from the LSP
 // layer. It lets tests substitute a fake without spawning a language server.
 type defLooker interface {
@@ -72,11 +74,9 @@ func definitionHandler(looker defLooker, workspaceRoot string) mcp.ToolHandlerFo
 		if in.File == "" {
 			return nil, DefinitionOutput{}, fmt.Errorf("file is required")
 		}
-		if in.Line <= 0 {
-			return nil, DefinitionOutput{}, fmt.Errorf("line must be greater than zero")
-		}
-		if in.Column <= 0 {
-			return nil, DefinitionOutput{}, fmt.Errorf("column must be greater than zero")
+		pos, err := definitionInputPosition(in.Line, in.Column)
+		if err != nil {
+			return nil, DefinitionOutput{}, err
 		}
 
 		absPath, err := resolveFilePath(workspaceRoot, in.File)
@@ -94,10 +94,6 @@ func definitionHandler(looker defLooker, workspaceRoot string) mcp.ToolHandlerFo
 			return nil, DefinitionOutput{}, fmt.Errorf("read file %q: %w", absPath, err)
 		}
 
-		pos := protocol.Position{
-			Line:      uint32(in.Line - 1),
-			Character: uint32(in.Column - 1),
-		}
 		defs, err := looker.Lookup(ctx, lang, absPath, string(text), pos)
 		if err != nil {
 			return nil, DefinitionOutput{}, err
@@ -109,6 +105,30 @@ func definitionHandler(looker defLooker, workspaceRoot string) mcp.ToolHandlerFo
 			Definitions: toDefinitionItems(defs),
 		}, nil
 	}
+}
+
+func definitionInputPosition(line, column int) (protocol.Position, error) {
+	protocolLine, err := definitionInputCoordinate("line", line)
+	if err != nil {
+		return protocol.Position{}, err
+	}
+	protocolColumn, err := definitionInputCoordinate("column", column)
+	if err != nil {
+		return protocol.Position{}, err
+	}
+
+	return protocol.Position{Line: protocolLine, Character: protocolColumn}, nil
+}
+
+func definitionInputCoordinate(name string, value int) (uint32, error) {
+	if value <= 0 {
+		return 0, fmt.Errorf("%s must be greater than zero", name)
+	}
+	if int64(value) > maxProtocolPositionInput {
+		return 0, fmt.Errorf("%s must be less than or equal to %d", name, maxProtocolPositionInput)
+	}
+
+	return uint32(value - 1), nil
 }
 
 // toDefinitionItems converts zero-based [lsp.DefinitionLocation] values into

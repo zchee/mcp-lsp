@@ -278,7 +278,7 @@ func newWorkspaceWithFixture(t *testing.T, fixture string) string {
 	return dir
 }
 
-func mustPositionOf(t *testing.T, source, needle string, occurrence int) (int, int) {
+func mustPositionOf(t *testing.T, source, needle string, occurrence int) (line, column int) {
 	t.Helper()
 
 	if occurrence <= 0 {
@@ -295,7 +295,7 @@ func mustPositionOf(t *testing.T, source, needle string, occurrence int) (int, i
 		searchStart = index + len(needle)
 	}
 
-	line, column := 1, 1
+	line, column = 1, 1
 	for _, r := range source[:index] {
 		if r == '\n' {
 			line++
