@@ -113,7 +113,6 @@ linters:
     - usestdlibvars
     - varnamelen
     - wastedassign
-    - whitespace
 
   settings:
     asasalint:
@@ -188,9 +187,6 @@ linters:
       ignore-type-assert-ok: false
       ignore-map-index-ok: false
       ignore-chan-recv-ok: false
-    whitespace:
-      multi-if: true
-      multi-func: true
   exclusions:
     generated: lax
     presets:
