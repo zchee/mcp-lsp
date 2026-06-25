@@ -19,8 +19,37 @@ import (
 
 	"go.lsp.dev/uri"
 
+	"github.com/zchee/mcp-lsp/pkg/lsp"
 	"github.com/zchee/mcp-lsp/tests/internal/lsptest"
 )
+
+func TestIntegrationRustAnalyzerDiagnosticsReportsCompileError(t *testing.T) {
+	requireIntegration(t)
+
+	ws := extractFixture(t, "diagnostics_error.txtar")
+	mgr := newManager(t, ws)
+
+	mainFile := ws.Path("src/main.rs")
+	text := ws.Source(t, "src/main.rs")
+
+	diags := lookupRustDiagnostics(t, mgr, mainFile, text)
+
+	var foundError bool
+	for _, d := range diags {
+		if d.Severity != "error" {
+			continue
+		}
+		foundError = true
+		// Domain positions are zero-based; rust-analyzer must report a
+		// non-negative range for the syntax error.
+		if d.StartLine < 0 || d.StartColumn < 0 {
+			t.Errorf("diagnostic positions must be non-negative: %+v", d)
+		}
+	}
+	if !foundError {
+		t.Errorf("no error-severity diagnostic reported; diagnostics = %+v", diags)
+	}
+}
 
 func TestIntegrationRustAnalyzerDefinitionResolvesAcrossFiles(t *testing.T) {
 	requireIntegration(t)
@@ -35,4 +64,24 @@ func TestIntegrationRustAnalyzerDefinitionResolvesAcrossFiles(t *testing.T) {
 
 	defs := lsptest.LookupDefinition(t, mgr, rustDefinitionLookup, mainFile, text, query)
 	lsptest.AssertDefinitionResolvesTo(t, defs, string(uri.File(ws.Path("src/lib.rs"))), target)
+}
+
+func lookupRustDiagnostics(t *testing.T, mgr *lsp.Manager, mainFile, text string) []lsp.Diagnostic {
+	t.Helper()
+
+	var (
+		diags   []lsp.Diagnostic
+		lastErr error
+	)
+	for range rustDiagnosticsLookup.Attempts {
+		diags, lastErr = mgr.Diagnostics().Lookup(t.Context(), rustLanguage, mainFile, text)
+		if lastErr == nil && len(diags) > 0 {
+			return diags
+		}
+		if err := lsptest.SleepOrCancel(t.Context(), rustDiagnosticsLookup.RetryDelay); err != nil {
+			t.Fatalf("context canceled while waiting for %s diagnostics: %v", rustDiagnosticsLookup.ServerName, err)
+		}
+	}
+	t.Fatalf("expected at least one diagnostic for a Rust file with a compile error, got none; last error = %v", lastErr)
+	return nil
 }

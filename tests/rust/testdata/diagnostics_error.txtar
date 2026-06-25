@@ -1,0 +1,15 @@
+This fixture is a minimal Cargo package whose main function contains a syntax
+error. rust-analyzer reports an error-severity diagnostic for the malformed
+expression without relying on cargo check or dependency resolution.
+
+-- Cargo.toml --
+[package]
+name = "mcp_lsp_rust_diagnostics_fixture"
+version = "0.1.0"
+edition = "2024"
+
+[dependencies]
+-- src/main.rs --
+fn main() {
+    let _message = ;
+}

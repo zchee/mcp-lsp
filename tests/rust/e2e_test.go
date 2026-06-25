@@ -25,6 +25,30 @@ import (
 	"github.com/zchee/mcp-lsp/tests/internal/lsptest"
 )
 
+func TestE2ERustAnalyzerDiagnosticsReportsCompileError(t *testing.T) {
+	requireIntegration(t)
+
+	ws := extractFixture(t, "diagnostics_error.txtar")
+	fixture := ws.Path("src/main.rs")
+	session := lsptest.NewE2ESession(t, ws.Dir())
+
+	out := callRustDiagnosticsTool(t, session, fixture)
+
+	var foundError bool
+	for _, d := range out.Diagnostics {
+		if d.Severity != "error" {
+			continue
+		}
+		foundError = true
+		if d.StartLine < 1 || d.StartColumn < 1 {
+			t.Errorf("diagnostic positions are not one-based: %+v", d)
+		}
+	}
+	if !foundError {
+		t.Errorf("no error-severity diagnostic reported; diagnostics = %+v", out.Diagnostics)
+	}
+}
+
 // TestE2ERustAnalyzerDefinition exercises the compiled mcp-lsp binary over MCP
 // stdio, proving the public default registry can route Rust definition requests
 // to rust-analyzer without using the test-local Manager configuration.
@@ -88,5 +112,48 @@ func waitForRustDefinition(t *testing.T) {
 
 	if err := lsptest.SleepOrCancel(t.Context(), rustDefinitionLookup.RetryDelay); err != nil {
 		t.Fatalf("context canceled while waiting for %s: %v", rustDefinitionLookup.ServerName, err)
+	}
+}
+
+func callRustDiagnosticsTool(t *testing.T, session *mcpsdk.ClientSession, fixture string) mcpserver.DiagnosticsOutput {
+	t.Helper()
+
+	var (
+		out     mcpserver.DiagnosticsOutput
+		lastErr error
+	)
+	for range rustDiagnosticsLookup.Attempts {
+		res, err := session.CallTool(t.Context(), &mcpsdk.CallToolParams{
+			Name: "lsp_diagnostics",
+			Arguments: map[string]any{
+				"file":     fixture,
+				"language": rustLanguage,
+			},
+		})
+		if err != nil {
+			lastErr = err
+			waitForRustDiagnostics(t)
+			continue
+		}
+		if res.IsError {
+			lastErr = fmt.Errorf("lsp_diagnostics returned a tool error: %+v", res.Content)
+			waitForRustDiagnostics(t)
+			continue
+		}
+		out = lsptest.DecodeStructured[mcpserver.DiagnosticsOutput](t, res)
+		if len(out.Diagnostics) > 0 {
+			return out
+		}
+		waitForRustDiagnostics(t)
+	}
+	t.Fatalf("expected at least one diagnostic for a Rust file with a compile error, got none; last error = %v, output = %+v", lastErr, out)
+	return mcpserver.DiagnosticsOutput{}
+}
+
+func waitForRustDiagnostics(t *testing.T) {
+	t.Helper()
+
+	if err := lsptest.SleepOrCancel(t.Context(), rustDiagnosticsLookup.RetryDelay); err != nil {
+		t.Fatalf("context canceled while waiting for %s diagnostics: %v", rustDiagnosticsLookup.ServerName, err)
 	}
 }

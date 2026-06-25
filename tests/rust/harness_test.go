@@ -47,6 +47,16 @@ var rustDefinitionLookup = lsptest.DefinitionLookupConfig{
 	RetryDelay: 250 * time.Millisecond,
 }
 
+var rustDiagnosticsLookup = struct {
+	ServerName string
+	Attempts   int
+	RetryDelay time.Duration
+}{
+	ServerName: rustAnalyzerCommand,
+	Attempts:   20,
+	RetryDelay: 250 * time.Millisecond,
+}
+
 func requireIntegration(t *testing.T) {
 	t.Helper()
 
