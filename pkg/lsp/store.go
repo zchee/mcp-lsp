@@ -46,15 +46,10 @@ type store struct {
 	cond  *sync.Cond
 	docs  map[uri.URI]*docState
 	nowFn func() time.Time
-
-	// onWait, when non-nil, is invoked under the lock immediately before a
-	// waitSettled goroutine parks on the condition variable. It is a test seam
-	// for deterministically observing a parked waiter and is nil in production.
-	onWait func()
 }
 
-// newStore returns a store whose clock is [time.Now]. Tests inject a fake clock
-// with newStoreWithClock to drive the settle window deterministically.
+// newStore returns a store whose clock is [time.Now]. Tests may inject another
+// clock with newStoreWithClock to drive the settle window deterministically.
 func newStore() *store {
 	return newStoreWithClock(time.Now)
 }
@@ -164,12 +159,8 @@ func (s *store) waitSettledAfter(ctx context.Context, u uri.URI, settle time.Dur
 	}
 }
 
-// wait parks the caller on the condition variable, signaling a test seam first
-// when configured. The caller must hold s.mu.
+// wait parks the caller on the condition variable. The caller must hold s.mu.
 func (s *store) wait() {
-	if s.onWait != nil {
-		s.onWait()
-	}
 	s.cond.Wait()
 }
 
