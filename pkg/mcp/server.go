@@ -48,5 +48,64 @@ func NewServer(mgr *lsp.Manager, logger *slog.Logger) *mcp.Server {
 		Description: "Find implementation locations for an interface, trait, or method at a file position via its language server.",
 		Annotations: &mcp.ToolAnnotations{ReadOnlyHint: true},
 	}, implementationHandler(mgr.Implementation(), mgr.WorkspaceRoot()))
+	mcp.AddTool(s, &mcp.Tool{
+		Name:        "lsp_hover",
+		Description: "Return hover information for a file position via its language server.",
+		Annotations: &mcp.ToolAnnotations{ReadOnlyHint: true},
+	}, hoverHandler(mgr.Hover(), mgr.WorkspaceRoot()))
+	mcp.AddTool(s, &mcp.Tool{
+		Name:        "lsp_workspace_symbol",
+		Description: "Search workspace symbols via the language server.",
+		Annotations: &mcp.ToolAnnotations{ReadOnlyHint: true},
+	}, workspaceSymbolHandler(mgr.WorkspaceSymbols()))
+	mcp.AddTool(s, &mcp.Tool{
+		Name:        "lsp_formatting",
+		Description: "Preview full-document formatting edits without applying them.",
+		Annotations: &mcp.ToolAnnotations{ReadOnlyHint: true},
+	}, formattingHandler(mgr.Formatting(), mgr.WorkspaceRoot()))
+	mcp.AddTool(s, &mcp.Tool{
+		Name:        "lsp_range_formatting",
+		Description: "Preview range formatting edits without applying them.",
+		Annotations: &mcp.ToolAnnotations{ReadOnlyHint: true},
+	}, rangeFormattingHandler(mgr.Formatting(), mgr.WorkspaceRoot()))
+	mcp.AddTool(s, &mcp.Tool{
+		Name:        "lsp_rename",
+		Description: "Preview rename workspace edits without applying them.",
+		Annotations: &mcp.ToolAnnotations{ReadOnlyHint: true},
+	}, renameHandler(mgr.Rename(), mgr.WorkspaceRoot()))
+	mcp.AddTool(s, &mcp.Tool{
+		Name:        "lsp_code_action",
+		Description: "Preview code actions for a file range via its language server.",
+		Annotations: &mcp.ToolAnnotations{ReadOnlyHint: true},
+	}, codeActionHandler(mgr.CodeActions(), mgr.WorkspaceRoot()))
+	mcp.AddTool(s, &mcp.Tool{
+		Name:        "lsp_code_lens",
+		Description: "Return code lenses for a file via its language server.",
+		Annotations: &mcp.ToolAnnotations{ReadOnlyHint: true},
+	}, codeLensHandler(mgr.CodeLenses(), mgr.WorkspaceRoot()))
+	mcp.AddTool(s, &mcp.Tool{
+		Name:        "lsp_apply_workspace_edit",
+		Description: "Apply an LSP workspace edit to files under the workspace root with an explicit mutation policy.",
+		Annotations: &mcp.ToolAnnotations{
+			ReadOnlyHint:    false,
+			DestructiveHint: boolPtr(true),
+			IdempotentHint:  false,
+			OpenWorldHint:   boolPtr(false),
+		},
+	}, applyWorkspaceEditHandler(mgr.WorkspaceRoot()))
+	mcp.AddTool(s, &mcp.Tool{
+		Name:        "lsp_execute_command",
+		Description: "Execute a server-advertised workspace command; may mutate files when applyEdits is true.",
+		Annotations: &mcp.ToolAnnotations{
+			ReadOnlyHint:    false,
+			DestructiveHint: boolPtr(true),
+			IdempotentHint:  false,
+			OpenWorldHint:   boolPtr(false),
+		},
+	}, executeCommandHandler(mgr.Commands()))
 	return s
+}
+
+func boolPtr(v bool) *bool {
+	return &v
 }

@@ -58,7 +58,18 @@ func TestServerExposesReadOnlyTools(t *testing.T) {
 		tool := res.Tools[i]
 		tools[tool.Name] = tool
 	}
-	for _, name := range []string{"lsp_diagnostics", "lsp_definition", "lsp_implementation"} {
+	for _, name := range []string{
+		"lsp_diagnostics",
+		"lsp_definition",
+		"lsp_implementation",
+		"lsp_hover",
+		"lsp_workspace_symbol",
+		"lsp_formatting",
+		"lsp_range_formatting",
+		"lsp_rename",
+		"lsp_code_action",
+		"lsp_code_lens",
+	} {
 		tool := tools[name]
 		if tool == nil {
 			t.Fatalf("tool %q was not listed; got tools %+v", name, res.Tools)
@@ -72,5 +83,51 @@ func TestServerExposesReadOnlyTools(t *testing.T) {
 		if tool.OutputSchema == nil {
 			t.Errorf("tool %q output schema is nil", name)
 		}
+	}
+
+	executeCommand := tools["lsp_execute_command"]
+	if executeCommand == nil {
+		t.Fatalf("tool %q was not listed; got tools %+v", "lsp_execute_command", res.Tools)
+	}
+	if executeCommand.Annotations == nil {
+		t.Fatalf("tool %q annotations are nil", "lsp_execute_command")
+	}
+	if executeCommand.Annotations.ReadOnlyHint {
+		t.Errorf("tool %q should not be marked read-only", "lsp_execute_command")
+	}
+	if executeCommand.Annotations.DestructiveHint == nil || !*executeCommand.Annotations.DestructiveHint {
+		t.Errorf("tool %q DestructiveHint not set; annotations = %+v", "lsp_execute_command", executeCommand.Annotations)
+	}
+	if executeCommand.Annotations.OpenWorldHint == nil || *executeCommand.Annotations.OpenWorldHint {
+		t.Errorf("tool %q OpenWorldHint should be false; annotations = %+v", "lsp_execute_command", executeCommand.Annotations)
+	}
+	if executeCommand.InputSchema == nil {
+		t.Errorf("tool %q input schema is nil", "lsp_execute_command")
+	}
+	if executeCommand.OutputSchema == nil {
+		t.Errorf("tool %q output schema is nil", "lsp_execute_command")
+	}
+
+	applyEdit := tools["lsp_apply_workspace_edit"]
+	if applyEdit == nil {
+		t.Fatalf("tool %q was not listed; got tools %+v", "lsp_apply_workspace_edit", res.Tools)
+	}
+	if applyEdit.Annotations == nil {
+		t.Fatalf("tool %q annotations are nil", "lsp_apply_workspace_edit")
+	}
+	if applyEdit.Annotations.ReadOnlyHint {
+		t.Errorf("tool %q should not be marked read-only", "lsp_apply_workspace_edit")
+	}
+	if applyEdit.Annotations.DestructiveHint == nil || !*applyEdit.Annotations.DestructiveHint {
+		t.Errorf("tool %q DestructiveHint not set; annotations = %+v", "lsp_apply_workspace_edit", applyEdit.Annotations)
+	}
+	if applyEdit.Annotations.OpenWorldHint == nil || *applyEdit.Annotations.OpenWorldHint {
+		t.Errorf("tool %q OpenWorldHint should be false; annotations = %+v", "lsp_apply_workspace_edit", applyEdit.Annotations)
+	}
+	if applyEdit.InputSchema == nil {
+		t.Errorf("tool %q input schema is nil", "lsp_apply_workspace_edit")
+	}
+	if applyEdit.OutputSchema == nil {
+		t.Errorf("tool %q output schema is nil", "lsp_apply_workspace_edit")
 	}
 }
