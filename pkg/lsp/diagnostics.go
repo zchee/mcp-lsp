@@ -76,8 +76,8 @@ func (d *Diagnostics) Lookup(ctx context.Context, lang, absPath, text string) ([
 	u := uri.File(absPath)
 
 	baselineSeq := sess.store.publishSeq(u)
-	if err := sess.server.DidOpen(ctx, didOpenParams(u, cfg.LanguageID, text)); err != nil {
-		return nil, fmt.Errorf("open document: %w", err)
+	if err := sess.syncTextDocument(ctx, u, cfg.LanguageID, text); err != nil {
+		return nil, err
 	}
 
 	diags, err := d.acquire(ctx, sess, u, baselineSeq)
@@ -146,15 +146,6 @@ func flattenDiagnostics(in []protocol.Diagnostic) []Diagnostic {
 
 // didOpenParams builds a textDocument/didOpen notification for u with the given
 // language and contents.
-//
-// TODO(zchee): this re-sends didOpen on every [Diagnostics.Lookup] with a fixed
-// version and never sends didClose. gopls tolerates a repeated didOpen as an overlay
-// replacement, but this is a deviation from LSP text-document synchronization:
-// strictly, a document should be opened once, then mutated via didChange with a
-// monotonically increasing version, then closed via didClose. Other servers may
-// reject the re-open, and never closing means every queried document remains an
-// open overlay for the server's lifetime. Replace with per-session open-document
-// tracking (didOpen → didChange → didClose) when adding a second language server.
 func didOpenParams(u uri.URI, lang protocol.LanguageKind, text string) *protocol.DidOpenTextDocumentParams {
 	return &protocol.DidOpenTextDocumentParams{
 		TextDocument: protocol.TextDocumentItem{

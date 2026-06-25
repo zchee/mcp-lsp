@@ -35,9 +35,13 @@ import (
 type fakeServer struct {
 	protocol.UnimplementedServer
 
-	mu        sync.Mutex
-	opened    []protocol.DidOpenTextDocumentParams
-	onDidOpen func(context.Context, *protocol.DidOpenTextDocumentParams) error
+	mu          sync.Mutex
+	opened      []protocol.DidOpenTextDocumentParams
+	onDidOpen   func(context.Context, *protocol.DidOpenTextDocumentParams) error
+	changed     []protocol.DidChangeTextDocumentParams
+	onDidChange func(context.Context, *protocol.DidChangeTextDocumentParams) error
+	closed      []protocol.DidCloseTextDocumentParams
+	onDidClose  func(context.Context, *protocol.DidCloseTextDocumentParams) error
 
 	pullSupported bool
 	pullReport    protocol.DocumentDiagnosticReport
@@ -105,6 +109,30 @@ func (f *fakeServer) DidOpen(ctx context.Context, params *protocol.DidOpenTextDo
 	return nil
 }
 
+func (f *fakeServer) DidChange(ctx context.Context, params *protocol.DidChangeTextDocumentParams) error {
+	f.mu.Lock()
+	f.changed = append(f.changed, *params)
+	onDidChange := f.onDidChange
+	f.mu.Unlock()
+
+	if onDidChange != nil {
+		return onDidChange(ctx, params)
+	}
+	return nil
+}
+
+func (f *fakeServer) DidClose(ctx context.Context, params *protocol.DidCloseTextDocumentParams) error {
+	f.mu.Lock()
+	f.closed = append(f.closed, *params)
+	onDidClose := f.onDidClose
+	f.mu.Unlock()
+
+	if onDidClose != nil {
+		return onDidClose(ctx, params)
+	}
+	return nil
+}
+
 func (f *fakeServer) Diagnostic(_ context.Context, _ *protocol.DocumentDiagnosticParams) (protocol.DocumentDiagnosticReport, error) {
 	return f.pullReport, nil
 }
@@ -113,6 +141,18 @@ func (f *fakeServer) openedDocs() []protocol.DidOpenTextDocumentParams {
 	f.mu.Lock()
 	defer f.mu.Unlock()
 	return append([]protocol.DidOpenTextDocumentParams(nil), f.opened...)
+}
+
+func (f *fakeServer) changedDocs() []protocol.DidChangeTextDocumentParams {
+	f.mu.Lock()
+	defer f.mu.Unlock()
+	return append([]protocol.DidChangeTextDocumentParams(nil), f.changed...)
+}
+
+func (f *fakeServer) closedDocs() []protocol.DidCloseTextDocumentParams {
+	f.mu.Lock()
+	defer f.mu.Unlock()
+	return append([]protocol.DidCloseTextDocumentParams(nil), f.closed...)
 }
 
 // wireSessionCore connects srv to a ready serverSession over an in-memory pipe
@@ -410,4 +450,58 @@ func TestSessionShutdownIsClean(t *testing.T) {
 	if err := sess.shutdown(t.Context()); err != nil {
 		t.Errorf("second shutdown: %v", err)
 	}
+}
+
+func TestFakeServerTracksDocumentLifecycle(t *testing.T) {
+	t.Parallel()
+
+	fake := &fakeServer{}
+	change := protocol.DidChangeTextDocumentParams{
+		TextDocument: protocol.VersionedTextDocumentIdentifier{
+			TextDocumentIdentifier: protocol.TextDocumentIdentifier{
+				URI: uri.File("/workspace/main.go"),
+			},
+			Version: 2,
+		},
+		ContentChanges: []protocol.TextDocumentContentChangeEvent{
+			&protocol.TextDocumentContentChangeWholeDocument{
+				Text: "package main\n",
+			},
+		},
+	}
+	closeParams := protocol.DidCloseTextDocumentParams{
+		TextDocument: protocol.TextDocumentIdentifier{
+			URI: uri.File("/workspace/main.go"),
+		},
+	}
+
+	if err := fake.DidChange(t.Context(), &change); err != nil {
+		t.Fatalf("DidChange: %v", err)
+	}
+	if err := fake.DidClose(t.Context(), &closeParams); err != nil {
+		t.Fatalf("DidClose: %v", err)
+	}
+
+	changed := fake.changedDocs()
+	if len(changed) != 1 {
+		t.Fatalf("changed docs = %d, want 1", len(changed))
+	}
+	if changed[0].TextDocument.URI != uri.File("/workspace/main.go") {
+		t.Errorf("changed doc URI = %q, want %q", changed[0].TextDocument.URI, uri.File("/workspace/main.go"))
+	}
+	if changed[0].TextDocument.Version != 2 {
+		t.Errorf("changed doc version = %d, want %d", changed[0].TextDocument.Version, 2)
+	}
+
+	closed := fake.closedDocs()
+	if len(closed) != 1 {
+		t.Fatalf("closed docs = %d, want 1", len(closed))
+	}
+	if closed[0].TextDocument.URI != uri.File("/workspace/main.go") {
+		t.Errorf("closed doc URI = %q, want %q", closed[0].TextDocument.URI, uri.File("/workspace/main.go"))
+	}
+}
+
+func int32Ptr(v int32) *int32 {
+	return &v
 }

@@ -22,6 +22,8 @@ import (
 	"log/slog"
 	"os"
 	"os/exec"
+	"reflect"
+	"slices"
 	"sync"
 	"sync/atomic"
 	"time"
@@ -43,8 +45,11 @@ type serverSession struct {
 	once                    sync.Once
 	ready                   chan struct{}
 	initErr                 error
+	capabilities            sessionCapabilities
 	pullSupported           bool
 	implementationSupported bool
+	docsMu                  sync.Mutex
+	openDocs                map[uri.URI]*openedDocument
 
 	cmd    *exec.Cmd
 	conn   jsonrpc2.Conn
@@ -73,6 +78,46 @@ func newSession(store *store, logger *slog.Logger) *serverSession {
 	}
 	s.startFn = s.start
 	return s
+}
+
+type sessionCapabilities struct {
+	pullDiagnostics   bool
+	implementation    bool
+	hover             bool
+	codeAction        bool
+	codeActionResolve bool
+	codeLens          bool
+	codeLensResolve   bool
+	workspaceSymbol   bool
+	formatting        bool
+	rangeFormatting   bool
+	rename            bool
+	executeCommands   []string
+}
+
+func snapshotCapabilities(capabilities *protocol.ServerCapabilities) sessionCapabilities {
+	if capabilities == nil {
+		return sessionCapabilities{}
+	}
+	out := sessionCapabilities{
+		pullDiagnostics: capabilities.DiagnosticProvider != nil,
+		implementation:  implementationProviderSupported(capabilities.ImplementationProvider),
+		hover:           providerSupported(capabilities.HoverProvider),
+		codeAction:      providerSupported(capabilities.CodeActionProvider),
+		codeLens:        capabilities.CodeLensProvider != nil,
+		workspaceSymbol: providerSupported(capabilities.WorkspaceSymbolProvider),
+		formatting:      providerSupported(capabilities.DocumentFormattingProvider),
+		rangeFormatting: providerSupported(capabilities.DocumentRangeFormattingProvider),
+		rename:          providerSupported(capabilities.RenameProvider),
+		executeCommands: slices.Clone(capabilities.ExecuteCommandProvider.Commands),
+	}
+	if opts, ok := capabilities.CodeActionProvider.(*protocol.CodeActionOptions); ok && opts != nil && opts.ResolveProvider != nil {
+		out.codeActionResolve = *opts.ResolveProvider
+	}
+	if capabilities.CodeLensProvider != nil && capabilities.CodeLensProvider.ResolveProvider != nil {
+		out.codeLensResolve = *capabilities.CodeLensProvider.ResolveProvider
+	}
+	return out
 }
 
 // start spawns the server, wires the jsonrpc2 connection, performs the
@@ -127,8 +172,10 @@ func (s *serverSession) start(parent context.Context, cfg ServerConfig, rootURI 
 		s.failStart(fmt.Errorf("language server initialized failed: %w", err))
 		return
 	}
-	s.pullSupported = res.Capabilities.DiagnosticProvider != nil
-	s.implementationSupported = implementationProviderSupported(res.Capabilities.ImplementationProvider)
+	s.capabilities = snapshotCapabilities(&res.Capabilities)
+	s.pullSupported = s.capabilities.pullDiagnostics
+	s.implementationSupported = s.capabilities.implementation
+	s.openDocs = make(map[uri.URI]*openedDocument)
 
 	go s.watch()
 }
@@ -194,6 +241,7 @@ func (s *serverSession) doShutdown(ctx context.Context) error {
 	// below then guarantees teardown even when the handshake timed out.
 	if s.server != nil {
 		hctx, cancel := context.WithTimeout(ctx, shutdownWait)
+		s.closeOpenDocuments(hctx)
 		if err := s.server.Shutdown(hctx); err != nil {
 			s.logger.Debug("language server shutdown request failed", slog.Any("error", err))
 		}
@@ -276,18 +324,18 @@ func initializeParams(rootURI uri.URI) *protocol.InitializeParams {
 }
 
 func implementationProviderSupported(provider protocol.ImplementationProvider) bool {
+	return providerSupported(provider)
+}
+
+func providerSupported(provider any) bool {
 	switch p := provider.(type) {
 	case nil:
 		return false
 	case protocol.Boolean:
 		return bool(p)
-	case *protocol.ImplementationOptions:
-		return p != nil
-	case *protocol.ImplementationRegistrationOptions:
-		return p != nil
-	default:
-		return false
 	}
+	value := reflect.ValueOf(provider)
+	return value.Kind() != reflect.Pointer || !value.IsNil()
 }
 
 // pipeRWC adapts the subprocess's separate stdout (read) and stdin (write)

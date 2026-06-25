@@ -35,9 +35,17 @@ type Client struct {
 
 	store  *store
 	logger *slog.Logger
+
+	applyMu     sync.Mutex
+	applyPolicy workspaceEditApplyPolicy
 }
 
 var _ protocol.Client = (*Client)(nil)
+
+type workspaceEditApplyPolicy struct {
+	enabled bool
+	options WorkspaceEditApplyOptions
+}
 
 // newClient returns a [Client] that records diagnostics into store and logs
 // through logger.
@@ -66,6 +74,82 @@ func (c *Client) LogMessage(_ context.Context, params *protocol.LogMessageParams
 func (c *Client) ShowMessage(_ context.Context, params *protocol.ShowMessageParams) error {
 	c.logger.Info("lsp show message", slog.String("message", params.Message))
 	return nil
+}
+
+// ApplyEdit handles server-initiated workspace/applyEdit requests under the
+// currently enabled policy.
+func (c *Client) ApplyEdit(_ context.Context, params *protocol.ApplyWorkspaceEditParams) (*protocol.ApplyWorkspaceEditResult, error) {
+	if params == nil {
+		reason := "applyEdit params are required"
+		return &protocol.ApplyWorkspaceEditResult{Applied: false, FailureReason: &reason}, nil
+	}
+
+	decoded, err := WorkspaceEditFromProtocol(params.Edit)
+	if err != nil {
+		reason := fmt.Sprintf("convert applyEdit edit payload: %v", err)
+		return &protocol.ApplyWorkspaceEditResult{Applied: false, FailureReason: &reason}, nil
+	}
+
+	policy, ok := c.currentApplyPolicy()
+	if !ok {
+		reason := "workspace/applyEdit is disabled by client policy"
+		return &protocol.ApplyWorkspaceEditResult{
+			Applied:       false,
+			FailureReason: &reason,
+		}, nil
+	}
+
+	result, err := ApplyWorkspaceEdit(decoded, policy)
+	if err != nil {
+		return nil, err
+	}
+	return &result, nil
+}
+
+func (c *Client) currentApplyPolicy() (options WorkspaceEditApplyOptions, ok bool) {
+	c.applyMu.Lock()
+	defer c.applyMu.Unlock()
+
+	if !c.applyPolicy.enabled {
+		return WorkspaceEditApplyOptions{}, false
+	}
+
+	options = c.applyPolicy.options
+	options.CurrentVersions = cloneCurrentVersionsMap(options.CurrentVersions)
+	return options, true
+}
+
+func (c *Client) withApplyEditPolicy(options WorkspaceEditApplyOptions, fn func() error) error {
+	c.setApplyPolicy(true, options)
+	defer c.setApplyPolicy(false, WorkspaceEditApplyOptions{})
+	return fn()
+}
+
+func (c *Client) setApplyPolicy(enabled bool, options WorkspaceEditApplyOptions) {
+	c.applyMu.Lock()
+	defer c.applyMu.Unlock()
+
+	if !enabled {
+		c.applyPolicy = workspaceEditApplyPolicy{}
+		return
+	}
+
+	c.applyPolicy = workspaceEditApplyPolicy{
+		enabled: true,
+		options: options,
+	}
+	c.applyPolicy.options.CurrentVersions = cloneCurrentVersionsMap(options.CurrentVersions)
+}
+
+func cloneCurrentVersionsMap(src map[string]uint32) map[string]uint32 {
+	if len(src) == 0 {
+		return nil
+	}
+	dst := make(map[string]uint32, len(src))
+	for key, value := range src {
+		dst[key] = value
+	}
+	return dst
 }
 
 // Manager owns one language server per language. Servers are spawned lazily on

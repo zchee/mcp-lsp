@@ -55,8 +55,8 @@ func (i *Implementation) Lookup(ctx context.Context, lang, absPath, text string,
 
 	cfg := i.mgr.cfg[lang]
 	u := uri.File(absPath)
-	if err := sess.server.DidOpen(ctx, didOpenParams(u, cfg.LanguageID, text)); err != nil {
-		return nil, fmt.Errorf("open document: %w", err)
+	if err := sess.syncTextDocument(ctx, u, cfg.LanguageID, text); err != nil {
+		return nil, err
 	}
 
 	result, err := sess.server.Implementation(ctx, implementationParams(u, pos))

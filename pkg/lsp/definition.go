@@ -52,8 +52,8 @@ func (d *Definition) Lookup(ctx context.Context, lang, absPath, text string, pos
 
 	cfg := d.mgr.cfg[lang]
 	u := uri.File(absPath)
-	if err := sess.server.DidOpen(ctx, didOpenParams(u, cfg.LanguageID, text)); err != nil {
-		return nil, fmt.Errorf("open document: %w", err)
+	if err := sess.syncTextDocument(ctx, u, cfg.LanguageID, text); err != nil {
+		return nil, err
 	}
 
 	result, err := sess.server.Definition(ctx, definitionParams(u, pos))
