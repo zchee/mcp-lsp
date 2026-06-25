@@ -15,6 +15,7 @@
 package mcp
 
 import (
+	"context"
 	"log/slog"
 	"testing"
 
@@ -31,7 +32,7 @@ func TestServerExposesReadOnlyTools(t *testing.T) {
 
 	logger := slog.New(slog.DiscardHandler)
 	mgr := lsp.NewManager(lsp.DefaultConfig(), t.TempDir(), logger)
-	t.Cleanup(func() { _ = mgr.Close(t.Context()) })
+	t.Cleanup(func() { _ = mgr.Close(context.WithoutCancel(t.Context())) })
 
 	srv := NewServer(mgr, logger)
 

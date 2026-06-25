@@ -15,6 +15,7 @@
 package lsptest
 
 import (
+	"context"
 	"encoding/json"
 	"os"
 	"os/exec"
@@ -30,7 +31,9 @@ func NewE2ESession(t *testing.T, workspace string) *mcp.ClientSession {
 	t.Helper()
 
 	bin := BuildBinary(t)
-	cmd := exec.CommandContext(t.Context(), bin, "-workspace", workspace, "-log-level", "error")
+	cmdCtx, cancel := context.WithCancel(context.WithoutCancel(t.Context()))
+	t.Cleanup(cancel)
+	cmd := exec.CommandContext(cmdCtx, bin, "-workspace", workspace, "-log-level", "error")
 	cmd.Stderr = os.Stderr
 	transport := &mcp.CommandTransport{Command: cmd}
 

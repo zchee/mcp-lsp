@@ -24,6 +24,7 @@
 package rustintegration
 
 import (
+	"context"
 	"log/slog"
 	"testing"
 	"time"
@@ -80,7 +81,7 @@ func newManager(t *testing.T, w lsptest.Workspace) *lsp.Manager {
 	}
 	mgr := lsp.NewManager(cfg, w.Dir(), slog.New(slog.DiscardHandler))
 	t.Cleanup(func() {
-		if err := mgr.Close(t.Context()); err != nil {
+		if err := mgr.Close(context.WithoutCancel(t.Context())); err != nil {
 			t.Errorf("manager close reported errors: %v", err)
 		}
 	})
