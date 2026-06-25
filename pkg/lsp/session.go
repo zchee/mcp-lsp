@@ -169,8 +169,8 @@ func (s *serverSession) watch() {
 }
 
 // shutdown stops the session: a best-effort LSP shutdown/exit handshake, then
-// closing the connection, canceling the context, and waiting for the process to
-// exit, killing it if it overruns shutdownWait. It is idempotent.
+// closing the connection, waiting for the process to exit, and canceling the
+// context. It kills the process if it overruns shutdownWait. It is idempotent.
 func (s *serverSession) shutdown(ctx context.Context) error {
 	s.shutdownOnce.Do(func() {
 		s.shutdownErr = s.doShutdown(ctx)
@@ -180,6 +180,9 @@ func (s *serverSession) shutdown(ctx context.Context) error {
 
 func (s *serverSession) doShutdown(ctx context.Context) error {
 	<-s.ready
+	if s.cancel != nil {
+		defer s.cancel()
+	}
 
 	// Bound the LSP handshake independently of the caller's context, which may
 	// have no deadline ([Manager.Close] is invoked with a non-cancelable context
@@ -199,9 +202,6 @@ func (s *serverSession) doShutdown(ctx context.Context) error {
 	}
 	if s.conn != nil {
 		_ = s.conn.Close()
-	}
-	if s.cancel != nil {
-		s.cancel()
 	}
 	return s.waitProcess()
 }

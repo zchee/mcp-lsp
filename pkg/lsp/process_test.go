@@ -45,6 +45,10 @@ func TestMain(m *testing.M) {
 		// path while the child still needs reaping.
 		os.Exit(0)
 	}
+	if os.Getenv(fakeServerEnv) == "exit-after-delay" {
+		time.Sleep(100 * time.Millisecond)
+		os.Exit(0)
+	}
 
 	os.Exit(m.Run())
 }
@@ -135,6 +139,37 @@ func TestSessionShutdownBoundedOnWedgedServer(t *testing.T) {
 	case <-fake.shutdownEntered:
 	default:
 		t.Error("server Shutdown was never invoked")
+	}
+}
+
+// TestSessionShutdownWaitsForCleanProcessExitBeforeCancel verifies that a
+// normal shutdown gives the subprocess a chance to exit cleanly before canceling
+// its [exec.CommandContext]. Canceling first can make [exec.Cmd.Wait] report
+// context.Canceled for a process that would otherwise have exited without
+// error, which turns successful cleanup into a test failure on slower CI hosts.
+func TestSessionShutdownWaitsForCleanProcessExitBeforeCancel(t *testing.T) {
+	t.Setenv(fakeServerEnv, "exit-after-delay")
+
+	cmdCtx, cancel := context.WithCancel(context.Background())
+	cmd := exec.CommandContext(cmdCtx, os.Args[0])
+	cmd.Env = os.Environ()
+	if err := cmd.Start(); err != nil {
+		cancel()
+		t.Fatalf("start delayed-exit process: %v", err)
+	}
+
+	sess := &serverSession{
+		ready:  make(chan struct{}),
+		cmd:    cmd,
+		cancel: cancel,
+	}
+	close(sess.ready)
+
+	if err := sess.shutdown(context.WithoutCancel(t.Context())); err != nil {
+		t.Fatalf("shutdown: %v", err)
+	}
+	if cmd.ProcessState == nil {
+		t.Fatal("shutdown returned before waiting for the subprocess")
 	}
 }
 
