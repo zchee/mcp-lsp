@@ -43,5 +43,10 @@ func DefaultConfig() map[string]ServerConfig {
 			Args:       nil,
 			LanguageID: protocol.LanguageKindGo,
 		},
+		"rust": {
+			Command:    "rust-analyzer",
+			Args:       nil,
+			LanguageID: protocol.LanguageKindRust,
+		},
 	}
 }

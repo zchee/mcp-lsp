@@ -1,0 +1,92 @@
+// Copyright 2026 The mcp-lsp Authors.
+//
+// Licensed under the Apache License, Version 2.0 (the "License");
+// you may not use this file except in compliance with the License.
+// You may obtain a copy of the License at
+//
+//     http://www.apache.org/licenses/LICENSE-2.0
+//
+// Unless required by applicable law or agreed to in writing, software
+// distributed under the License is distributed on an "AS IS" BASIS,
+// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+// See the License for the specific language governing permissions and
+// limitations under the License.
+
+package rustintegration
+
+import (
+	"fmt"
+	"testing"
+
+	mcpsdk "github.com/modelcontextprotocol/go-sdk/mcp"
+	"go.lsp.dev/uri"
+
+	mcpserver "github.com/zchee/mcp-lsp/pkg/mcp"
+	"github.com/zchee/mcp-lsp/tests/internal/lsptest"
+)
+
+// TestE2ERustAnalyzerDefinition exercises the compiled mcp-lsp binary over MCP
+// stdio, proving the public default registry can route Rust definition requests
+// to rust-analyzer without using the test-local Manager configuration.
+func TestE2ERustAnalyzerDefinition(t *testing.T) {
+	requireIntegration(t)
+
+	ws := extractFixture(t, "definition_crossfile.txtar")
+	fixture := ws.Path("src/main.rs")
+	query := ws.MarkerPosition(t, "src/main.rs", "query", "Greeting")
+	target := ws.MarkerPosition(t, "src/lib.rs", "target", "Greeting")
+	targetURI := string(uri.File(ws.Path("src/lib.rs")))
+	targetLine := int(target.Line) + 1
+	targetColumn := int(target.Character) + 1
+	session := lsptest.NewE2ESession(t, ws.Dir())
+
+	var out mcpserver.DefinitionOutput
+	var lastErr error
+	for range rustDefinitionLookup.Attempts {
+		res, err := session.CallTool(t.Context(), &mcpsdk.CallToolParams{
+			Name: "lsp_definition",
+			Arguments: map[string]any{
+				"file":     fixture,
+				"line":     int(query.Line) + 1,
+				"column":   int(query.Character) + 1,
+				"language": rustLanguage,
+			},
+		})
+		if err != nil {
+			lastErr = err
+			waitForRustDefinition(t)
+			continue
+		}
+		if res.IsError {
+			lastErr = fmt.Errorf("lsp_definition returned a tool error: %+v", res.Content)
+			waitForRustDefinition(t)
+			continue
+		}
+		out = lsptest.DecodeStructured[mcpserver.DefinitionOutput](t, res)
+		if len(out.Definitions) > 0 {
+			break
+		}
+		waitForRustDefinition(t)
+	}
+	if len(out.Definitions) == 0 {
+		t.Fatalf("expected at least one Rust definition, got none; last error = %v, output = %+v", lastErr, out)
+	}
+
+	for _, def := range out.Definitions {
+		if def.TargetURI != targetURI {
+			continue
+		}
+		if def.TargetSelectionRange.StartLine == targetLine && def.TargetSelectionRange.StartColumn == targetColumn {
+			return
+		}
+	}
+	t.Fatalf("no Rust definition pointed to %s at %d:%d; definitions = %+v", targetURI, targetLine, targetColumn, out.Definitions)
+}
+
+func waitForRustDefinition(t *testing.T) {
+	t.Helper()
+
+	if err := lsptest.SleepOrCancel(t.Context(), rustDefinitionLookup.RetryDelay); err != nil {
+		t.Fatalf("context canceled while waiting for %s: %v", rustDefinitionLookup.ServerName, err)
+	}
+}

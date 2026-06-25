@@ -30,6 +30,11 @@ func TestDefaultConfig(t *testing.T) {
 			Args:       nil,
 			LanguageID: protocol.LanguageKindGo,
 		},
+		"rust": {
+			Command:    "rust-analyzer",
+			Args:       nil,
+			LanguageID: protocol.LanguageKindRust,
+		},
 	}
 
 	got := DefaultConfig()
