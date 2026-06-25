@@ -42,6 +42,11 @@ type fakeServer struct {
 	pullSupported bool
 	pullReport    protocol.DocumentDiagnosticReport
 
+	implementationSupported bool
+	implementationResult    protocol.DefinitionResult
+	implementationErr       error
+	implementationRequests  []protocol.ImplementationParams
+
 	definitionResult   protocol.DefinitionResult
 	definitionErr      error
 	definitionRequests []protocol.DefinitionParams
@@ -81,6 +86,9 @@ func (f *fakeServer) Initialize(_ context.Context, _ *protocol.InitializeParams)
 		res.Capabilities.DiagnosticProvider = &protocol.DiagnosticOptions{
 			InterFileDependencies: true,
 		}
+	}
+	if f.implementationSupported {
+		res.Capabilities.ImplementationProvider = protocol.Boolean(true)
 	}
 	return res, nil
 }
@@ -135,14 +143,15 @@ func wireSessionCore(t *testing.T, srv protocol.Server) (*serverSession, protoco
 	}
 
 	sess := &serverSession{
-		ready:         make(chan struct{}),
-		pullSupported: res.Capabilities.DiagnosticProvider != nil,
-		conn:          clientConn,
-		server:        server,
-		client:        lspClient,
-		store:         st,
-		logger:        logger,
-		cancel:        clientCancel,
+		ready:                   make(chan struct{}),
+		pullSupported:           res.Capabilities.DiagnosticProvider != nil,
+		implementationSupported: implementationProviderSupported(res.Capabilities.ImplementationProvider),
+		conn:                    clientConn,
+		server:                  server,
+		client:                  lspClient,
+		store:                   st,
+		logger:                  logger,
+		cancel:                  clientCancel,
 	}
 	// Consume the [sync.Once] so [Manager.session] does not attempt a real spawn
 	// for this pre-wired session, and signal readiness.

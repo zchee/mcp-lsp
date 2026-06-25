@@ -40,10 +40,11 @@ const shutdownWait = 5 * time.Second
 // a fired [sync.Once] cannot be reused, a dead session is replaced wholesale by
 // the [Manager] rather than restarted in place.
 type serverSession struct {
-	once          sync.Once
-	ready         chan struct{}
-	initErr       error
-	pullSupported bool
+	once                    sync.Once
+	ready                   chan struct{}
+	initErr                 error
+	pullSupported           bool
+	implementationSupported bool
 
 	cmd    *exec.Cmd
 	conn   jsonrpc2.Conn
@@ -75,9 +76,9 @@ func newSession(store *store, logger *slog.Logger) *serverSession {
 }
 
 // start spawns the server, wires the jsonrpc2 connection, performs the
-// initialize handshake, and records whether pull diagnostics are supported. It
-// closes ready when finished, with initErr set on failure. It runs exactly once
-// under the session's [sync.Once].
+// initialize handshake, and records advertised feature capabilities. It closes
+// ready when finished, with initErr set on failure. It runs exactly once under
+// the session's [sync.Once].
 //
 // The connection context is rooted with [context.WithoutCancel] so it
 // keeps parent's values but is detached from a tool call's cancellation:
@@ -127,6 +128,7 @@ func (s *serverSession) start(parent context.Context, cfg ServerConfig, rootURI 
 		return
 	}
 	s.pullSupported = res.Capabilities.DiagnosticProvider != nil
+	s.implementationSupported = implementationProviderSupported(res.Capabilities.ImplementationProvider)
 
 	go s.watch()
 }
@@ -237,7 +239,7 @@ func isCleanExit(err error) bool {
 }
 
 // initializeParams builds the [protocol.InitializeParams] advertising support
-// for definition links, push and pull diagnostics, and document synchronization
+// for definition/implementation links, push and pull diagnostics, and document synchronization
 // rooted at rootURI.
 func initializeParams(rootURI uri.URI) *protocol.InitializeParams {
 	pid := int32(os.Getpid()) //nolint:gosec // a process id fits in int32 on every supported platform
@@ -258,6 +260,9 @@ func initializeParams(rootURI uri.URI) *protocol.InitializeParams {
 				Definition: &protocol.DefinitionClientCapabilities{
 					LinkSupport: new(true),
 				},
+				Implementation: &protocol.ImplementationClientCapabilities{
+					LinkSupport: new(true),
+				},
 				PublishDiagnostics: &protocol.PublishDiagnosticsClientCapabilities{
 					RelatedInformation: new(true),
 				},
@@ -267,6 +272,21 @@ func initializeParams(rootURI uri.URI) *protocol.InitializeParams {
 				},
 			},
 		},
+	}
+}
+
+func implementationProviderSupported(provider protocol.ImplementationProvider) bool {
+	switch p := provider.(type) {
+	case nil:
+		return false
+	case protocol.Boolean:
+		return bool(p)
+	case *protocol.ImplementationOptions:
+		return p != nil
+	case *protocol.ImplementationRegistrationOptions:
+		return p != nil
+	default:
+		return false
 	}
 }
 
