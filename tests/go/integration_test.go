@@ -30,6 +30,13 @@ var goDefinitionLookup = lsptest.DefinitionLookupConfig{
 	RetryDelay: 250 * time.Millisecond,
 }
 
+var goImplementationLookup = lsptest.ImplementationLookupConfig{
+	Language:   "go",
+	ServerName: "gopls",
+	Attempts:   10,
+	RetryDelay: 250 * time.Millisecond,
+}
+
 func TestIntegrationDiagnosticsReportsCompileError(t *testing.T) {
 	requireIntegration(t)
 
@@ -94,4 +101,20 @@ func TestIntegrationDefinitionResolvesAcrossFiles(t *testing.T) {
 
 	defs := lsptest.LookupDefinition(t, mgr, goDefinitionLookup, mainFile, text, query)
 	lsptest.AssertDefinitionResolvesTo(t, defs, wantURI, target)
+}
+
+func TestIntegrationImplementationResolvesInterfaceMethod(t *testing.T) {
+	requireIntegration(t)
+
+	ws := extractFixture(t, "implementation_interface.txtar")
+	mgr := newManager(t, ws)
+
+	mainFile := ws.Path("main.go")
+	text := ws.Source(t, "main.go")
+	query := ws.MarkerPosition(t, "main.go", "query", "Greet")
+	target := ws.MarkerPosition(t, "main.go", "target", "Greet")
+	wantURI := string(uri.File(mainFile))
+
+	implementations := lsptest.LookupImplementation(t, mgr, goImplementationLookup, mainFile, text, query)
+	lsptest.AssertImplementationResolvesTo(t, implementations, wantURI, target)
 }

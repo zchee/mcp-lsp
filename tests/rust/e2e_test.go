@@ -107,11 +107,74 @@ func TestE2ERustAnalyzerDefinition(t *testing.T) {
 	t.Fatalf("no Rust definition pointed to %s at %d:%d; definitions = %+v", targetURI, targetLine, targetColumn, out.Definitions)
 }
 
+func TestE2ERustAnalyzerImplementation(t *testing.T) {
+	requireIntegration(t)
+
+	ws := extractFixture(t, "implementation_trait.txtar")
+	fixture := ws.Path("src/main.rs")
+	query := ws.MarkerPosition(t, "src/main.rs", "query", "greet")
+	target := ws.MarkerPosition(t, "src/main.rs", "target", "greet")
+	targetURI := string(uri.File(fixture))
+	targetLine := int(target.Line) + 1
+	targetColumn := int(target.Character) + 1
+	session := lsptest.NewE2ESession(t, ws.Dir())
+
+	var out mcpserver.ImplementationOutput
+	var lastErr error
+	for range rustImplementationLookup.Attempts {
+		res, err := session.CallTool(t.Context(), &mcpsdk.CallToolParams{
+			Name: "lsp_implementation",
+			Arguments: map[string]any{
+				"file":     fixture,
+				"line":     int(query.Line) + 1,
+				"column":   int(query.Character) + 1,
+				"language": rustLanguage,
+			},
+		})
+		if err != nil {
+			lastErr = err
+			waitForRustImplementation(t)
+			continue
+		}
+		if res.IsError {
+			lastErr = fmt.Errorf("lsp_implementation returned a tool error: %+v", res.Content)
+			waitForRustImplementation(t)
+			continue
+		}
+		out = lsptest.DecodeStructured[mcpserver.ImplementationOutput](t, res)
+		if len(out.Implementations) > 0 {
+			break
+		}
+		waitForRustImplementation(t)
+	}
+	if len(out.Implementations) == 0 {
+		t.Fatalf("expected at least one Rust implementation, got none; last error = %v, output = %+v", lastErr, out)
+	}
+
+	for _, implementation := range out.Implementations {
+		if implementation.TargetURI != targetURI {
+			continue
+		}
+		if implementation.TargetSelectionRange.StartLine == targetLine && implementation.TargetSelectionRange.StartColumn == targetColumn {
+			return
+		}
+	}
+	t.Fatalf("no Rust implementation pointed to %s at %d:%d; implementations = %+v", targetURI, targetLine, targetColumn, out.Implementations)
+}
+
 func waitForRustDefinition(t *testing.T) {
 	t.Helper()
 
 	if err := lsptest.SleepOrCancel(t.Context(), rustDefinitionLookup.RetryDelay); err != nil {
 		t.Fatalf("context canceled while waiting for %s: %v", rustDefinitionLookup.ServerName, err)
+	}
+}
+
+func waitForRustImplementation(t *testing.T) {
+	t.Helper()
+
+	if err := lsptest.SleepOrCancel(t.Context(), rustImplementationLookup.RetryDelay); err != nil {
+		t.Fatalf("context canceled while waiting for %s: %v", rustImplementationLookup.ServerName, err)
 	}
 }
 

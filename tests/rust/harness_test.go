@@ -48,6 +48,13 @@ var rustDefinitionLookup = lsptest.DefinitionLookupConfig{
 	RetryDelay: 250 * time.Millisecond,
 }
 
+var rustImplementationLookup = lsptest.ImplementationLookupConfig{
+	Language:   rustLanguage,
+	ServerName: rustAnalyzerCommand,
+	Attempts:   20,
+	RetryDelay: 250 * time.Millisecond,
+}
+
 var rustDiagnosticsLookup = struct {
 	ServerName string
 	Attempts   int

@@ -66,6 +66,21 @@ func TestIntegrationRustAnalyzerDefinitionResolvesAcrossFiles(t *testing.T) {
 	lsptest.AssertDefinitionResolvesTo(t, defs, string(uri.File(ws.Path("src/lib.rs"))), target)
 }
 
+func TestIntegrationRustAnalyzerImplementationResolvesTraitMethod(t *testing.T) {
+	requireIntegration(t)
+
+	ws := extractFixture(t, "implementation_trait.txtar")
+	mgr := newManager(t, ws)
+
+	mainFile := ws.Path("src/main.rs")
+	text := ws.Source(t, "src/main.rs")
+	query := ws.MarkerPosition(t, "src/main.rs", "query", "greet")
+	target := ws.MarkerPosition(t, "src/main.rs", "target", "greet")
+
+	implementations := lsptest.LookupImplementation(t, mgr, rustImplementationLookup, mainFile, text, query)
+	lsptest.AssertImplementationResolvesTo(t, implementations, string(uri.File(mainFile)), target)
+}
+
 func lookupRustDiagnostics(t *testing.T, mgr *lsp.Manager, mainFile, text string) []lsp.Diagnostic {
 	t.Helper()
 

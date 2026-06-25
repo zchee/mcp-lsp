@@ -34,14 +34,22 @@ import (
 // IntegrationEnv is the environment variable that opts in to integration tests.
 const IntegrationEnv = "MCP_LSP_INTEGRATION"
 
-// DefinitionLookupConfig controls retry behavior for real language-server
-// definition lookups.
-type DefinitionLookupConfig struct {
+// LookupConfig controls retry behavior for real language-server navigation
+// lookups.
+type LookupConfig struct {
 	Language   string
 	ServerName string
 	Attempts   int
 	RetryDelay time.Duration
 }
+
+// DefinitionLookupConfig controls retry behavior for real language-server
+// definition lookups.
+type DefinitionLookupConfig = LookupConfig
+
+// ImplementationLookupConfig controls retry behavior for real language-server
+// implementation lookups.
+type ImplementationLookupConfig = LookupConfig
 
 // RequireIntegration skips t unless the integration gate is set and serverName
 // is resolvable on PATH.
@@ -152,7 +160,7 @@ func (w Workspace) MarkerPosition(t *testing.T, rel, marker, ident string) proto
 // the test if no definition resolves within cfg's attempt budget.
 func LookupDefinition(t *testing.T, mgr *lsp.Manager, cfg DefinitionLookupConfig, absPath, text string, pos protocol.Position) []lsp.DefinitionLocation {
 	t.Helper()
-	validateDefinitionLookupConfig(t, cfg)
+	validateLookupConfig(t, "definition", cfg)
 
 	var (
 		defs    []lsp.DefinitionLocation
@@ -171,21 +179,45 @@ func LookupDefinition(t *testing.T, mgr *lsp.Manager, cfg DefinitionLookupConfig
 	return nil
 }
 
+// LookupImplementation drives [lsp.Implementation.Lookup] against a real
+// language server, retrying while the server is still loading the workspace. It
+// fails the test if no implementation resolves within cfg's attempt budget.
+func LookupImplementation(t *testing.T, mgr *lsp.Manager, cfg ImplementationLookupConfig, absPath, text string, pos protocol.Position) []lsp.ImplementationLocation {
+	t.Helper()
+	validateLookupConfig(t, "implementation", cfg)
+
+	var (
+		implementations []lsp.ImplementationLocation
+		lastErr         error
+	)
+	for range cfg.Attempts {
+		implementations, lastErr = mgr.Implementation().Lookup(t.Context(), cfg.Language, absPath, text, pos)
+		if lastErr == nil && len(implementations) > 0 {
+			return implementations
+		}
+		if ctxErr := SleepOrCancel(t.Context(), cfg.RetryDelay); ctxErr != nil {
+			t.Fatalf("context canceled while waiting for %s: %v", cfg.ServerName, ctxErr)
+		}
+	}
+	t.Fatalf("no implementation resolved after %d attempts; last error = %v, implementations = %+v", cfg.Attempts, lastErr, implementations)
+	return nil
+}
+
 // AssertDefinitionResolvesTo fails unless some definition target points at
 // wantURI with a selection range starting at the expected zero-based position.
 func AssertDefinitionResolvesTo(t *testing.T, defs []lsp.DefinitionLocation, wantURI string, want protocol.Position) {
 	t.Helper()
 
-	for _, def := range defs {
-		if def.TargetURI != wantURI {
-			continue
-		}
-		sel := def.TargetSelectionRange
-		if int64(sel.StartLine) == int64(want.Line) && int64(sel.StartColumn) == int64(want.Character) {
-			return
-		}
-	}
-	t.Fatalf("no definition pointed to %s at %d:%d (zero-based); defs = %+v", wantURI, want.Line, want.Character, defs)
+	assertNavigationResolvesTo(t, "definition", defs, wantURI, want)
+}
+
+// AssertImplementationResolvesTo fails unless some implementation target points
+// at wantURI with a selection range starting at the expected zero-based
+// position.
+func AssertImplementationResolvesTo(t *testing.T, implementations []lsp.ImplementationLocation, wantURI string, want protocol.Position) {
+	t.Helper()
+
+	assertNavigationResolvesTo(t, "implementation", implementations, wantURI, want)
 }
 
 // SleepOrCancel waits for d or returns the context error if ctx is canceled
@@ -201,21 +233,36 @@ func SleepOrCancel(ctx context.Context, d time.Duration) error {
 	}
 }
 
-func validateDefinitionLookupConfig(t *testing.T, cfg DefinitionLookupConfig) {
+func validateLookupConfig(t *testing.T, kind string, cfg LookupConfig) {
 	t.Helper()
 
 	if cfg.Language == "" {
-		t.Fatal("definition lookup language is empty")
+		t.Fatalf("%s lookup language is empty", kind)
 	}
 	if cfg.ServerName == "" {
-		t.Fatal("definition lookup server name is empty")
+		t.Fatalf("%s lookup server name is empty", kind)
 	}
 	if cfg.Attempts <= 0 {
-		t.Fatalf("definition lookup attempts must be positive: %d", cfg.Attempts)
+		t.Fatalf("%s lookup attempts must be positive: %d", kind, cfg.Attempts)
 	}
 	if cfg.RetryDelay <= 0 {
-		t.Fatalf("definition lookup retry delay must be positive: %v", cfg.RetryDelay)
+		t.Fatalf("%s lookup retry delay must be positive: %v", kind, cfg.RetryDelay)
 	}
+}
+
+func assertNavigationResolvesTo(t *testing.T, kind string, locations []lsp.NavigationLocation, wantURI string, want protocol.Position) {
+	t.Helper()
+
+	for _, loc := range locations {
+		if loc.TargetURI != wantURI {
+			continue
+		}
+		sel := loc.TargetSelectionRange
+		if int64(sel.StartLine) == int64(want.Line) && int64(sel.StartColumn) == int64(want.Character) {
+			return
+		}
+	}
+	t.Fatalf("no %s pointed to %s at %d:%d (zero-based); locations = %+v", kind, wantURI, want.Line, want.Character, locations)
 }
 
 func utf16Column(line string, byteOffset int) uint32 {

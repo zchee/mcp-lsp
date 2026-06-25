@@ -1,0 +1,33 @@
+This fixture is a single-file Go module with an interface method implemented by
+a concrete type. textDocument/implementation on the interface method must
+resolve to the concrete method implementation, exercising gopls implementation
+support rather than definition support.
+
+Markers embedded in the source drive the test:
+
+  query=Greet  marks the interface method occurrence to query.
+  target=Greet marks the concrete method implementation the request must
+               resolve to.
+
+-- go.mod --
+module implementationinterface
+
+go 1.27
+
+-- main.go --
+package main
+
+type Greeter interface {
+	Greet() string // query=Greet
+}
+
+type english struct{}
+
+func (english) Greet() string { // target=Greet
+	return "hello"
+}
+
+func main() {
+	var greeter Greeter = english{}
+	println(greeter.Greet())
+}

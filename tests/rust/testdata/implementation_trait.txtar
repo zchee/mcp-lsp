@@ -1,0 +1,33 @@
+This fixture is a minimal Cargo package with a trait method implemented by a
+concrete type. textDocument/implementation on the trait method must resolve to
+the impl method in the same file.
+
+Markers embedded in the source drive the test:
+
+  query=greet  marks the trait method occurrence to query.
+  target=greet marks the impl method the request must resolve to.
+
+-- Cargo.toml --
+[package]
+name = "mcp_lsp_rust_implementation_fixture"
+version = "0.1.0"
+edition = "2024"
+
+[dependencies]
+-- src/main.rs --
+trait Greeter {
+    fn greet(&self) -> &'static str; // query=greet
+}
+
+struct English;
+
+impl Greeter for English {
+    fn greet(&self) -> &'static str { // target=greet
+        "hello"
+    }
+}
+
+fn main() {
+    let english = English;
+    let _message = english.greet();
+}

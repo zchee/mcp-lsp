@@ -124,10 +124,73 @@ func TestE2EDefinition(t *testing.T) {
 	t.Fatalf("no definition pointed to %s at %d:%d; definitions = %+v", targetURI, targetLine, targetColumn, out.Definitions)
 }
 
+func TestE2EImplementation(t *testing.T) {
+	requireIntegration(t)
+
+	ws := extractFixture(t, "implementation_interface.txtar")
+	fixture := ws.Path("main.go")
+	query := ws.MarkerPosition(t, "main.go", "query", "Greet")
+	target := ws.MarkerPosition(t, "main.go", "target", "Greet")
+	targetURI := string(uri.File(fixture))
+	targetLine := int(target.Line) + 1
+	targetColumn := int(target.Character) + 1
+	session := lsptest.NewE2ESession(t, ws.Dir())
+
+	var out mcpserver.ImplementationOutput
+	var lastErr error
+	for range goImplementationLookup.Attempts {
+		res, err := session.CallTool(t.Context(), &mcpsdk.CallToolParams{
+			Name: "lsp_implementation",
+			Arguments: map[string]any{
+				"file":     fixture,
+				"line":     int(query.Line) + 1,
+				"column":   int(query.Character) + 1,
+				"language": "go",
+			},
+		})
+		if err != nil {
+			lastErr = err
+			waitForImplementation(t)
+			continue
+		}
+		if res.IsError {
+			lastErr = fmt.Errorf("lsp_implementation returned a tool error: %+v", res.Content)
+			waitForImplementation(t)
+			continue
+		}
+		out = lsptest.DecodeStructured[mcpserver.ImplementationOutput](t, res)
+		if len(out.Implementations) > 0 {
+			break
+		}
+		waitForImplementation(t)
+	}
+	if len(out.Implementations) == 0 {
+		t.Fatalf("expected at least one implementation, got none; last error = %v, output = %+v", lastErr, out)
+	}
+
+	for _, implementation := range out.Implementations {
+		if implementation.TargetURI != targetURI {
+			continue
+		}
+		if implementation.TargetSelectionRange.StartLine == targetLine && implementation.TargetSelectionRange.StartColumn == targetColumn {
+			return
+		}
+	}
+	t.Fatalf("no implementation pointed to %s at %d:%d; implementations = %+v", targetURI, targetLine, targetColumn, out.Implementations)
+}
+
 func waitForDefinition(t *testing.T) {
 	t.Helper()
 
 	if err := lsptest.SleepOrCancel(t.Context(), goDefinitionLookup.RetryDelay); err != nil {
 		t.Fatalf("context canceled while waiting for %s: %v", goDefinitionLookup.ServerName, err)
+	}
+}
+
+func waitForImplementation(t *testing.T) {
+	t.Helper()
+
+	if err := lsptest.SleepOrCancel(t.Context(), goImplementationLookup.RetryDelay); err != nil {
+		t.Fatalf("context canceled while waiting for %s: %v", goImplementationLookup.ServerName, err)
 	}
 }
