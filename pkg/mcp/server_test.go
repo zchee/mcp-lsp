@@ -58,7 +58,7 @@ func TestServerExposesReadOnlyTools(t *testing.T) {
 		tool := res.Tools[i]
 		tools[tool.Name] = tool
 	}
-	for _, name := range []string{"lsp_diagnostics", "lsp_definition"} {
+	for _, name := range []string{"lsp_diagnostics", "lsp_definition", "lsp_implementation"} {
 		tool := tools[name]
 		if tool == nil {
 			t.Fatalf("tool %q was not listed; got tools %+v", name, res.Tools)

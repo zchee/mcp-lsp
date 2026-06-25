@@ -74,7 +74,7 @@ func definitionHandler(looker defLooker, workspaceRoot string) mcp.ToolHandlerFo
 		if in.File == "" {
 			return nil, DefinitionOutput{}, fmt.Errorf("file is required")
 		}
-		pos, err := definitionInputPosition(in.Line, in.Column)
+		pos, err := navigationInputPosition(in.Line, in.Column)
 		if err != nil {
 			return nil, DefinitionOutput{}, err
 		}
@@ -106,19 +106,19 @@ func definitionHandler(looker defLooker, workspaceRoot string) mcp.ToolHandlerFo
 	}
 }
 
-func definitionInputPosition(line, column int) (protocol.Position, error) {
-	protocolLine, err := definitionInputCoordinate("line", line)
+func navigationInputPosition(line, column int) (protocol.Position, error) {
+	protocolLine, err := navigationInputCoordinate("line", line)
 	if err != nil {
 		return protocol.Position{}, err
 	}
-	protocolColumn, err := definitionInputCoordinate("column", column)
+	protocolColumn, err := navigationInputCoordinate("column", column)
 	if err != nil {
 		return protocol.Position{}, err
 	}
 	return protocol.Position{Line: protocolLine, Character: protocolColumn}, nil
 }
 
-func definitionInputCoordinate(name string, value int) (uint32, error) {
+func navigationInputCoordinate(name string, value int) (uint32, error) {
 	if value <= 0 {
 		return 0, fmt.Errorf("%s must be greater than zero", name)
 	}
@@ -135,11 +135,11 @@ func toDefinitionItems(defs []lsp.DefinitionLocation) []DefinitionItem {
 	for _, def := range defs {
 		item := DefinitionItem{
 			TargetURI:            def.TargetURI,
-			TargetRange:          toDefinitionRangeItem(def.TargetRange),
-			TargetSelectionRange: toDefinitionRangeItem(def.TargetSelectionRange),
+			TargetRange:          toNavigationRangeItem(def.TargetRange),
+			TargetSelectionRange: toNavigationRangeItem(def.TargetSelectionRange),
 		}
 		if def.OriginSelectionRange != nil {
-			origin := toDefinitionRangeItem(*def.OriginSelectionRange)
+			origin := toNavigationRangeItem(*def.OriginSelectionRange)
 			item.OriginSelectionRange = &origin
 		}
 		items = append(items, item)
@@ -147,7 +147,7 @@ func toDefinitionItems(defs []lsp.DefinitionLocation) []DefinitionItem {
 	return items
 }
 
-func toDefinitionRangeItem(rng lsp.DefinitionRange) DefinitionRangeItem {
+func toNavigationRangeItem(rng lsp.NavigationRange) DefinitionRangeItem {
 	return DefinitionRangeItem{
 		StartLine:   rng.StartLine + 1,
 		StartColumn: rng.StartColumn + 1,

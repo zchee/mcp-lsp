@@ -43,5 +43,10 @@ func NewServer(mgr *lsp.Manager, logger *slog.Logger) *mcp.Server {
 		Description: "Find definition locations for a symbol at a file position via its language server.",
 		Annotations: &mcp.ToolAnnotations{ReadOnlyHint: true},
 	}, definitionHandler(mgr.Definition(), mgr.WorkspaceRoot()))
+	mcp.AddTool(s, &mcp.Tool{
+		Name:        "lsp_implementation",
+		Description: "Find implementation locations for an interface, trait, or method at a file position via its language server.",
+		Annotations: &mcp.ToolAnnotations{ReadOnlyHint: true},
+	}, implementationHandler(mgr.Implementation(), mgr.WorkspaceRoot()))
 	return s
 }
