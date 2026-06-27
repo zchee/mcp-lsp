@@ -24,7 +24,7 @@ import (
 	"sync"
 	"testing"
 
-	json "github.com/go-json-experiment/json"
+	"github.com/go-json-experiment/json"
 	"github.com/google/go-cmp/cmp"
 	"go.lsp.dev/protocol"
 	"go.lsp.dev/uri"
