@@ -48,21 +48,6 @@ func (f *fakeLooker) Lookup(_ context.Context, lang, absPath, text string) ([]ls
 	return f.diags, nil
 }
 
-// fileContent is the source written to the temporary file used by the handler
-// tests; its bytes are forwarded verbatim to the fake looker.
-const fileContent = "package main\n"
-
-// writeTempFile writes fileContent to a file in a temp dir and returns its path.
-func writeTempFile(t *testing.T) string {
-	t.Helper()
-
-	path := filepath.Join(t.TempDir(), "main.go")
-	if err := os.WriteFile(path, []byte(fileContent), 0o600); err != nil {
-		t.Fatalf("write temp file: %v", err)
-	}
-	return path
-}
-
 func TestDiagnosticsHandlerEmptyFile(t *testing.T) {
 	t.Parallel()
 
