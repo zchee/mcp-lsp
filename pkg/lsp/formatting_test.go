@@ -29,16 +29,16 @@ func TestFormattingRejectsUnsupportedCapabilitiesBeforeSync(t *testing.T) {
 	root := t.TempDir()
 	path := filepath.Join(root, "main.go")
 	srv := &fakeServer{}
-	mgr := newFeatureManager(t, srv, root)
+	mgr := newFakeServerManager(t, srv, root)
 	rng := protocol.Range{Start: protocol.Position{Line: 0, Character: 0}, End: protocol.Position{Line: 0, Character: 1}}
 
 	_, err := mgr.Formatting().Format(t.Context(), "go", path, "package main\n", protocol.FormattingOptions{})
 	requireErrorContains(t, err, "formatting request is not supported")
-	requireNoFeatureSync(t, srv)
+	requireNoDocumentSync(t, srv)
 
 	_, err = mgr.Formatting().RangeFormat(t.Context(), "go", path, "package main\n", rng, protocol.FormattingOptions{})
 	requireErrorContains(t, err, "range formatting request is not supported")
-	requireNoFeatureSync(t, srv)
+	requireNoDocumentSync(t, srv)
 }
 
 func TestFormattingAndRangeFormattingReturnWorkspaceEditPreviews(t *testing.T) {
@@ -61,7 +61,7 @@ func TestFormattingAndRangeFormattingReturnWorkspaceEditPreviews(t *testing.T) {
 			{Range: rangeFormatRange, NewText: "renamed"},
 		},
 	}
-	mgr := newFeatureManager(t, srv, root)
+	mgr := newFakeServerManager(t, srv, root)
 
 	formatOptions := protocol.FormattingOptions{TabSize: 8, InsertSpaces: false}
 	gotFormat, err := mgr.Formatting().Format(t.Context(), "go", path, "package main\n", formatOptions)

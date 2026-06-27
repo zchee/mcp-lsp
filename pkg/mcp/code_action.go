@@ -63,7 +63,7 @@ func codeActionHandler(looker codeActionLooker, workspaceRoot string) mcp.ToolHa
 		if err != nil {
 			return nil, CodeActionOutput{}, err
 		}
-		absPath, text, lang, err := readFeatureFile(workspaceRoot, in.File, in.Language)
+		absPath, text, lang, err := readInputFile(workspaceRoot, in.File, in.Language)
 		if err != nil {
 			return nil, CodeActionOutput{}, err
 		}

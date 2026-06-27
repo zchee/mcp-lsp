@@ -49,7 +49,7 @@ type CodeLensItem struct {
 
 func codeLensHandler(looker codeLensLooker, workspaceRoot string) mcp.ToolHandlerFor[CodeLensInput, CodeLensOutput] {
 	return func(ctx context.Context, _ *mcp.CallToolRequest, in CodeLensInput) (*mcp.CallToolResult, CodeLensOutput, error) {
-		absPath, text, lang, err := readFeatureFile(workspaceRoot, in.File, in.Language)
+		absPath, text, lang, err := readInputFile(workspaceRoot, in.File, in.Language)
 		if err != nil {
 			return nil, CodeLensOutput{}, err
 		}

@@ -22,13 +22,13 @@ import (
 	"go.lsp.dev/protocol"
 )
 
-// WorkspaceSymbols is the workspace/symbol feature bound to a [Manager].
+// WorkspaceSymbols issues workspace/symbol requests through a [Manager].
 type WorkspaceSymbols struct {
 	mgr     *Manager
 	timeout time.Duration
 }
 
-// WorkspaceSymbols returns the workspace/symbol feature for this manager.
+// WorkspaceSymbols returns a workspace/symbol helper for this manager.
 func (m *Manager) WorkspaceSymbols() *WorkspaceSymbols {
 	return &WorkspaceSymbols{mgr: m, timeout: defaultTimeout}
 }

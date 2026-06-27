@@ -47,7 +47,7 @@ func renameHandler(renamer renamer, workspaceRoot string) mcp.ToolHandlerFor[Ren
 		if err != nil {
 			return nil, WorkspaceEditPreviewOutput{}, err
 		}
-		absPath, text, lang, err := readFeatureFile(workspaceRoot, in.File, in.Language)
+		absPath, text, lang, err := readInputFile(workspaceRoot, in.File, in.Language)
 		if err != nil {
 			return nil, WorkspaceEditPreviewOutput{}, err
 		}

@@ -121,7 +121,7 @@ func snapshotCapabilities(capabilities *protocol.ServerCapabilities) sessionCapa
 }
 
 // start spawns the server, wires the jsonrpc2 connection, performs the
-// initialize handshake, and records advertised feature capabilities. It closes
+// initialize handshake, and records advertised server capabilities. It closes
 // ready when finished, with initErr set on failure. It runs exactly once under
 // the session's [sync.Once].
 //

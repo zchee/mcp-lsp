@@ -25,8 +25,8 @@ import (
 // NavigationRange is a flattened range for definition-like LSP methods whose
 // result shape is [protocol.DefinitionResult]. Positions are zero-based here,
 // matching the LSP wire format; the MCP layer converts them to one-based for the
-// agent. If a future navigation feature needs different target/range semantics,
-// add a feature-specific DTO instead of widening this shared one.
+// agent. If a future navigation method needs different target/range semantics,
+// add a method-specific DTO instead of widening this shared one.
 type NavigationRange struct {
 	StartLine   int
 	StartColumn int
@@ -37,8 +37,8 @@ type NavigationRange struct {
 // NavigationLocation is a flattened target for definition-like LSP methods
 // whose result shape is [protocol.DefinitionResult]. Positions are zero-based
 // here, matching the LSP wire format; the MCP layer converts them to one-based
-// for the agent. If a future navigation feature needs different target/range
-// semantics, add a feature-specific DTO instead of widening this shared one.
+// for the agent. If a future navigation method needs different target/range
+// semantics, add a method-specific DTO instead of widening this shared one.
 type NavigationLocation struct {
 	TargetURI            string
 	TargetRange          NavigationRange

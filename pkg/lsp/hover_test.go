@@ -30,11 +30,11 @@ func TestHoverRejectsUnsupportedCapabilityBeforeSync(t *testing.T) {
 	root := t.TempDir()
 	path := filepath.Join(root, "main.go")
 	srv := &fakeServer{}
-	mgr := newFeatureManager(t, srv, root)
+	mgr := newFakeServerManager(t, srv, root)
 
 	_, err := mgr.Hover().Lookup(t.Context(), "go", path, "package main\n", protocol.Position{})
 	requireErrorContains(t, err, "hover request is not supported")
-	requireNoFeatureSync(t, srv)
+	requireNoDocumentSync(t, srv)
 }
 
 func TestHoverLookupFlattensMarkupAndRecordsWireParams(t *testing.T) {
@@ -53,7 +53,7 @@ func TestHoverLookupFlattensMarkupAndRecordsWireParams(t *testing.T) {
 			Range:    &hoverRange,
 		},
 	}
-	mgr := newFeatureManager(t, srv, root)
+	mgr := newFakeServerManager(t, srv, root)
 	pos := protocol.Position{Line: 3, Character: 4}
 
 	got, err := mgr.Hover().Lookup(t.Context(), "go", path, "package main\n", pos)

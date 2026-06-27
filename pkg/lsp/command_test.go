@@ -25,11 +25,11 @@ func TestCommandsRejectUnadvertisedCommand(t *testing.T) {
 
 	root := t.TempDir()
 	srv := &fakeServer{}
-	mgr := newFeatureManager(t, srv, root)
+	mgr := newFakeServerManager(t, srv, root)
 
 	_, err := mgr.Commands().Execute(t.Context(), "go", "missing", nil, false)
 	requireErrorContains(t, err, `execute command "missing" is not advertised`)
-	requireNoFeatureSync(t, srv)
+	requireNoDocumentSync(t, srv)
 }
 
 func TestCommandsExecuteUsesAdvertisedCommandAndRawJSONArguments(t *testing.T) {
@@ -42,7 +42,7 @@ func TestCommandsExecuteUsesAdvertisedCommandAndRawJSONArguments(t *testing.T) {
 		},
 		executeResult: protocol.LSPAny(`{"ok":true}`),
 	}
-	mgr := newFeatureManager(t, srv, root)
+	mgr := newFakeServerManager(t, srv, root)
 	args := []protocol.LSPAny{protocol.LSPAny(`"arg"`), protocol.LSPAny(`1`)}
 
 	got, err := mgr.Commands().Execute(t.Context(), "go", "server.test", args, false)

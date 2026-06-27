@@ -29,11 +29,11 @@ func TestCodeLensesRejectUnsupportedCapabilityBeforeSync(t *testing.T) {
 	root := t.TempDir()
 	path := filepath.Join(root, "main.go")
 	srv := &fakeServer{}
-	mgr := newFeatureManager(t, srv, root)
+	mgr := newFakeServerManager(t, srv, root)
 
 	_, err := mgr.CodeLenses().Lookup(t.Context(), "go", path, "package main\n", false)
 	requireErrorContains(t, err, "code lens request is not supported")
-	requireNoFeatureSync(t, srv)
+	requireNoDocumentSync(t, srv)
 }
 
 func TestCodeLensesResolveWhenSupported(t *testing.T) {
@@ -55,7 +55,7 @@ func TestCodeLensesResolveWhenSupported(t *testing.T) {
 			Command: protocol.Command{Title: "Test", Command: "go.test"},
 		},
 	}
-	mgr := newFeatureManager(t, srv, root)
+	mgr := newFakeServerManager(t, srv, root)
 
 	gotLenses, err := mgr.CodeLenses().Lookup(t.Context(), "go", path, "package main\n", true)
 	if err != nil {

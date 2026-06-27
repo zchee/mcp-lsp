@@ -29,11 +29,11 @@ func TestRenameRejectsUnsupportedCapabilityBeforeSync(t *testing.T) {
 	root := t.TempDir()
 	path := filepath.Join(root, "main.go")
 	srv := &fakeServer{}
-	mgr := newFeatureManager(t, srv, root)
+	mgr := newFakeServerManager(t, srv, root)
 
 	_, err := mgr.Rename().Preview(t.Context(), "go", path, "package main\n", protocol.Position{}, "renamed")
 	requireErrorContains(t, err, "rename request is not supported")
-	requireNoFeatureSync(t, srv)
+	requireNoDocumentSync(t, srv)
 }
 
 func TestRenameReturnsWorkspaceEditPreview(t *testing.T) {
@@ -53,7 +53,7 @@ func TestRenameReturnsWorkspaceEditPreview(t *testing.T) {
 			},
 		},
 	}
-	mgr := newFeatureManager(t, srv, root)
+	mgr := newFakeServerManager(t, srv, root)
 
 	renamePos := protocol.Position{Line: 2, Character: 4}
 	gotRename, err := mgr.Rename().Preview(t.Context(), "go", path, "package main\n", renamePos, "Renamed")

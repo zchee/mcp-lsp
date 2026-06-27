@@ -40,7 +40,7 @@ type Diagnostic struct {
 	Message     string
 }
 
-// Diagnostics is the diagnostics feature bound to a [Manager]. settle is how long
+// Diagnostics looks up language-server diagnostics through a [Manager]. settle is how long
 // the push path waits for the publish stream to go quiet; timeout bounds the
 // whole acquisition when the caller's context has no deadline.
 type Diagnostics struct {
@@ -49,7 +49,7 @@ type Diagnostics struct {
 	timeout time.Duration
 }
 
-// Diagnostics returns the diagnostics feature for this manager.
+// Diagnostics returns the diagnostics helper for this manager.
 func (m *Manager) Diagnostics() *Diagnostics {
 	return &Diagnostics{
 		mgr:     m,
@@ -112,7 +112,7 @@ func (d *Diagnostics) acquire(ctx context.Context, sess *serverSession, u uri.UR
 	}
 }
 
-// withTimeout derives a context with the feature's timeout when the parent
+// withTimeout derives a context with the diagnostics timeout when the parent
 // carries no deadline, so the push wait cannot block indefinitely.
 func (d *Diagnostics) withTimeout(ctx context.Context) (context.Context, context.CancelFunc) {
 	if _, ok := ctx.Deadline(); ok {

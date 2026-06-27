@@ -22,7 +22,7 @@ import (
 	"go.lsp.dev/uri"
 )
 
-func TestInitializeParamsAdvertisesFeatureSuiteCapabilities(t *testing.T) {
+func TestInitializeParamsAdvertisesClientCapabilities(t *testing.T) {
 	t.Parallel()
 
 	params := initializeParams(uri.File("/workspace"))
@@ -119,7 +119,7 @@ func TestInitializeParamsAdvertisesFeatureSuiteCapabilities(t *testing.T) {
 	}
 }
 
-func TestSnapshotCapabilitiesCapturesFeatureSuiteProviders(t *testing.T) {
+func TestSnapshotCapabilitiesCapturesAdvertisedProviders(t *testing.T) {
 	t.Parallel()
 
 	resolve := true
@@ -139,7 +139,7 @@ func TestSnapshotCapabilitiesCapturesFeatureSuiteProviders(t *testing.T) {
 	if !got.pullDiagnostics || !got.implementation || !got.hover || !got.codeAction || !got.codeActionResolve ||
 		!got.codeLens || !got.codeLensResolve || !got.workspaceSymbol || !got.formatting || !got.rangeFormatting ||
 		!got.rename {
-		t.Fatalf("snapshotCapabilities did not capture feature providers: %+v", got)
+		t.Fatalf("snapshotCapabilities did not capture advertised providers: %+v", got)
 	}
 	if diff := gocmp.Diff([]string{"gopls.test"}, got.executeCommands); diff != "" {
 		t.Fatalf("executeCommands mismatch (-want +got):\n%s", diff)

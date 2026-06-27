@@ -29,12 +29,12 @@ func TestCodeActionsRejectUnsupportedCapabilityBeforeSync(t *testing.T) {
 	root := t.TempDir()
 	path := filepath.Join(root, "main.go")
 	srv := &fakeServer{}
-	mgr := newFeatureManager(t, srv, root)
+	mgr := newFakeServerManager(t, srv, root)
 	rng := protocol.Range{Start: protocol.Position{Line: 0, Character: 0}, End: protocol.Position{Line: 0, Character: 1}}
 
 	_, err := mgr.CodeActions().Lookup(t.Context(), "go", path, "package main\n", rng, nil, false)
 	requireErrorContains(t, err, "code action request is not supported")
-	requireNoFeatureSync(t, srv)
+	requireNoDocumentSync(t, srv)
 }
 
 func TestCodeActionsResolveWhenSupported(t *testing.T) {
@@ -70,7 +70,7 @@ func TestCodeActionsResolveWhenSupported(t *testing.T) {
 			Command: protocol.Command{Title: "Apply", Command: "server.apply"},
 		},
 	}
-	mgr := newFeatureManager(t, srv, root)
+	mgr := newFakeServerManager(t, srv, root)
 
 	gotActions, err := mgr.CodeActions().Lookup(t.Context(), "go", path, "package main\n", actionRange, []protocol.CodeActionKind{actionKind}, true)
 	if err != nil {

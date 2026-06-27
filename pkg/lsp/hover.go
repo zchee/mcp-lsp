@@ -24,13 +24,13 @@ import (
 	"go.lsp.dev/protocol"
 )
 
-// Hover is the textDocument/hover feature bound to a [Manager].
+// Hover issues textDocument/hover requests through a [Manager].
 type Hover struct {
 	mgr     *Manager
 	timeout time.Duration
 }
 
-// Hover returns the textDocument/hover feature for this manager.
+// Hover returns a textDocument/hover helper for this manager.
 func (m *Manager) Hover() *Hover { return &Hover{mgr: m, timeout: defaultTimeout} }
 
 // HoverResult is a compact hover response with zero-based range coordinates.

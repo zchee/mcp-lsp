@@ -23,14 +23,14 @@ import (
 	"go.lsp.dev/uri"
 )
 
-// Definition is the goto-definition feature bound to a [Manager]. Its timeout
+// Definition resolves goto-definition requests through a [Manager]. Its timeout
 // bounds the whole request when the caller's context has no deadline.
 type Definition struct {
 	mgr     *Manager
 	timeout time.Duration
 }
 
-// Definition returns the goto-definition feature for this manager.
+// Definition returns a goto-definition helper for this manager.
 func (m *Manager) Definition() *Definition {
 	return &Definition{
 		mgr:     m,

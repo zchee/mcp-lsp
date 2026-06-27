@@ -23,13 +23,13 @@ import (
 	"go.lsp.dev/uri"
 )
 
-// Formatting is the textDocument formatting feature bound to a [Manager].
+// Formatting issues textDocument formatting requests through a [Manager].
 type Formatting struct {
 	mgr     *Manager
 	timeout time.Duration
 }
 
-// Formatting returns the formatting feature for this manager.
+// Formatting returns a formatting helper for this manager.
 func (m *Manager) Formatting() *Formatting { return &Formatting{mgr: m, timeout: defaultTimeout} }
 
 // Format returns a workspace edit preview for textDocument/formatting.

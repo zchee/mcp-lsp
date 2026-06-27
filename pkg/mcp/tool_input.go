@@ -21,7 +21,7 @@ import (
 	"go.lsp.dev/protocol"
 )
 
-func readFeatureFile(workspaceRoot, file, lang string) (absPath, text, resolvedLang string, err error) {
+func readInputFile(workspaceRoot, file, lang string) (absPath, text, resolvedLang string, err error) {
 	if file == "" {
 		return "", "", "", fmt.Errorf("file is required")
 	}

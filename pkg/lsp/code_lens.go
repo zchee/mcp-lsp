@@ -22,13 +22,13 @@ import (
 	"go.lsp.dev/protocol"
 )
 
-// CodeLenses is the textDocument/codeLens feature bound to a [Manager].
+// CodeLenses issues textDocument/codeLens requests through a [Manager].
 type CodeLenses struct {
 	mgr     *Manager
 	timeout time.Duration
 }
 
-// CodeLenses returns the code lens feature for this manager.
+// CodeLenses returns a code lens helper for this manager.
 func (m *Manager) CodeLenses() *CodeLenses { return &CodeLenses{mgr: m, timeout: defaultTimeout} }
 
 // CodeLens is a compact code lens DTO.

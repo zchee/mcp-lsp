@@ -48,7 +48,7 @@ type RangeFormattingInput struct {
 
 func formattingHandler(formatter formatter, workspaceRoot string) mcp.ToolHandlerFor[FormattingInput, WorkspaceEditPreviewOutput] {
 	return func(ctx context.Context, _ *mcp.CallToolRequest, in FormattingInput) (*mcp.CallToolResult, WorkspaceEditPreviewOutput, error) {
-		absPath, text, lang, err := readFeatureFile(workspaceRoot, in.File, in.Language)
+		absPath, text, lang, err := readInputFile(workspaceRoot, in.File, in.Language)
 		if err != nil {
 			return nil, WorkspaceEditPreviewOutput{}, err
 		}
@@ -70,7 +70,7 @@ func rangeFormattingHandler(formatter formatter, workspaceRoot string) mcp.ToolH
 		if err != nil {
 			return nil, WorkspaceEditPreviewOutput{}, err
 		}
-		absPath, text, lang, err := readFeatureFile(workspaceRoot, in.File, in.Language)
+		absPath, text, lang, err := readInputFile(workspaceRoot, in.File, in.Language)
 		if err != nil {
 			return nil, WorkspaceEditPreviewOutput{}, err
 		}

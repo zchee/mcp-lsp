@@ -22,13 +22,13 @@ import (
 	"go.lsp.dev/protocol"
 )
 
-// Rename is the textDocument/rename feature bound to a [Manager].
+// Rename issues textDocument/rename requests through a [Manager].
 type Rename struct {
 	mgr     *Manager
 	timeout time.Duration
 }
 
-// Rename returns the rename feature for this manager.
+// Rename returns a rename helper for this manager.
 func (m *Manager) Rename() *Rename { return &Rename{mgr: m, timeout: defaultTimeout} }
 
 // Preview returns a workspace edit preview for textDocument/rename.

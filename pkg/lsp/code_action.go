@@ -22,13 +22,13 @@ import (
 	"go.lsp.dev/protocol"
 )
 
-// CodeActions is the textDocument/codeAction feature bound to a [Manager].
+// CodeActions issues textDocument/codeAction requests through a [Manager].
 type CodeActions struct {
 	mgr     *Manager
 	timeout time.Duration
 }
 
-// CodeActions returns the code action feature for this manager.
+// CodeActions returns a code action helper for this manager.
 func (m *Manager) CodeActions() *CodeActions { return &CodeActions{mgr: m, timeout: defaultTimeout} }
 
 // CodeAction is a compact code action DTO.

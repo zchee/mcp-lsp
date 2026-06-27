@@ -23,14 +23,14 @@ import (
 	"go.lsp.dev/uri"
 )
 
-// Implementation is the goto-implementation feature bound to a [Manager]. Its
+// Implementation resolves goto-implementation requests through a [Manager]. Its
 // timeout bounds the whole request when the caller's context has no deadline.
 type Implementation struct {
 	mgr     *Manager
 	timeout time.Duration
 }
 
-// Implementation returns the goto-implementation feature for this manager.
+// Implementation returns a goto-implementation helper for this manager.
 func (m *Manager) Implementation() *Implementation {
 	return &Implementation{
 		mgr:     m,

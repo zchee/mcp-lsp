@@ -30,13 +30,13 @@ type Command struct {
 	Command string
 }
 
-// Commands is the workspace/executeCommand feature bound to a [Manager].
+// Commands issues workspace/executeCommand requests through a [Manager].
 type Commands struct {
 	mgr     *Manager
 	timeout time.Duration
 }
 
-// Commands returns the execute-command feature for this manager.
+// Commands returns an execute-command helper for this manager.
 func (m *Manager) Commands() *Commands { return &Commands{mgr: m, timeout: defaultTimeout} }
 
 // Execute runs an advertised workspace command.

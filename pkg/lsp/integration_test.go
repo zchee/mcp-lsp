@@ -56,7 +56,7 @@ func (c *fakeClock) Advance(d time.Duration) {
 
 // fakeServer is an in-memory [protocol.Server] test double. It records the
 // requests mcp-lsp issues, advertises configurable capabilities, returns
-// configured feature results, and can push publishDiagnostics to the client
+// configured method results, and can push publishDiagnostics to the client
 // through the dispatcher handed back by [protocol.NewServer].
 type fakeServer struct {
 	protocol.UnimplementedServer
@@ -412,7 +412,7 @@ func (f *fakeServer) executeCalls() []protocol.ExecuteCommandParams {
 	return slices.Clone(f.executeRequests)
 }
 
-func newFeatureManager(t *testing.T, srv *fakeServer, rootDir string) *Manager {
+func newFakeServerManager(t *testing.T, srv *fakeServer, rootDir string) *Manager {
 	t.Helper()
 
 	sess, _ := wireSessionCore(t, srv)
@@ -437,14 +437,14 @@ func requireErrorContains(t *testing.T, err error, want string) {
 	}
 }
 
-func requireNoFeatureSync(t *testing.T, srv *fakeServer) {
+func requireNoDocumentSync(t *testing.T, srv *fakeServer) {
 	t.Helper()
 
 	if got := len(srv.openedDocs()); got != 0 {
-		t.Fatalf("unsupported feature calls opened %d documents, want 0", got)
+		t.Fatalf("unsupported calls opened %d documents, want 0", got)
 	}
 	if got := len(srv.changedDocs()); got != 0 {
-		t.Fatalf("unsupported feature calls changed %d documents, want 0", got)
+		t.Fatalf("unsupported calls changed %d documents, want 0", got)
 	}
 }
 
