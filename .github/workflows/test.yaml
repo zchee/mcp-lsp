@@ -45,7 +45,7 @@ jobs:
         uses: actions-rust-lang/setup-rust-toolchain@v1
         with:
           toolchain: stable
-          components: rust-analyzer
+          components: rust-analyzer,rustfmt
           cache: false
 
       - name: Install language servers
@@ -64,6 +64,7 @@ jobs:
           pyright --version
           rustc --version
           rust-analyzer --version
+          rustfmt --version
 
       - name: Test and take a coverage
         env:
