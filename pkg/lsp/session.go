@@ -286,9 +286,8 @@ func isCleanExit(err error) bool {
 	return errors.As(err, &exitErr)
 }
 
-// initializeParams builds the [protocol.InitializeParams] advertising support
-// for definition/implementation links, push and pull diagnostics, and document synchronization
-// rooted at rootURI.
+// initializeParams builds the [protocol.InitializeParams] advertising the
+// concrete client capabilities implemented by mcp-lsp, rooted at rootURI.
 func initializeParams(rootURI uri.URI) *protocol.InitializeParams {
 	pid := int32(os.Getpid()) //nolint:gosec // a process id fits in int32 on every supported platform
 	return &protocol.InitializeParams{
@@ -301,15 +300,40 @@ func initializeParams(rootURI uri.URI) *protocol.InitializeParams {
 			{URI: rootURI, Name: "workspace"},
 		}),
 		Capabilities: protocol.ClientCapabilities{
+			Workspace: &protocol.WorkspaceClientCapabilities{
+				ApplyEdit: new(true),
+				WorkspaceEdit: &protocol.WorkspaceEditClientCapabilities{
+					DocumentChanges: new(true),
+				},
+				Symbol:         &protocol.WorkspaceSymbolClientCapabilities{SymbolKind: &protocol.ClientSymbolKindOptions{ValueSet: supportedSymbolKinds()}},
+				ExecuteCommand: &protocol.ExecuteCommandClientCapabilities{},
+			},
 			TextDocument: &protocol.TextDocumentClientCapabilities{
 				Synchronization: &protocol.TextDocumentSyncClientCapabilities{
 					DynamicRegistration: new(true),
+				},
+				Hover: &protocol.HoverClientCapabilities{
+					ContentFormat: []protocol.MarkupKind{protocol.MarkupKindMarkdown, protocol.MarkupKindPlainText},
 				},
 				Definition: &protocol.DefinitionClientCapabilities{
 					LinkSupport: new(true),
 				},
 				Implementation: &protocol.ImplementationClientCapabilities{
 					LinkSupport: new(true),
+				},
+				CodeAction: &protocol.CodeActionClientCapabilities{
+					CodeActionLiteralSupport: protocol.ClientCodeActionLiteralOptions{
+						CodeActionKind: protocol.ClientCodeActionKindOptions{ValueSet: supportedCodeActionKinds()},
+					},
+					IsPreferredSupport: new(true),
+					DisabledSupport:    new(true),
+					DataSupport:        new(true),
+					ResolveSupport: protocol.ClientCodeActionResolveOptions{
+						Properties: []string{"edit", "command"},
+					},
+				},
+				CodeLens: &protocol.CodeLensClientCapabilities{
+					ResolveSupport: protocol.ClientCodeLensResolveOptions{Properties: []string{"command"}},
 				},
 				PublishDiagnostics: &protocol.PublishDiagnosticsClientCapabilities{
 					RelatedInformation: new(true),
@@ -318,8 +342,57 @@ func initializeParams(rootURI uri.URI) *protocol.InitializeParams {
 					RelatedInformation:     new(true),
 					RelatedDocumentSupport: new(true),
 				},
+				Formatting:      &protocol.DocumentFormattingClientCapabilities{},
+				RangeFormatting: &protocol.DocumentRangeFormattingClientCapabilities{},
+				Rename:          &protocol.RenameClientCapabilities{},
 			},
 		},
+	}
+}
+
+func supportedCodeActionKinds() []protocol.CodeActionKind {
+	return []protocol.CodeActionKind{
+		protocol.CodeActionKindQuickFix,
+		protocol.CodeActionKindRefactor,
+		protocol.CodeActionKindRefactorExtract,
+		protocol.CodeActionKindRefactorInline,
+		protocol.CodeActionKindRefactorMove,
+		protocol.CodeActionKindRefactorRewrite,
+		protocol.CodeActionKindSource,
+		protocol.CodeActionKindSourceOrganizeImports,
+		protocol.CodeActionKindSourceFixAll,
+		protocol.CodeActionKindNotebook,
+	}
+}
+
+func supportedSymbolKinds() []protocol.SymbolKind {
+	return []protocol.SymbolKind{
+		protocol.SymbolKindFile,
+		protocol.SymbolKindModule,
+		protocol.SymbolKindNamespace,
+		protocol.SymbolKindPackage,
+		protocol.SymbolKindClass,
+		protocol.SymbolKindMethod,
+		protocol.SymbolKindProperty,
+		protocol.SymbolKindField,
+		protocol.SymbolKindConstructor,
+		protocol.SymbolKindEnum,
+		protocol.SymbolKindInterface,
+		protocol.SymbolKindFunction,
+		protocol.SymbolKindVariable,
+		protocol.SymbolKindConstant,
+		protocol.SymbolKindString,
+		protocol.SymbolKindNumber,
+		protocol.SymbolKindBoolean,
+		protocol.SymbolKindArray,
+		protocol.SymbolKindObject,
+		protocol.SymbolKindKey,
+		protocol.SymbolKindNull,
+		protocol.SymbolKindEnumMember,
+		protocol.SymbolKindStruct,
+		protocol.SymbolKindEvent,
+		protocol.SymbolKindOperator,
+		protocol.SymbolKindTypeParameter,
 	}
 }
 

@@ -184,6 +184,7 @@ func wireSessionCore(t *testing.T, srv protocol.Server) (*serverSession, protoco
 
 	sess := &serverSession{
 		ready:                   make(chan struct{}),
+		capabilities:            snapshotCapabilities(&res.Capabilities),
 		pullSupported:           res.Capabilities.DiagnosticProvider != nil,
 		implementationSupported: implementationProviderSupported(res.Capabilities.ImplementationProvider),
 		conn:                    clientConn,

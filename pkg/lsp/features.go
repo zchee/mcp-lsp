@@ -46,12 +46,15 @@ func (h *Hover) Lookup(ctx context.Context, lang, absPath, text string, pos prot
 	ctx, cancel := featureTimeout(ctx, h.timeout)
 	defer cancel()
 
-	sess, u, err := h.mgr.syncSessionForFile(ctx, lang, absPath, text)
+	sess, languageID, u, err := h.mgr.sessionForFile(ctx, lang, absPath)
 	if err != nil {
 		return nil, err
 	}
 	if !sess.capabilities.hover {
 		return nil, fmt.Errorf("hover request is not supported by language server")
+	}
+	if err := sess.syncTextDocument(ctx, u, languageID, text); err != nil {
+		return nil, err
 	}
 
 	result, err := sess.server.Hover(ctx, &protocol.HoverParams{TextDocumentPositionParams: protocol.TextDocumentPositionParams{TextDocument: protocol.TextDocumentIdentifier{URI: u}, Position: pos}})
@@ -114,12 +117,15 @@ func (f *Formatting) Format(ctx context.Context, lang, absPath, text string, opt
 	ctx, cancel := featureTimeout(ctx, f.timeout)
 	defer cancel()
 
-	sess, u, err := f.mgr.syncSessionForFile(ctx, lang, absPath, text)
+	sess, languageID, u, err := f.mgr.sessionForFile(ctx, lang, absPath)
 	if err != nil {
 		return WorkspaceEdit{}, err
 	}
 	if !sess.capabilities.formatting {
 		return WorkspaceEdit{}, fmt.Errorf("formatting request is not supported by language server")
+	}
+	if err := sess.syncTextDocument(ctx, u, languageID, text); err != nil {
+		return WorkspaceEdit{}, err
 	}
 	edits, err := sess.server.Formatting(ctx, &protocol.DocumentFormattingParams{TextDocument: protocol.TextDocumentIdentifier{URI: u}, Options: options})
 	if err != nil {
@@ -133,12 +139,15 @@ func (f *Formatting) RangeFormat(ctx context.Context, lang, absPath, text string
 	ctx, cancel := featureTimeout(ctx, f.timeout)
 	defer cancel()
 
-	sess, u, err := f.mgr.syncSessionForFile(ctx, lang, absPath, text)
+	sess, languageID, u, err := f.mgr.sessionForFile(ctx, lang, absPath)
 	if err != nil {
 		return WorkspaceEdit{}, err
 	}
 	if !sess.capabilities.rangeFormatting {
 		return WorkspaceEdit{}, fmt.Errorf("range formatting request is not supported by language server")
+	}
+	if err := sess.syncTextDocument(ctx, u, languageID, text); err != nil {
+		return WorkspaceEdit{}, err
 	}
 	edits, err := sess.server.RangeFormatting(ctx, &protocol.DocumentRangeFormattingParams{TextDocument: protocol.TextDocumentIdentifier{URI: u}, Range: rng, Options: options})
 	if err != nil {
@@ -161,12 +170,15 @@ func (r *Rename) Preview(ctx context.Context, lang, absPath, text string, pos pr
 	ctx, cancel := featureTimeout(ctx, r.timeout)
 	defer cancel()
 
-	sess, u, err := r.mgr.syncSessionForFile(ctx, lang, absPath, text)
+	sess, languageID, u, err := r.mgr.sessionForFile(ctx, lang, absPath)
 	if err != nil {
 		return WorkspaceEdit{}, err
 	}
 	if !sess.capabilities.rename {
 		return WorkspaceEdit{}, fmt.Errorf("rename request is not supported by language server")
+	}
+	if err := sess.syncTextDocument(ctx, u, languageID, text); err != nil {
+		return WorkspaceEdit{}, err
 	}
 	edit, err := sess.server.Rename(ctx, &protocol.RenameParams{TextDocumentPositionParams: protocol.TextDocumentPositionParams{TextDocument: protocol.TextDocumentIdentifier{URI: u}, Position: pos}, NewName: newName})
 	if err != nil {
@@ -209,12 +221,15 @@ func (c *CodeActions) Lookup(ctx context.Context, lang, absPath, text string, rn
 	ctx, cancel := featureTimeout(ctx, c.timeout)
 	defer cancel()
 
-	sess, u, err := c.mgr.syncSessionForFile(ctx, lang, absPath, text)
+	sess, languageID, u, err := c.mgr.sessionForFile(ctx, lang, absPath)
 	if err != nil {
 		return nil, err
 	}
 	if !sess.capabilities.codeAction {
 		return nil, fmt.Errorf("code action request is not supported by language server")
+	}
+	if err := sess.syncTextDocument(ctx, u, languageID, text); err != nil {
+		return nil, err
 	}
 	raw, err := sess.server.CodeAction(ctx, &protocol.CodeActionParams{TextDocument: protocol.TextDocumentIdentifier{URI: u}, Range: rng, Context: protocol.CodeActionContext{Diagnostics: []protocol.Diagnostic{}, Only: only}})
 	if err != nil {
@@ -274,12 +289,15 @@ func (c *CodeLenses) Lookup(ctx context.Context, lang, absPath, text string, res
 	ctx, cancel := featureTimeout(ctx, c.timeout)
 	defer cancel()
 
-	sess, u, err := c.mgr.syncSessionForFile(ctx, lang, absPath, text)
+	sess, languageID, u, err := c.mgr.sessionForFile(ctx, lang, absPath)
 	if err != nil {
 		return nil, err
 	}
 	if !sess.capabilities.codeLens {
 		return nil, fmt.Errorf("code lens request is not supported by language server")
+	}
+	if err := sess.syncTextDocument(ctx, u, languageID, text); err != nil {
+		return nil, err
 	}
 	raw, err := sess.server.CodeLens(ctx, &protocol.CodeLensParams{TextDocument: protocol.TextDocumentIdentifier{URI: u}})
 	if err != nil {
@@ -327,8 +345,6 @@ func (c *Commands) Execute(ctx context.Context, lang, command string, args []pro
 	if !slices.Contains(sess.capabilities.executeCommands, command) {
 		return nil, fmt.Errorf("execute command %q is not advertised by language server", command)
 	}
-	run := func() error { return nil }
-	_ = run
 	var result protocol.LSPAny
 	exec := func() error {
 		var err error
@@ -353,17 +369,13 @@ func (c *Commands) Execute(ctx context.Context, lang, command string, args []pro
 	return result, nil
 }
 
-func (m *Manager) syncSessionForFile(ctx context.Context, lang, absPath, text string) (*serverSession, uri.URI, error) {
+func (m *Manager) sessionForFile(ctx context.Context, lang, absPath string) (*serverSession, protocol.LanguageKind, uri.URI, error) {
 	sess, err := m.session(ctx, lang)
 	if err != nil {
-		return nil, "", err
+		return nil, "", "", err
 	}
 	cfg := m.cfg[lang]
-	u := uri.File(absPath)
-	if err := sess.syncTextDocument(ctx, u, cfg.LanguageID, text); err != nil {
-		return nil, "", err
-	}
-	return sess, u, nil
+	return sess, cfg.LanguageID, uri.File(absPath), nil
 }
 
 func flattenHover(in *protocol.Hover) *HoverResult {
