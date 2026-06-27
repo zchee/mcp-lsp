@@ -15,10 +15,11 @@
 package lsp
 
 import (
+	"cmp"
 	"fmt"
 	"os"
 	"path/filepath"
-	"sort"
+	"slices"
 	"strings"
 	"unicode/utf8"
 
@@ -70,7 +71,7 @@ func ApplyWorkspaceEdit(edit WorkspaceEdit, opts WorkspaceEditApplyOptions) (pro
 	for rawURI := range edit.Changes {
 		uriSet = append(uriSet, rawURI)
 	}
-	sort.Strings(uriSet)
+	slices.Sort(uriSet)
 	for _, rawURI := range uriSet {
 		textEdits := edit.Changes[rawURI]
 		if err := applyTextDocumentChanges(root, rawURI, textEdits, opts.CurrentVersions, nil); err != nil {
@@ -193,11 +194,11 @@ func applyTextEdits(text string, edits []WorkspaceTextEdit) (string, error) {
 	}
 
 	// Apply in reverse start-offset order so later offsets do not shift earlier ones.
-	sort.SliceStable(targetRanges, func(i, j int) bool {
-		if targetRanges[i].start == targetRanges[j].start {
-			return targetRanges[i].end > targetRanges[j].end
+	slices.SortStableFunc(targetRanges, func(a, b textRange) int {
+		if byStart := cmp.Compare(b.start, a.start); byStart != 0 {
+			return byStart
 		}
-		return targetRanges[i].start > targetRanges[j].start
+		return cmp.Compare(b.end, a.end)
 	})
 
 	patched := text
@@ -241,13 +242,12 @@ func verifyNonOverlappingRanges(ranges []textRange) error {
 		return nil
 	}
 
-	sorted := make([]textRange, len(ranges))
-	copy(sorted, ranges)
-	sort.Slice(sorted, func(i, j int) bool {
-		if sorted[i].start == sorted[j].start {
-			return sorted[i].end < sorted[j].end
+	sorted := slices.Clone(ranges)
+	slices.SortFunc(sorted, func(a, b textRange) int {
+		if byStart := cmp.Compare(a.start, b.start); byStart != 0 {
+			return byStart
 		}
-		return sorted[i].start < sorted[j].start
+		return cmp.Compare(a.end, b.end)
 	})
 
 	for i := 1; i < len(sorted); i++ {
