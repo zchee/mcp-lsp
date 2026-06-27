@@ -18,6 +18,8 @@ import (
 	"context"
 	"log/slog"
 	"net"
+	"slices"
+	"strings"
 	"sync"
 	"testing"
 	"time"
@@ -53,13 +55,15 @@ func (c *fakeClock) Advance(d time.Duration) {
 }
 
 // fakeServer is an in-memory [protocol.Server] test double. It records the
-// requests mcp-lsp issues and answers diagnostic requests with a configurable report. It
-// can also push publishDiagnostics to the client through the dispatcher handed
-// back by [protocol.NewServer].
+// requests mcp-lsp issues, advertises configurable capabilities, returns
+// configured feature results, and can push publishDiagnostics to the client
+// through the dispatcher handed back by [protocol.NewServer].
 type fakeServer struct {
 	protocol.UnimplementedServer
 
-	mu          sync.Mutex
+	mu           sync.Mutex
+	capabilities protocol.ServerCapabilities
+
 	opened      []protocol.DidOpenTextDocumentParams
 	onDidOpen   func(context.Context, *protocol.DidOpenTextDocumentParams) error
 	changed     []protocol.DidChangeTextDocumentParams
@@ -79,21 +83,56 @@ type fakeServer struct {
 	definitionErr      error
 	definitionRequests []protocol.DefinitionParams
 
+	hoverResult   *protocol.Hover
+	hoverRequests []protocol.HoverParams
+
+	symbolResult   protocol.WorkspaceSymbolResult
+	symbolRequests []protocol.WorkspaceSymbolParams
+
+	formattingEdits    []protocol.TextEdit
+	formattingRequests []protocol.DocumentFormattingParams
+
+	rangeFormattingEdits    []protocol.TextEdit
+	rangeFormattingRequests []protocol.DocumentRangeFormattingParams
+
+	renameEdit     *protocol.WorkspaceEdit
+	renameRequests []protocol.RenameParams
+
+	codeActions               []protocol.CommandOrCodeAction
+	codeActionRequests        []protocol.CodeActionParams
+	codeActionResolveResult   *protocol.CodeAction
+	codeActionResolveRequests []protocol.CodeAction
+
+	codeLenses              []protocol.CodeLens
+	codeLensRequests        []protocol.CodeLensParams
+	codeLensResolveResult   *protocol.CodeLens
+	codeLensResolveRequests []protocol.CodeLens
+
+	executeResult   protocol.LSPAny
+	executeRequests []protocol.ExecuteCommandParams
+
 	client protocol.Client
 }
 
 var _ protocol.Server = (*fakeServer)(nil)
 
 func (f *fakeServer) Initialize(_ context.Context, _ *protocol.InitializeParams) (*protocol.InitializeResult, error) {
+	f.mu.Lock()
+	capabilities := f.capabilities
+	pullSupported := f.pullSupported
+	implementationSupported := f.implementationSupported
+	f.mu.Unlock()
+
 	res := &protocol.InitializeResult{
-		ServerInfo: protocol.ServerInfo{Name: "fake"},
+		ServerInfo:   protocol.ServerInfo{Name: "fake"},
+		Capabilities: capabilities,
 	}
-	if f.pullSupported {
+	if pullSupported {
 		res.Capabilities.DiagnosticProvider = &protocol.DiagnosticOptions{
 			InterFileDependencies: true,
 		}
 	}
-	if f.implementationSupported {
+	if implementationSupported {
 		res.Capabilities.ImplementationProvider = protocol.Boolean(true)
 	}
 	return res, nil
@@ -222,8 +261,8 @@ func wireSession(t *testing.T, fake *fakeServer) *serverSession {
 	return sess
 }
 
-// fakeManager wraps a wired session so [Diagnostics.Lookup] can drive it without
-// a real [Manager.session] spawn.
+// fakeDiagnostics wraps a wired session so [Diagnostics.Lookup] can drive it
+// without a real [Manager.session] spawn.
 func fakeDiagnostics(sess *serverSession, lang string) *Diagnostics {
 	mgr := &Manager{
 		cfg:      map[string]ServerConfig{lang: {LanguageID: protocol.LanguageKindGo}},
@@ -231,6 +270,182 @@ func fakeDiagnostics(sess *serverSession, lang string) *Diagnostics {
 		logger:   slog.New(slog.DiscardHandler),
 	}
 	return &Diagnostics{mgr: mgr, settle: 50 * time.Millisecond, timeout: 2 * time.Second}
+}
+
+func (f *fakeServer) Hover(_ context.Context, params *protocol.HoverParams) (*protocol.Hover, error) {
+	f.mu.Lock()
+	defer f.mu.Unlock()
+
+	f.hoverRequests = append(f.hoverRequests, *params)
+	return f.hoverResult, nil
+}
+
+func (f *fakeServer) Symbols(_ context.Context, params *protocol.WorkspaceSymbolParams) (protocol.WorkspaceSymbolResult, error) {
+	f.mu.Lock()
+	defer f.mu.Unlock()
+
+	f.symbolRequests = append(f.symbolRequests, *params)
+	return f.symbolResult, nil
+}
+
+func (f *fakeServer) Formatting(_ context.Context, params *protocol.DocumentFormattingParams) ([]protocol.TextEdit, error) {
+	f.mu.Lock()
+	defer f.mu.Unlock()
+
+	f.formattingRequests = append(f.formattingRequests, *params)
+	return slices.Clone(f.formattingEdits), nil
+}
+
+func (f *fakeServer) RangeFormatting(_ context.Context, params *protocol.DocumentRangeFormattingParams) ([]protocol.TextEdit, error) {
+	f.mu.Lock()
+	defer f.mu.Unlock()
+
+	f.rangeFormattingRequests = append(f.rangeFormattingRequests, *params)
+	return slices.Clone(f.rangeFormattingEdits), nil
+}
+
+func (f *fakeServer) Rename(_ context.Context, params *protocol.RenameParams) (*protocol.WorkspaceEdit, error) {
+	f.mu.Lock()
+	defer f.mu.Unlock()
+
+	f.renameRequests = append(f.renameRequests, *params)
+	return f.renameEdit, nil
+}
+
+func (f *fakeServer) CodeAction(_ context.Context, params *protocol.CodeActionParams) ([]protocol.CommandOrCodeAction, error) {
+	f.mu.Lock()
+	defer f.mu.Unlock()
+
+	f.codeActionRequests = append(f.codeActionRequests, *params)
+	return slices.Clone(f.codeActions), nil
+}
+
+func (f *fakeServer) CodeActionResolve(_ context.Context, params *protocol.CodeAction) (*protocol.CodeAction, error) {
+	f.mu.Lock()
+	defer f.mu.Unlock()
+
+	f.codeActionResolveRequests = append(f.codeActionResolveRequests, *params)
+	return f.codeActionResolveResult, nil
+}
+
+func (f *fakeServer) CodeLens(_ context.Context, params *protocol.CodeLensParams) ([]protocol.CodeLens, error) {
+	f.mu.Lock()
+	defer f.mu.Unlock()
+
+	f.codeLensRequests = append(f.codeLensRequests, *params)
+	return slices.Clone(f.codeLenses), nil
+}
+
+func (f *fakeServer) CodeLensResolve(_ context.Context, params *protocol.CodeLens) (*protocol.CodeLens, error) {
+	f.mu.Lock()
+	defer f.mu.Unlock()
+
+	f.codeLensResolveRequests = append(f.codeLensResolveRequests, *params)
+	return f.codeLensResolveResult, nil
+}
+
+func (f *fakeServer) ExecuteCommand(_ context.Context, params *protocol.ExecuteCommandParams) (protocol.LSPAny, error) {
+	f.mu.Lock()
+	defer f.mu.Unlock()
+
+	f.executeRequests = append(f.executeRequests, *params)
+	return f.executeResult, nil
+}
+
+func (f *fakeServer) hoverCalls() []protocol.HoverParams {
+	f.mu.Lock()
+	defer f.mu.Unlock()
+	return slices.Clone(f.hoverRequests)
+}
+
+func (f *fakeServer) symbolCalls() []protocol.WorkspaceSymbolParams {
+	f.mu.Lock()
+	defer f.mu.Unlock()
+	return slices.Clone(f.symbolRequests)
+}
+
+func (f *fakeServer) formattingCalls() []protocol.DocumentFormattingParams {
+	f.mu.Lock()
+	defer f.mu.Unlock()
+	return slices.Clone(f.formattingRequests)
+}
+
+func (f *fakeServer) rangeFormattingCalls() []protocol.DocumentRangeFormattingParams {
+	f.mu.Lock()
+	defer f.mu.Unlock()
+	return slices.Clone(f.rangeFormattingRequests)
+}
+
+func (f *fakeServer) renameCalls() []protocol.RenameParams {
+	f.mu.Lock()
+	defer f.mu.Unlock()
+	return slices.Clone(f.renameRequests)
+}
+
+func (f *fakeServer) codeActionCalls() []protocol.CodeActionParams {
+	f.mu.Lock()
+	defer f.mu.Unlock()
+	return slices.Clone(f.codeActionRequests)
+}
+
+func (f *fakeServer) codeActionResolveCalls() []protocol.CodeAction {
+	f.mu.Lock()
+	defer f.mu.Unlock()
+	return slices.Clone(f.codeActionResolveRequests)
+}
+
+func (f *fakeServer) codeLensCalls() []protocol.CodeLensParams {
+	f.mu.Lock()
+	defer f.mu.Unlock()
+	return slices.Clone(f.codeLensRequests)
+}
+
+func (f *fakeServer) codeLensResolveCalls() []protocol.CodeLens {
+	f.mu.Lock()
+	defer f.mu.Unlock()
+	return slices.Clone(f.codeLensResolveRequests)
+}
+
+func (f *fakeServer) executeCalls() []protocol.ExecuteCommandParams {
+	f.mu.Lock()
+	defer f.mu.Unlock()
+	return slices.Clone(f.executeRequests)
+}
+
+func newFeatureManager(t *testing.T, srv *fakeServer, rootDir string) *Manager {
+	t.Helper()
+
+	sess, _ := wireSessionCore(t, srv)
+	return &Manager{
+		cfg: map[string]ServerConfig{
+			"go": {LanguageID: protocol.LanguageKindGo},
+		},
+		sessions: map[string]*serverSession{"go": sess},
+		rootDir:  rootDir,
+		logger:   slog.New(slog.DiscardHandler),
+	}
+}
+
+func requireErrorContains(t *testing.T, err error, want string) {
+	t.Helper()
+
+	if err == nil {
+		t.Fatalf("error = nil, want contains %q", want)
+	}
+	if !strings.Contains(err.Error(), want) {
+		t.Fatalf("error = %q, want contains %q", err, want)
+	}
+}
+
+func requireNoFeatureSync(t *testing.T, srv *fakeServer) {
+	t.Helper()
+
+	if got := len(srv.openedDocs()); got != 0 {
+		t.Fatalf("unsupported feature calls opened %d documents, want 0", got)
+	}
+	if got := len(srv.changedDocs()); got != 0 {
+		t.Fatalf("unsupported feature calls changed %d documents, want 0", got)
+	}
 }
 
 func TestDiagnosticsLookupPull(t *testing.T) {

@@ -27,7 +27,7 @@ func TestWorkspaceSymbolsRejectUnsupportedCapabilityBeforeSync(t *testing.T) {
 	t.Parallel()
 
 	root := t.TempDir()
-	srv := &fakeManagerServer{}
+	srv := &fakeServer{}
 	mgr := newFeatureManager(t, srv, root)
 
 	_, err := mgr.WorkspaceSymbols().Lookup(t.Context(), "go", "main")
@@ -105,7 +105,7 @@ func TestWorkspaceSymbolsLookupFlattensResultUnions(t *testing.T) {
 			t.Parallel()
 
 			root := t.TempDir()
-			srv := &fakeManagerServer{
+			srv := &fakeServer{
 				capabilities: protocol.ServerCapabilities{WorkspaceSymbolProvider: &protocol.WorkspaceSymbolOptions{}},
 				symbolResult: tt.result,
 			}

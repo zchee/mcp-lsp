@@ -29,7 +29,7 @@ func TestHoverRejectsUnsupportedCapabilityBeforeSync(t *testing.T) {
 
 	root := t.TempDir()
 	path := filepath.Join(root, "main.go")
-	srv := &fakeManagerServer{}
+	srv := &fakeServer{}
 	mgr := newFeatureManager(t, srv, root)
 
 	_, err := mgr.Hover().Lookup(t.Context(), "go", path, "package main\n", protocol.Position{})
@@ -46,7 +46,7 @@ func TestHoverLookupFlattensMarkupAndRecordsWireParams(t *testing.T) {
 		Start: protocol.Position{Line: 1, Character: 2},
 		End:   protocol.Position{Line: 1, Character: 5},
 	}
-	srv := &fakeManagerServer{
+	srv := &fakeServer{
 		capabilities: protocol.ServerCapabilities{HoverProvider: protocol.Boolean(true)},
 		hoverResult: &protocol.Hover{
 			Contents: &protocol.MarkupContent{Kind: protocol.MarkupKindMarkdown, Value: "**doc**"},

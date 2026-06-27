@@ -28,7 +28,7 @@ func TestCodeLensesRejectUnsupportedCapabilityBeforeSync(t *testing.T) {
 
 	root := t.TempDir()
 	path := filepath.Join(root, "main.go")
-	srv := &fakeManagerServer{}
+	srv := &fakeServer{}
 	mgr := newFeatureManager(t, srv, root)
 
 	_, err := mgr.CodeLenses().Lookup(t.Context(), "go", path, "package main\n", false)
@@ -43,7 +43,7 @@ func TestCodeLensesResolveWhenSupported(t *testing.T) {
 	path := filepath.Join(root, "main.go")
 	fileURI := uri.File(path)
 	lensRange := protocol.Range{Start: protocol.Position{Line: 4, Character: 0}, End: protocol.Position{Line: 4, Character: 0}}
-	srv := &fakeManagerServer{
+	srv := &fakeServer{
 		capabilities: protocol.ServerCapabilities{
 			CodeLensProvider: &protocol.CodeLensOptions{ResolveProvider: new(true)},
 		},

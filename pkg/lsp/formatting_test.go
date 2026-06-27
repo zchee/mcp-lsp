@@ -28,7 +28,7 @@ func TestFormattingRejectsUnsupportedCapabilitiesBeforeSync(t *testing.T) {
 
 	root := t.TempDir()
 	path := filepath.Join(root, "main.go")
-	srv := &fakeManagerServer{}
+	srv := &fakeServer{}
 	mgr := newFeatureManager(t, srv, root)
 	rng := protocol.Range{Start: protocol.Position{Line: 0, Character: 0}, End: protocol.Position{Line: 0, Character: 1}}
 
@@ -49,7 +49,7 @@ func TestFormattingAndRangeFormattingReturnWorkspaceEditPreviews(t *testing.T) {
 	fileURI := uri.File(path)
 	formatRange := protocol.Range{Start: protocol.Position{Line: 0, Character: 0}, End: protocol.Position{Line: 0, Character: 0}}
 	rangeFormatRange := protocol.Range{Start: protocol.Position{Line: 1, Character: 0}, End: protocol.Position{Line: 1, Character: 7}}
-	srv := &fakeManagerServer{
+	srv := &fakeServer{
 		capabilities: protocol.ServerCapabilities{
 			DocumentFormattingProvider:      protocol.Boolean(true),
 			DocumentRangeFormattingProvider: &protocol.DocumentRangeFormattingOptions{},
