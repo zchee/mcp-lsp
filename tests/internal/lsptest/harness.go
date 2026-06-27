@@ -36,6 +36,11 @@ import (
 // IntegrationEnv is the environment variable that opts in to integration tests.
 const IntegrationEnv = "MCP_LSP_INTEGRATION"
 
+const (
+	workspaceCleanupAttempts = 50
+	workspaceCleanupDelay    = 100 * time.Millisecond
+)
+
 // LookupConfig controls retry behavior for real language-server navigation
 // lookups.
 type LookupConfig struct {
@@ -89,7 +94,14 @@ func ExtractFixture(t *testing.T, name string, settle time.Duration) Workspace {
 		t.Fatalf("fixture %q contains no files", path)
 	}
 
-	dir := t.TempDir()
+	dir, err := os.MkdirTemp("", "mcp-lsp-fixture-*")
+	if err != nil {
+		t.Fatalf("create fixture workspace: %v", err)
+	}
+	t.Cleanup(func() {
+		cleanupWorkspace(t, dir)
+	})
+
 	files := make(map[string]string, len(archive.Files))
 	for _, f := range archive.Files {
 		dest := filepath.Join(dir, filepath.FromSlash(f.Name))
@@ -106,6 +118,26 @@ func ExtractFixture(t *testing.T, name string, settle time.Duration) Workspace {
 		time.Sleep(settle)
 	}
 	return Workspace{dir: dir, files: files}
+}
+
+func cleanupWorkspace(t *testing.T, dir string) {
+	t.Helper()
+
+	var firstErr error
+	for attempt := range workspaceCleanupAttempts {
+		err := os.RemoveAll(dir)
+		if err == nil || os.IsNotExist(err) {
+			if attempt > 0 {
+				t.Logf("removed fixture workspace %s after %d retries; first error: %v", dir, attempt, firstErr)
+			}
+			return
+		}
+		if firstErr == nil {
+			firstErr = err
+		}
+		time.Sleep(workspaceCleanupDelay)
+	}
+	t.Fatalf("remove fixture workspace %s after %d attempts: first error: %v", dir, workspaceCleanupAttempts, firstErr)
 }
 
 // Dir returns the absolute extracted workspace root directory.
