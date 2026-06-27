@@ -143,8 +143,13 @@ func TestImplementationLookupLocation(t *testing.T) {
 		t.Fatalf("Lookup: %v", err)
 	}
 
-	wantRange := ImplementationRange{StartLine: 7, StartColumn: 1, EndLine: 7, EndColumn: 6}
-	want := []ImplementationLocation{
+	wantRange := NavigationRange{
+		StartLine:   7,
+		StartColumn: 1,
+		EndLine:     7,
+		EndColumn:   6,
+	}
+	want := []NavigationLocation{
 		{
 			TargetURI:            string(targetURI),
 			TargetRange:          wantRange,
@@ -198,11 +203,25 @@ func TestImplementationLookupLocationSlice(t *testing.T) {
 		t.Fatalf("Lookup: %v", err)
 	}
 
-	firstRange := ImplementationRange{StartLine: 1, StartColumn: 2, EndLine: 1, EndColumn: 5}
-	secondRange := ImplementationRange{StartLine: 8, StartColumn: 13, EndLine: 8, EndColumn: 21}
-	want := []ImplementationLocation{
-		{TargetURI: string(fooURI), TargetRange: firstRange, TargetSelectionRange: firstRange},
-		{TargetURI: string(barURI), TargetRange: secondRange, TargetSelectionRange: secondRange},
+	firstRange := NavigationRange{
+		StartLine:   1,
+		StartColumn: 2,
+		EndLine:     1,
+		EndColumn:   5,
+	}
+	secondRange := NavigationRange{
+		StartLine:   8,
+		StartColumn: 13,
+		EndLine:     8,
+		EndColumn:   21,
+	}
+	want := []NavigationLocation{
+		{
+			TargetURI: string(fooURI), TargetRange: firstRange, TargetSelectionRange: firstRange,
+		},
+		{
+			TargetURI: string(barURI), TargetRange: secondRange, TargetSelectionRange: secondRange,
+		},
 	}
 	if diff := gocmp.Diff(want, got); diff != "" {
 		t.Errorf("Lookup implementation mismatch (-want +got):\n%s", diff)
@@ -241,12 +260,27 @@ func TestImplementationLookupDefinitionLinkSlice(t *testing.T) {
 		t.Fatalf("Lookup: %v", err)
 	}
 
-	origin := ImplementationRange{StartLine: 3, StartColumn: 4, EndLine: 3, EndColumn: 10}
-	want := []ImplementationLocation{
+	origin := NavigationRange{
+		StartLine:   3,
+		StartColumn: 4,
+		EndLine:     3,
+		EndColumn:   10,
+	}
+	want := []NavigationLocation{
 		{
-			TargetURI:            string(targetURI),
-			TargetRange:          ImplementationRange{StartLine: 20, StartColumn: 0, EndLine: 24, EndColumn: 1},
-			TargetSelectionRange: ImplementationRange{StartLine: 21, StartColumn: 5, EndLine: 21, EndColumn: 11},
+			TargetURI: string(targetURI),
+			TargetRange: NavigationRange{
+				StartLine:   20,
+				StartColumn: 0,
+				EndLine:     24,
+				EndColumn:   1,
+			},
+			TargetSelectionRange: NavigationRange{
+				StartLine:   21,
+				StartColumn: 5,
+				EndLine:     21,
+				EndColumn:   11,
+			},
 			OriginSelectionRange: &origin,
 		},
 	}

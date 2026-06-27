@@ -75,8 +75,13 @@ func TestDefinitionLookupLocation(t *testing.T) {
 		t.Fatalf("Lookup: %v", err)
 	}
 
-	wantRange := DefinitionRange{StartLine: 7, StartColumn: 1, EndLine: 7, EndColumn: 6}
-	want := []DefinitionLocation{
+	wantRange := NavigationRange{
+		StartLine:   7,
+		StartColumn: 1,
+		EndLine:     7,
+		EndColumn:   6,
+	}
+	want := []NavigationLocation{
 		{
 			TargetURI:            string(targetURI),
 			TargetRange:          wantRange,
@@ -129,11 +134,25 @@ func TestDefinitionLookupLocationSlice(t *testing.T) {
 		t.Fatalf("Lookup: %v", err)
 	}
 
-	firstRange := DefinitionRange{StartLine: 1, StartColumn: 2, EndLine: 1, EndColumn: 5}
-	secondRange := DefinitionRange{StartLine: 8, StartColumn: 13, EndLine: 8, EndColumn: 21}
-	want := []DefinitionLocation{
-		{TargetURI: string(fooURI), TargetRange: firstRange, TargetSelectionRange: firstRange},
-		{TargetURI: string(barURI), TargetRange: secondRange, TargetSelectionRange: secondRange},
+	firstRange := NavigationRange{
+		StartLine:   1,
+		StartColumn: 2,
+		EndLine:     1,
+		EndColumn:   5,
+	}
+	secondRange := NavigationRange{
+		StartLine:   8,
+		StartColumn: 13,
+		EndLine:     8,
+		EndColumn:   21,
+	}
+	want := []NavigationLocation{
+		{
+			TargetURI: string(fooURI), TargetRange: firstRange, TargetSelectionRange: firstRange,
+		},
+		{
+			TargetURI: string(barURI), TargetRange: secondRange, TargetSelectionRange: secondRange,
+		},
 	}
 	if diff := gocmp.Diff(want, got); diff != "" {
 		t.Errorf("Lookup definition mismatch (-want +got):\n%s", diff)
@@ -171,12 +190,27 @@ func TestDefinitionLookupDefinitionLinkSlice(t *testing.T) {
 		t.Fatalf("Lookup: %v", err)
 	}
 
-	origin := DefinitionRange{StartLine: 3, StartColumn: 4, EndLine: 3, EndColumn: 10}
-	want := []DefinitionLocation{
+	origin := NavigationRange{
+		StartLine:   3,
+		StartColumn: 4,
+		EndLine:     3,
+		EndColumn:   10,
+	}
+	want := []NavigationLocation{
 		{
-			TargetURI:            string(targetURI),
-			TargetRange:          DefinitionRange{StartLine: 20, StartColumn: 0, EndLine: 24, EndColumn: 1},
-			TargetSelectionRange: DefinitionRange{StartLine: 21, StartColumn: 5, EndLine: 21, EndColumn: 11},
+			TargetURI: string(targetURI),
+			TargetRange: NavigationRange{
+				StartLine:   20,
+				StartColumn: 0,
+				EndLine:     24,
+				EndColumn:   1,
+			},
+			TargetSelectionRange: NavigationRange{
+				StartLine:   21,
+				StartColumn: 5,
+				EndLine:     21,
+				EndColumn:   11,
+			},
 			OriginSelectionRange: &origin,
 		},
 	}

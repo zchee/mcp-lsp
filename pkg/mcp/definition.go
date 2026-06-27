@@ -31,7 +31,7 @@ const maxProtocolPositionInput = int64(1) << 32
 // defLooker is the narrow dependency the definition handler needs from the LSP
 // layer. It lets tests substitute a fake without spawning a language server.
 type defLooker interface {
-	Lookup(ctx context.Context, lang, absPath, text string, pos protocol.Position) ([]lsp.DefinitionLocation, error)
+	Lookup(ctx context.Context, lang, absPath, text string, pos protocol.Position) ([]lsp.NavigationLocation, error)
 }
 
 // DefinitionInput is the input schema for the lsp_definition tool. Line and
@@ -128,9 +128,9 @@ func navigationInputCoordinate(name string, value int) (uint32, error) {
 	return uint32(value - 1), nil
 }
 
-// toDefinitionItems converts zero-based [lsp.DefinitionLocation] values into
+// toDefinitionItems converts zero-based [lsp.NavigationLocation] values into
 // one-based tool items.
-func toDefinitionItems(defs []lsp.DefinitionLocation) []DefinitionItem {
+func toDefinitionItems(defs []lsp.NavigationLocation) []DefinitionItem {
 	items := make([]DefinitionItem, 0, len(defs))
 	for _, def := range defs {
 		item := DefinitionItem{

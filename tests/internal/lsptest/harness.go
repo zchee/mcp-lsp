@@ -206,12 +206,12 @@ func NewManager(t *testing.T, cfg map[string]lsp.ServerConfig, w Workspace) *lsp
 // LookupDefinition drives [lsp.Definition.Lookup] against a real language
 // server, retrying while the server is still loading the workspace. It fails
 // the test if no definition resolves within cfg's attempt budget.
-func LookupDefinition(t *testing.T, mgr *lsp.Manager, cfg DefinitionLookupConfig, absPath, text string, pos protocol.Position) []lsp.DefinitionLocation {
+func LookupDefinition(t *testing.T, mgr *lsp.Manager, cfg DefinitionLookupConfig, absPath, text string, pos protocol.Position) []lsp.NavigationLocation {
 	t.Helper()
 	validateLookupConfig(t, "definition", cfg)
 
 	var (
-		defs    []lsp.DefinitionLocation
+		defs    []lsp.NavigationLocation
 		lastErr error
 	)
 	for range cfg.Attempts {
@@ -230,12 +230,12 @@ func LookupDefinition(t *testing.T, mgr *lsp.Manager, cfg DefinitionLookupConfig
 // LookupImplementation drives [lsp.Implementation.Lookup] against a real
 // language server, retrying while the server is still loading the workspace. It
 // fails the test if no implementation resolves within cfg's attempt budget.
-func LookupImplementation(t *testing.T, mgr *lsp.Manager, cfg ImplementationLookupConfig, absPath, text string, pos protocol.Position) []lsp.ImplementationLocation {
+func LookupImplementation(t *testing.T, mgr *lsp.Manager, cfg ImplementationLookupConfig, absPath, text string, pos protocol.Position) []lsp.NavigationLocation {
 	t.Helper()
 	validateLookupConfig(t, "implementation", cfg)
 
 	var (
-		implementations []lsp.ImplementationLocation
+		implementations []lsp.NavigationLocation
 		lastErr         error
 	)
 	for range cfg.Attempts {
@@ -253,7 +253,7 @@ func LookupImplementation(t *testing.T, mgr *lsp.Manager, cfg ImplementationLook
 
 // AssertDefinitionResolvesTo fails unless some definition target points at
 // wantURI with a selection range starting at the expected zero-based position.
-func AssertDefinitionResolvesTo(t *testing.T, defs []lsp.DefinitionLocation, wantURI string, want protocol.Position) {
+func AssertDefinitionResolvesTo(t *testing.T, defs []lsp.NavigationLocation, wantURI string, want protocol.Position) {
 	t.Helper()
 
 	assertNavigationResolvesTo(t, "definition", defs, wantURI, want)
@@ -262,7 +262,7 @@ func AssertDefinitionResolvesTo(t *testing.T, defs []lsp.DefinitionLocation, wan
 // AssertImplementationResolvesTo fails unless some implementation target points
 // at wantURI with a selection range starting at the expected zero-based
 // position.
-func AssertImplementationResolvesTo(t *testing.T, implementations []lsp.ImplementationLocation, wantURI string, want protocol.Position) {
+func AssertImplementationResolvesTo(t *testing.T, implementations []lsp.NavigationLocation, wantURI string, want protocol.Position) {
 	t.Helper()
 
 	assertNavigationResolvesTo(t, "implementation", implementations, wantURI, want)

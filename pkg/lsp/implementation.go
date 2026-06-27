@@ -41,7 +41,7 @@ func (m *Manager) Implementation() *Implementation {
 // Lookup opens absPath in the language server for lang with the caller-supplied
 // text and returns the implementation targets for pos. The input position and
 // result positions are zero-based.
-func (i *Implementation) Lookup(ctx context.Context, lang, absPath, text string, pos protocol.Position) ([]ImplementationLocation, error) {
+func (i *Implementation) Lookup(ctx context.Context, lang, absPath, text string, pos protocol.Position) ([]NavigationLocation, error) {
 	ctx, cancel := featureTimeout(ctx, i.timeout)
 	defer cancel()
 
@@ -73,6 +73,6 @@ func implementationParams(u uri.URI, pos protocol.Position) *protocol.Implementa
 	}
 }
 
-func flattenImplementationResult(result protocol.DefinitionResult) ([]ImplementationLocation, error) {
+func flattenImplementationResult(result protocol.DefinitionResult) ([]NavigationLocation, error) {
 	return flattenNavigationResult("implementation", result)
 }

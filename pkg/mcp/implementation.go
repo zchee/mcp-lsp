@@ -30,7 +30,7 @@ import (
 // the LSP layer. It lets tests substitute a fake without spawning a language
 // server.
 type implLooker interface {
-	Lookup(ctx context.Context, lang, absPath, text string, pos protocol.Position) ([]lsp.ImplementationLocation, error)
+	Lookup(ctx context.Context, lang, absPath, text string, pos protocol.Position) ([]lsp.NavigationLocation, error)
 }
 
 // ImplementationInput is the input schema for the lsp_implementation tool.
@@ -102,9 +102,9 @@ func implementationHandler(looker implLooker, workspaceRoot string) mcp.ToolHand
 	}
 }
 
-// toImplementationItems converts zero-based [lsp.ImplementationLocation]
+// toImplementationItems converts zero-based [lsp.NavigationLocation]
 // values into one-based tool items.
-func toImplementationItems(implementations []lsp.ImplementationLocation) []ImplementationItem {
+func toImplementationItems(implementations []lsp.NavigationLocation) []ImplementationItem {
 	items := make([]ImplementationItem, 0, len(implementations))
 	for _, implementation := range implementations {
 		item := ImplementationItem{

@@ -33,7 +33,7 @@ import (
 // fakeDefLooker is a defLooker test double recording its arguments and
 // returning a canned result or error.
 type fakeDefLooker struct {
-	defs    []lsp.DefinitionLocation
+	defs    []lsp.NavigationLocation
 	err     error
 	gotLang string
 	gotPath string
@@ -42,7 +42,7 @@ type fakeDefLooker struct {
 	calls   int
 }
 
-func (f *fakeDefLooker) Lookup(_ context.Context, lang, absPath, text string, pos protocol.Position) ([]lsp.DefinitionLocation, error) {
+func (f *fakeDefLooker) Lookup(_ context.Context, lang, absPath, text string, pos protocol.Position) ([]lsp.NavigationLocation, error) {
 	f.calls++
 	f.gotLang = lang
 	f.gotPath = absPath
@@ -218,11 +218,21 @@ func TestDefinitionHandlerOneBasedOutput(t *testing.T) {
 	path := writeTempFile(t)
 	targetURI := string(uri.File("/workspace/lib.go"))
 	looker := &fakeDefLooker{
-		defs: []lsp.DefinitionLocation{
+		defs: []lsp.NavigationLocation{
 			{
-				TargetURI:            targetURI,
-				TargetRange:          lsp.DefinitionRange{StartLine: 10, StartColumn: 0, EndLine: 14, EndColumn: 1},
-				TargetSelectionRange: lsp.DefinitionRange{StartLine: 10, StartColumn: 0, EndLine: 14, EndColumn: 1},
+				TargetURI: targetURI,
+				TargetRange: lsp.NavigationRange{
+					StartLine:   10,
+					StartColumn: 0,
+					EndLine:     14,
+					EndColumn:   1,
+				},
+				TargetSelectionRange: lsp.NavigationRange{
+					StartLine:   10,
+					StartColumn: 0,
+					EndLine:     14,
+					EndColumn:   1,
+				},
 			},
 		},
 	}
@@ -254,13 +264,28 @@ func TestDefinitionHandlerDefinitionLinkOutput(t *testing.T) {
 
 	path := writeTempFile(t)
 	targetURI := string(uri.File("/workspace/linked.go"))
-	origin := lsp.DefinitionRange{StartLine: 1, StartColumn: 2, EndLine: 1, EndColumn: 8}
+	origin := lsp.NavigationRange{
+		StartLine:   1,
+		StartColumn: 2,
+		EndLine:     1,
+		EndColumn:   8,
+	}
 	looker := &fakeDefLooker{
-		defs: []lsp.DefinitionLocation{
+		defs: []lsp.NavigationLocation{
 			{
-				TargetURI:            targetURI,
-				TargetRange:          lsp.DefinitionRange{StartLine: 10, StartColumn: 0, EndLine: 14, EndColumn: 1},
-				TargetSelectionRange: lsp.DefinitionRange{StartLine: 11, StartColumn: 4, EndLine: 11, EndColumn: 10},
+				TargetURI: targetURI,
+				TargetRange: lsp.NavigationRange{
+					StartLine:   10,
+					StartColumn: 0,
+					EndLine:     14,
+					EndColumn:   1,
+				},
+				TargetSelectionRange: lsp.NavigationRange{
+					StartLine:   11,
+					StartColumn: 4,
+					EndLine:     11,
+					EndColumn:   10,
+				},
 				OriginSelectionRange: &origin,
 			},
 		},

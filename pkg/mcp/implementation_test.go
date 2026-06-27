@@ -33,7 +33,7 @@ import (
 // fakeImplLooker is an implLooker test double recording its arguments and
 // returning a canned result or error.
 type fakeImplLooker struct {
-	implementations []lsp.ImplementationLocation
+	implementations []lsp.NavigationLocation
 	err             error
 	gotLang         string
 	gotPath         string
@@ -42,7 +42,7 @@ type fakeImplLooker struct {
 	calls           int
 }
 
-func (f *fakeImplLooker) Lookup(_ context.Context, lang, absPath, text string, pos protocol.Position) ([]lsp.ImplementationLocation, error) {
+func (f *fakeImplLooker) Lookup(_ context.Context, lang, absPath, text string, pos protocol.Position) ([]lsp.NavigationLocation, error) {
 	f.calls++
 	f.gotLang = lang
 	f.gotPath = absPath
@@ -218,11 +218,21 @@ func TestImplementationHandlerOneBasedOutput(t *testing.T) {
 	path := writeTempFile(t)
 	targetURI := string(uri.File("/workspace/impl.go"))
 	looker := &fakeImplLooker{
-		implementations: []lsp.ImplementationLocation{
+		implementations: []lsp.NavigationLocation{
 			{
-				TargetURI:            targetURI,
-				TargetRange:          lsp.ImplementationRange{StartLine: 10, StartColumn: 0, EndLine: 14, EndColumn: 1},
-				TargetSelectionRange: lsp.ImplementationRange{StartLine: 10, StartColumn: 0, EndLine: 14, EndColumn: 1},
+				TargetURI: targetURI,
+				TargetRange: lsp.NavigationRange{
+					StartLine:   10,
+					StartColumn: 0,
+					EndLine:     14,
+					EndColumn:   1,
+				},
+				TargetSelectionRange: lsp.NavigationRange{
+					StartLine:   10,
+					StartColumn: 0,
+					EndLine:     14,
+					EndColumn:   1,
+				},
 			},
 		},
 	}
@@ -254,13 +264,28 @@ func TestImplementationHandlerLinkOutput(t *testing.T) {
 
 	path := writeTempFile(t)
 	targetURI := string(uri.File("/workspace/linked_impl.go"))
-	origin := lsp.ImplementationRange{StartLine: 1, StartColumn: 2, EndLine: 1, EndColumn: 8}
+	origin := lsp.NavigationRange{
+		StartLine:   1,
+		StartColumn: 2,
+		EndLine:     1,
+		EndColumn:   8,
+	}
 	looker := &fakeImplLooker{
-		implementations: []lsp.ImplementationLocation{
+		implementations: []lsp.NavigationLocation{
 			{
-				TargetURI:            targetURI,
-				TargetRange:          lsp.ImplementationRange{StartLine: 10, StartColumn: 0, EndLine: 14, EndColumn: 1},
-				TargetSelectionRange: lsp.ImplementationRange{StartLine: 11, StartColumn: 4, EndLine: 11, EndColumn: 10},
+				TargetURI: targetURI,
+				TargetRange: lsp.NavigationRange{
+					StartLine:   10,
+					StartColumn: 0,
+					EndLine:     14,
+					EndColumn:   1,
+				},
+				TargetSelectionRange: lsp.NavigationRange{
+					StartLine:   11,
+					StartColumn: 4,
+					EndLine:     11,
+					EndColumn:   10,
+				},
 				OriginSelectionRange: &origin,
 			},
 		},

@@ -41,7 +41,7 @@ func (m *Manager) Definition() *Definition {
 // Lookup opens absPath in the language server for lang with the caller-supplied
 // text and returns the definition targets for pos. The input position and result
 // positions are zero-based.
-func (d *Definition) Lookup(ctx context.Context, lang, absPath, text string, pos protocol.Position) ([]DefinitionLocation, error) {
+func (d *Definition) Lookup(ctx context.Context, lang, absPath, text string, pos protocol.Position) ([]NavigationLocation, error) {
 	ctx, cancel := featureTimeout(ctx, d.timeout)
 	defer cancel()
 
@@ -70,6 +70,6 @@ func definitionParams(u uri.URI, pos protocol.Position) *protocol.DefinitionPara
 	}
 }
 
-func flattenDefinitionResult(result protocol.DefinitionResult) ([]DefinitionLocation, error) {
+func flattenDefinitionResult(result protocol.DefinitionResult) ([]NavigationLocation, error) {
 	return flattenNavigationResult("definition", result)
 }

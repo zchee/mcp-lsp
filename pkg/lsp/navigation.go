@@ -46,18 +46,6 @@ type NavigationLocation struct {
 	OriginSelectionRange *NavigationRange
 }
 
-// DefinitionRange is a flattened LSP range for goto-definition results.
-type DefinitionRange = NavigationRange
-
-// DefinitionLocation is a flattened goto-definition target.
-type DefinitionLocation = NavigationLocation
-
-// ImplementationRange is a flattened LSP range for goto-implementation results.
-type ImplementationRange = NavigationRange
-
-// ImplementationLocation is a flattened goto-implementation target.
-type ImplementationLocation = NavigationLocation
-
 func featureTimeout(ctx context.Context, timeout time.Duration) (context.Context, context.CancelFunc) {
 	if _, ok := ctx.Deadline(); ok {
 		return ctx, func() {}
