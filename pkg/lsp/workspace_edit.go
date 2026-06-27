@@ -207,7 +207,7 @@ func textDocumentEditFromProtocol(change *protocol.TextDocumentEdit) (WorkspaceD
 			return WorkspaceDocumentChange{}, fmt.Errorf("negative text document version %d", *change.TextDocument.Version)
 		}
 		v := uint32(*change.TextDocument.Version)
-		version = &v
+		version = new(v)
 	}
 	return WorkspaceDocumentChange{
 		TextDocumentEdit: &WorkspaceTextDocumentEdit{
