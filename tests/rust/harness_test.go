@@ -53,13 +53,14 @@ var rustImplementationLookup = lsptest.LookupConfig{
 	RetryDelay: 250 * time.Millisecond,
 }
 
-var rustDiagnosticsLookup = struct {
-	ServerName string
-	Attempts   int
-	RetryDelay time.Duration
-}{
+var rustDiagnosticsLookup = lsptest.LookupConfig{
+	Language:   rustLanguage,
 	ServerName: rustAnalyzerCommand,
-	Attempts:   20,
+	// rust-analyzer can publish an initial empty diagnostic set before syntax
+	// diagnostics on cold CI hosts, especially under race and coverage. Keep
+	// the diagnostics budget wider than navigation lookups without changing
+	// production request timeouts.
+	Attempts:   40,
 	RetryDelay: 250 * time.Millisecond,
 }
 

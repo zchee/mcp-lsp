@@ -89,7 +89,7 @@ func lookupRustDiagnostics(t *testing.T, mgr *lsp.Manager, mainFile, text string
 		lastErr error
 	)
 	for range rustDiagnosticsLookup.Attempts {
-		diags, lastErr = mgr.Diagnostics().Lookup(t.Context(), rustLanguage, mainFile, text)
+		diags, lastErr = mgr.Diagnostics().Lookup(t.Context(), rustDiagnosticsLookup.Language, mainFile, text)
 		if lastErr == nil && len(diags) > 0 {
 			return diags
 		}

@@ -73,7 +73,7 @@ func TestE2ERustAnalyzerDefinition(t *testing.T) {
 				"file":     fixture,
 				"line":     int(query.Line) + 1,
 				"column":   int(query.Character) + 1,
-				"language": rustLanguage,
+				"language": rustDefinitionLookup.Language,
 			},
 		})
 		if err != nil {
@@ -128,7 +128,7 @@ func TestE2ERustAnalyzerImplementation(t *testing.T) {
 				"file":     fixture,
 				"line":     int(query.Line) + 1,
 				"column":   int(query.Character) + 1,
-				"language": rustLanguage,
+				"language": rustImplementationLookup.Language,
 			},
 		})
 		if err != nil {
@@ -190,7 +190,7 @@ func callRustDiagnosticsTool(t *testing.T, session *mcpsdk.ClientSession, fixtur
 			Name: "lsp_diagnostics",
 			Arguments: map[string]any{
 				"file":     fixture,
-				"language": rustLanguage,
+				"language": rustDiagnosticsLookup.Language,
 			},
 		})
 		if err != nil {
