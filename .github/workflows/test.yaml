@@ -20,8 +20,8 @@ jobs:
       fail-fast: false
       matrix:
         runner:
-          - ubuntu-slim
-          - ubuntu-24.04-arm
+          - ubuntu-26.04
+          - ubuntu-26.04-arm
 
     permissions:
       contents: read
@@ -93,7 +93,7 @@ jobs:
 
   lint:
     name: lint
-    runs-on: ubuntu-slim
+    runs-on: ubuntu-26.04
 
     steps:
       - uses: actions/checkout@v6
