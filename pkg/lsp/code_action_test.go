@@ -28,7 +28,7 @@ func TestCodeActionsRejectUnsupportedCapabilityBeforeSync(t *testing.T) {
 
 	root := t.TempDir()
 	path := filepath.Join(root, "main.go")
-	srv := &featureServer{}
+	srv := &fakeManagerServer{}
 	mgr := newFeatureManager(t, srv, root)
 	rng := protocol.Range{Start: protocol.Position{Line: 0, Character: 0}, End: protocol.Position{Line: 0, Character: 1}}
 
@@ -45,7 +45,7 @@ func TestCodeActionsResolveWhenSupported(t *testing.T) {
 	fileURI := uri.File(path)
 	actionKind := protocol.CodeActionKindQuickFix
 	actionRange := protocol.Range{Start: protocol.Position{Line: 0, Character: 0}, End: protocol.Position{Line: 0, Character: 4}}
-	srv := &featureServer{
+	srv := &fakeManagerServer{
 		capabilities: protocol.ServerCapabilities{
 			CodeActionProvider: &protocol.CodeActionOptions{ResolveProvider: new(true)},
 		},

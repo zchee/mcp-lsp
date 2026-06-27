@@ -22,6 +22,7 @@ import (
 	"path/filepath"
 	"sync"
 
+	"go.lsp.dev/protocol"
 	"go.lsp.dev/uri"
 )
 
@@ -124,4 +125,13 @@ func (m *Manager) Close(ctx context.Context) error {
 		}
 	}
 	return errors.Join(errs...)
+}
+
+func (m *Manager) sessionForFile(ctx context.Context, lang, absPath string) (*serverSession, protocol.LanguageKind, uri.URI, error) {
+	sess, err := m.session(ctx, lang)
+	if err != nil {
+		return nil, "", "", err
+	}
+	cfg := m.cfg[lang]
+	return sess, cfg.LanguageID, uri.File(absPath), nil
 }

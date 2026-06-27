@@ -24,7 +24,7 @@ func TestCommandsRejectUnadvertisedCommand(t *testing.T) {
 	t.Parallel()
 
 	root := t.TempDir()
-	srv := &featureServer{}
+	srv := &fakeManagerServer{}
 	mgr := newFeatureManager(t, srv, root)
 
 	_, err := mgr.Commands().Execute(t.Context(), "go", "missing", nil, false)
@@ -36,7 +36,7 @@ func TestCommandsExecuteUsesAdvertisedCommandAndRawJSONArguments(t *testing.T) {
 	t.Parallel()
 
 	root := t.TempDir()
-	srv := &featureServer{
+	srv := &fakeManagerServer{
 		capabilities: protocol.ServerCapabilities{
 			ExecuteCommandProvider: protocol.ExecuteCommandOptions{Commands: []string{"server.test"}},
 		},

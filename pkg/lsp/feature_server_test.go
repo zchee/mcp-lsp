@@ -25,7 +25,7 @@ import (
 	"go.lsp.dev/protocol"
 )
 
-type featureServer struct {
+type fakeManagerServer struct {
 	protocol.UnimplementedServer
 
 	mu           sync.Mutex
@@ -64,7 +64,7 @@ type featureServer struct {
 	executeRequests []protocol.ExecuteCommandParams
 }
 
-func (f *featureServer) Initialize(_ context.Context, _ *protocol.InitializeParams) (*protocol.InitializeResult, error) {
+func (f *fakeManagerServer) Initialize(_ context.Context, _ *protocol.InitializeParams) (*protocol.InitializeResult, error) {
 	f.mu.Lock()
 	capabilities := f.capabilities
 	f.mu.Unlock()
@@ -75,7 +75,7 @@ func (f *featureServer) Initialize(_ context.Context, _ *protocol.InitializePara
 	}, nil
 }
 
-func (f *featureServer) DidOpen(_ context.Context, params *protocol.DidOpenTextDocumentParams) error {
+func (f *fakeManagerServer) DidOpen(_ context.Context, params *protocol.DidOpenTextDocumentParams) error {
 	f.mu.Lock()
 	defer f.mu.Unlock()
 
@@ -83,7 +83,7 @@ func (f *featureServer) DidOpen(_ context.Context, params *protocol.DidOpenTextD
 	return nil
 }
 
-func (f *featureServer) DidChange(_ context.Context, params *protocol.DidChangeTextDocumentParams) error {
+func (f *fakeManagerServer) DidChange(_ context.Context, params *protocol.DidChangeTextDocumentParams) error {
 	f.mu.Lock()
 	defer f.mu.Unlock()
 
@@ -91,7 +91,7 @@ func (f *featureServer) DidChange(_ context.Context, params *protocol.DidChangeT
 	return nil
 }
 
-func (f *featureServer) DidClose(_ context.Context, params *protocol.DidCloseTextDocumentParams) error {
+func (f *fakeManagerServer) DidClose(_ context.Context, params *protocol.DidCloseTextDocumentParams) error {
 	f.mu.Lock()
 	defer f.mu.Unlock()
 
@@ -99,7 +99,7 @@ func (f *featureServer) DidClose(_ context.Context, params *protocol.DidCloseTex
 	return nil
 }
 
-func (f *featureServer) Hover(_ context.Context, params *protocol.HoverParams) (*protocol.Hover, error) {
+func (f *fakeManagerServer) Hover(_ context.Context, params *protocol.HoverParams) (*protocol.Hover, error) {
 	f.mu.Lock()
 	defer f.mu.Unlock()
 
@@ -107,7 +107,7 @@ func (f *featureServer) Hover(_ context.Context, params *protocol.HoverParams) (
 	return f.hoverResult, nil
 }
 
-func (f *featureServer) Symbols(_ context.Context, params *protocol.WorkspaceSymbolParams) (protocol.WorkspaceSymbolResult, error) {
+func (f *fakeManagerServer) Symbols(_ context.Context, params *protocol.WorkspaceSymbolParams) (protocol.WorkspaceSymbolResult, error) {
 	f.mu.Lock()
 	defer f.mu.Unlock()
 
@@ -115,7 +115,7 @@ func (f *featureServer) Symbols(_ context.Context, params *protocol.WorkspaceSym
 	return f.symbolResult, nil
 }
 
-func (f *featureServer) Formatting(_ context.Context, params *protocol.DocumentFormattingParams) ([]protocol.TextEdit, error) {
+func (f *fakeManagerServer) Formatting(_ context.Context, params *protocol.DocumentFormattingParams) ([]protocol.TextEdit, error) {
 	f.mu.Lock()
 	defer f.mu.Unlock()
 
@@ -123,7 +123,7 @@ func (f *featureServer) Formatting(_ context.Context, params *protocol.DocumentF
 	return slices.Clone(f.formattingEdits), nil
 }
 
-func (f *featureServer) RangeFormatting(_ context.Context, params *protocol.DocumentRangeFormattingParams) ([]protocol.TextEdit, error) {
+func (f *fakeManagerServer) RangeFormatting(_ context.Context, params *protocol.DocumentRangeFormattingParams) ([]protocol.TextEdit, error) {
 	f.mu.Lock()
 	defer f.mu.Unlock()
 
@@ -131,7 +131,7 @@ func (f *featureServer) RangeFormatting(_ context.Context, params *protocol.Docu
 	return slices.Clone(f.rangeFormattingEdits), nil
 }
 
-func (f *featureServer) Rename(_ context.Context, params *protocol.RenameParams) (*protocol.WorkspaceEdit, error) {
+func (f *fakeManagerServer) Rename(_ context.Context, params *protocol.RenameParams) (*protocol.WorkspaceEdit, error) {
 	f.mu.Lock()
 	defer f.mu.Unlock()
 
@@ -139,7 +139,7 @@ func (f *featureServer) Rename(_ context.Context, params *protocol.RenameParams)
 	return f.renameEdit, nil
 }
 
-func (f *featureServer) CodeAction(_ context.Context, params *protocol.CodeActionParams) ([]protocol.CommandOrCodeAction, error) {
+func (f *fakeManagerServer) CodeAction(_ context.Context, params *protocol.CodeActionParams) ([]protocol.CommandOrCodeAction, error) {
 	f.mu.Lock()
 	defer f.mu.Unlock()
 
@@ -147,7 +147,7 @@ func (f *featureServer) CodeAction(_ context.Context, params *protocol.CodeActio
 	return slices.Clone(f.codeActions), nil
 }
 
-func (f *featureServer) CodeActionResolve(_ context.Context, params *protocol.CodeAction) (*protocol.CodeAction, error) {
+func (f *fakeManagerServer) CodeActionResolve(_ context.Context, params *protocol.CodeAction) (*protocol.CodeAction, error) {
 	f.mu.Lock()
 	defer f.mu.Unlock()
 
@@ -155,7 +155,7 @@ func (f *featureServer) CodeActionResolve(_ context.Context, params *protocol.Co
 	return f.codeActionResolveResult, nil
 }
 
-func (f *featureServer) CodeLens(_ context.Context, params *protocol.CodeLensParams) ([]protocol.CodeLens, error) {
+func (f *fakeManagerServer) CodeLens(_ context.Context, params *protocol.CodeLensParams) ([]protocol.CodeLens, error) {
 	f.mu.Lock()
 	defer f.mu.Unlock()
 
@@ -163,7 +163,7 @@ func (f *featureServer) CodeLens(_ context.Context, params *protocol.CodeLensPar
 	return slices.Clone(f.codeLenses), nil
 }
 
-func (f *featureServer) CodeLensResolve(_ context.Context, params *protocol.CodeLens) (*protocol.CodeLens, error) {
+func (f *fakeManagerServer) CodeLensResolve(_ context.Context, params *protocol.CodeLens) (*protocol.CodeLens, error) {
 	f.mu.Lock()
 	defer f.mu.Unlock()
 
@@ -171,7 +171,7 @@ func (f *featureServer) CodeLensResolve(_ context.Context, params *protocol.Code
 	return f.codeLensResolveResult, nil
 }
 
-func (f *featureServer) ExecuteCommand(_ context.Context, params *protocol.ExecuteCommandParams) (protocol.LSPAny, error) {
+func (f *fakeManagerServer) ExecuteCommand(_ context.Context, params *protocol.ExecuteCommandParams) (protocol.LSPAny, error) {
 	f.mu.Lock()
 	defer f.mu.Unlock()
 
@@ -179,79 +179,79 @@ func (f *featureServer) ExecuteCommand(_ context.Context, params *protocol.Execu
 	return f.executeResult, nil
 }
 
-func (f *featureServer) openedDocs() []protocol.DidOpenTextDocumentParams {
+func (f *fakeManagerServer) openedDocs() []protocol.DidOpenTextDocumentParams {
 	f.mu.Lock()
 	defer f.mu.Unlock()
 	return slices.Clone(f.opened)
 }
 
-func (f *featureServer) changedDocs() []protocol.DidChangeTextDocumentParams {
+func (f *fakeManagerServer) changedDocs() []protocol.DidChangeTextDocumentParams {
 	f.mu.Lock()
 	defer f.mu.Unlock()
 	return slices.Clone(f.changed)
 }
 
-func (f *featureServer) hoverCalls() []protocol.HoverParams {
+func (f *fakeManagerServer) hoverCalls() []protocol.HoverParams {
 	f.mu.Lock()
 	defer f.mu.Unlock()
 	return slices.Clone(f.hoverRequests)
 }
 
-func (f *featureServer) symbolCalls() []protocol.WorkspaceSymbolParams {
+func (f *fakeManagerServer) symbolCalls() []protocol.WorkspaceSymbolParams {
 	f.mu.Lock()
 	defer f.mu.Unlock()
 	return slices.Clone(f.symbolRequests)
 }
 
-func (f *featureServer) formattingCalls() []protocol.DocumentFormattingParams {
+func (f *fakeManagerServer) formattingCalls() []protocol.DocumentFormattingParams {
 	f.mu.Lock()
 	defer f.mu.Unlock()
 	return slices.Clone(f.formattingRequests)
 }
 
-func (f *featureServer) rangeFormattingCalls() []protocol.DocumentRangeFormattingParams {
+func (f *fakeManagerServer) rangeFormattingCalls() []protocol.DocumentRangeFormattingParams {
 	f.mu.Lock()
 	defer f.mu.Unlock()
 	return slices.Clone(f.rangeFormattingRequests)
 }
 
-func (f *featureServer) renameCalls() []protocol.RenameParams {
+func (f *fakeManagerServer) renameCalls() []protocol.RenameParams {
 	f.mu.Lock()
 	defer f.mu.Unlock()
 	return slices.Clone(f.renameRequests)
 }
 
-func (f *featureServer) codeActionCalls() []protocol.CodeActionParams {
+func (f *fakeManagerServer) codeActionCalls() []protocol.CodeActionParams {
 	f.mu.Lock()
 	defer f.mu.Unlock()
 	return slices.Clone(f.codeActionRequests)
 }
 
-func (f *featureServer) codeActionResolveCalls() []protocol.CodeAction {
+func (f *fakeManagerServer) codeActionResolveCalls() []protocol.CodeAction {
 	f.mu.Lock()
 	defer f.mu.Unlock()
 	return slices.Clone(f.codeActionResolveRequests)
 }
 
-func (f *featureServer) codeLensCalls() []protocol.CodeLensParams {
+func (f *fakeManagerServer) codeLensCalls() []protocol.CodeLensParams {
 	f.mu.Lock()
 	defer f.mu.Unlock()
 	return slices.Clone(f.codeLensRequests)
 }
 
-func (f *featureServer) codeLensResolveCalls() []protocol.CodeLens {
+func (f *fakeManagerServer) codeLensResolveCalls() []protocol.CodeLens {
 	f.mu.Lock()
 	defer f.mu.Unlock()
 	return slices.Clone(f.codeLensResolveRequests)
 }
 
-func (f *featureServer) executeCalls() []protocol.ExecuteCommandParams {
+func (f *fakeManagerServer) executeCalls() []protocol.ExecuteCommandParams {
 	f.mu.Lock()
 	defer f.mu.Unlock()
 	return slices.Clone(f.executeRequests)
 }
 
-func newFeatureManager(t *testing.T, srv *featureServer, rootDir string) *Manager {
+func newFeatureManager(t *testing.T, srv *fakeManagerServer, rootDir string) *Manager {
 	t.Helper()
 
 	sess, _ := wireSessionCore(t, srv)
@@ -276,7 +276,7 @@ func requireErrorContains(t *testing.T, err error, want string) {
 	}
 }
 
-func requireNoFeatureSync(t *testing.T, srv *featureServer) {
+func requireNoFeatureSync(t *testing.T, srv *fakeManagerServer) {
 	t.Helper()
 
 	if got := len(srv.openedDocs()); got != 0 {
