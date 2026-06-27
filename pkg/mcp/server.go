@@ -26,12 +26,13 @@ import (
 // NewServer assembles an [mcp.Server] that exposes language server capabilities
 // backed by mgr as read-only tools.
 func NewServer(mgr *lsp.Manager, logger *slog.Logger) *mcp.Server {
+	serverOpts := &mcp.ServerOptions{
+		Logger: logger,
+	}
 	s := mcp.NewServer(&mcp.Implementation{
 		Name:    "mcp-lsp",
 		Version: version.Version,
-	}, &mcp.ServerOptions{
-		Logger: logger,
-	})
+	}, serverOpts)
 
 	mcp.AddTool(s, &mcp.Tool{
 		Name:        "lsp_diagnostics",
@@ -103,5 +104,6 @@ func NewServer(mgr *lsp.Manager, logger *slog.Logger) *mcp.Server {
 			OpenWorldHint:   new(false),
 		},
 	}, executeCommandHandler(mgr.Commands()))
+
 	return s
 }
