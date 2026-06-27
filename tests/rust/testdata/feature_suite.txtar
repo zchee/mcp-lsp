@@ -1,0 +1,27 @@
+This fixture is a small Cargo package for read-only feature-suite integration
+coverage against rust-analyzer. The source is intentionally not rustfmt-formatted
+so formatting previews return edits without mutating files.
+
+Markers embedded in the source drive the test:
+
+  hover=ANSWER    marks the constant queried by textDocument/hover.
+  rename=message  marks the function declaration queried by textDocument/rename.
+  query=message   marks a function reference that should be renamed too.
+
+-- Cargo.toml --
+[package]
+name = "mcp_lsp_rust_feature_fixture"
+version = "0.1.0"
+edition = "2024"
+
+[dependencies]
+-- src/main.rs --
+const ANSWER:i32=42; // hover=ANSWER
+
+fn message(name:&str)->String { // rename=message
+format!("hello {name} {ANSWER}")
+}
+
+fn main(){
+println!("{}",message("rustacean")); // query=message
+}
