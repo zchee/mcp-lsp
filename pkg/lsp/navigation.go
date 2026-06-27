@@ -46,7 +46,7 @@ type NavigationLocation struct {
 	OriginSelectionRange *NavigationRange
 }
 
-func featureTimeout(ctx context.Context, timeout time.Duration) (context.Context, context.CancelFunc) {
+func withRequestTimeout(ctx context.Context, timeout time.Duration) (context.Context, context.CancelFunc) {
 	if _, ok := ctx.Deadline(); ok {
 		return ctx, func() {}
 	}

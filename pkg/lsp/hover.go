@@ -42,7 +42,7 @@ type HoverResult struct {
 
 // Lookup opens absPath, synchronizes its text, and returns hover content for pos.
 func (h *Hover) Lookup(ctx context.Context, lang, absPath, text string, pos protocol.Position) (*HoverResult, error) {
-	ctx, cancel := featureTimeout(ctx, h.timeout)
+	ctx, cancel := withRequestTimeout(ctx, h.timeout)
 	defer cancel()
 
 	sess, languageID, u, err := h.mgr.sessionForFile(ctx, lang, absPath)

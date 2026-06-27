@@ -44,7 +44,7 @@ type WorkspaceSymbol struct {
 
 // Lookup returns workspace symbols for query.
 func (w *WorkspaceSymbols) Lookup(ctx context.Context, lang, query string) ([]WorkspaceSymbol, error) {
-	ctx, cancel := featureTimeout(ctx, w.timeout)
+	ctx, cancel := withRequestTimeout(ctx, w.timeout)
 	defer cancel()
 
 	sess, err := w.mgr.session(ctx, lang)

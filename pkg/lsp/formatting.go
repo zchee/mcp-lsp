@@ -34,7 +34,7 @@ func (m *Manager) Formatting() *Formatting { return &Formatting{mgr: m, timeout:
 
 // Format returns a workspace edit preview for textDocument/formatting.
 func (f *Formatting) Format(ctx context.Context, lang, absPath, text string, options protocol.FormattingOptions) (WorkspaceEdit, error) {
-	ctx, cancel := featureTimeout(ctx, f.timeout)
+	ctx, cancel := withRequestTimeout(ctx, f.timeout)
 	defer cancel()
 
 	sess, languageID, u, err := f.mgr.sessionForFile(ctx, lang, absPath)
@@ -56,7 +56,7 @@ func (f *Formatting) Format(ctx context.Context, lang, absPath, text string, opt
 
 // RangeFormat returns a workspace edit preview for textDocument/rangeFormatting.
 func (f *Formatting) RangeFormat(ctx context.Context, lang, absPath, text string, rng protocol.Range, options protocol.FormattingOptions) (WorkspaceEdit, error) {
-	ctx, cancel := featureTimeout(ctx, f.timeout)
+	ctx, cancel := withRequestTimeout(ctx, f.timeout)
 	defer cancel()
 
 	sess, languageID, u, err := f.mgr.sessionForFile(ctx, lang, absPath)

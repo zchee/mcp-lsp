@@ -41,7 +41,7 @@ func (m *Manager) Commands() *Commands { return &Commands{mgr: m, timeout: defau
 
 // Execute runs an advertised workspace command.
 func (c *Commands) Execute(ctx context.Context, lang, command string, args []protocol.LSPAny, applyEdits bool) (protocol.LSPAny, error) {
-	ctx, cancel := featureTimeout(ctx, c.timeout)
+	ctx, cancel := withRequestTimeout(ctx, c.timeout)
 	defer cancel()
 
 	sess, err := c.mgr.session(ctx, lang)

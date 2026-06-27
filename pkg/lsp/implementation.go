@@ -42,7 +42,7 @@ func (m *Manager) Implementation() *Implementation {
 // text and returns the implementation targets for pos. The input position and
 // result positions are zero-based.
 func (i *Implementation) Lookup(ctx context.Context, lang, absPath, text string, pos protocol.Position) ([]NavigationLocation, error) {
-	ctx, cancel := featureTimeout(ctx, i.timeout)
+	ctx, cancel := withRequestTimeout(ctx, i.timeout)
 	defer cancel()
 
 	sess, err := i.mgr.session(ctx, lang)

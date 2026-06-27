@@ -43,7 +43,7 @@ type CodeAction struct {
 
 // Lookup returns code actions for rng, optionally resolving actions when supported.
 func (c *CodeActions) Lookup(ctx context.Context, lang, absPath, text string, rng protocol.Range, only []protocol.CodeActionKind, resolve bool) ([]CodeAction, error) {
-	ctx, cancel := featureTimeout(ctx, c.timeout)
+	ctx, cancel := withRequestTimeout(ctx, c.timeout)
 	defer cancel()
 
 	sess, languageID, u, err := c.mgr.sessionForFile(ctx, lang, absPath)

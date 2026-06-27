@@ -33,7 +33,7 @@ func (m *Manager) Rename() *Rename { return &Rename{mgr: m, timeout: defaultTime
 
 // Preview returns a workspace edit preview for textDocument/rename.
 func (r *Rename) Preview(ctx context.Context, lang, absPath, text string, pos protocol.Position, newName string) (WorkspaceEdit, error) {
-	ctx, cancel := featureTimeout(ctx, r.timeout)
+	ctx, cancel := withRequestTimeout(ctx, r.timeout)
 	defer cancel()
 
 	sess, languageID, u, err := r.mgr.sessionForFile(ctx, lang, absPath)

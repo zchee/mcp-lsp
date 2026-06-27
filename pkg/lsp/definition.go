@@ -42,7 +42,7 @@ func (m *Manager) Definition() *Definition {
 // text and returns the definition targets for pos. The input position and result
 // positions are zero-based.
 func (d *Definition) Lookup(ctx context.Context, lang, absPath, text string, pos protocol.Position) ([]NavigationLocation, error) {
-	ctx, cancel := featureTimeout(ctx, d.timeout)
+	ctx, cancel := withRequestTimeout(ctx, d.timeout)
 	defer cancel()
 
 	sess, err := d.mgr.session(ctx, lang)

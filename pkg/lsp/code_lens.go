@@ -39,7 +39,7 @@ type CodeLens struct {
 
 // Lookup returns code lenses, optionally resolving command fields when supported.
 func (c *CodeLenses) Lookup(ctx context.Context, lang, absPath, text string, resolve bool) ([]CodeLens, error) {
-	ctx, cancel := featureTimeout(ctx, c.timeout)
+	ctx, cancel := withRequestTimeout(ctx, c.timeout)
 	defer cancel()
 
 	sess, languageID, u, err := c.mgr.sessionForFile(ctx, lang, absPath)
