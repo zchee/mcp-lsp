@@ -51,7 +51,7 @@ func TestIntegrationPyrightFeatureSuitePreviews(t *testing.T) {
 	}
 
 	symbols := lookupPyrightWorkspaceSymbols(t, mgr, "message")
-	assertPyrightWorkspaceSymbol(t, symbols, "message", mainURI)
+	lsptest.AssertWorkspaceSymbol(t, symbols, "message", mainURI)
 
 	assertPyrightFormattingPreviewOrUnsupported(t, mgr, mainFile, text, mainURI)
 	assertPyrightRangeFormattingPreviewOrUnsupported(t, mgr, mainFile, text, mainURI, protocol.Range{
@@ -60,7 +60,7 @@ func TestIntegrationPyrightFeatureSuitePreviews(t *testing.T) {
 	})
 
 	renameEdit := previewPyrightRename(t, mgr, mainFile, text, queryPos, "greeting_message")
-	edits := assertPyrightTextEditForURI(t, "rename", renameEdit, mainURI)
+	edits := lsptest.AssertTextEditForURI(t, "rename", renameEdit, mainURI)
 	assertPyrightRenameEdits(t, edits, renamePos, queryPos)
 }
 
@@ -112,7 +112,7 @@ func assertPyrightFormattingPreviewOrUnsupported(t *testing.T, mgr *lsp.Manager,
 		assertPyrightUnsupportedError(t, "formatting", err, "formatting request is not supported by language server")
 		return
 	}
-	assertPyrightTextEditForURI(t, "formatting", edit, wantURI)
+	lsptest.AssertTextEditForURI(t, "formatting", edit, wantURI)
 }
 
 func assertPyrightRangeFormattingPreviewOrUnsupported(t *testing.T, mgr *lsp.Manager, absPath, text, wantURI string, rng protocol.Range) {
@@ -125,7 +125,7 @@ func assertPyrightRangeFormattingPreviewOrUnsupported(t *testing.T, mgr *lsp.Man
 		assertPyrightUnsupportedError(t, "range formatting", err, "range formatting request is not supported by language server")
 		return
 	}
-	assertPyrightTextEditForURI(t, "range formatting", edit, wantURI)
+	lsptest.AssertTextEditForURI(t, "range formatting", edit, wantURI)
 }
 
 func previewPyrightRename(t *testing.T, mgr *lsp.Manager, absPath, text string, pos protocol.Position, newName string) lsp.WorkspaceEdit {
@@ -138,57 +138,13 @@ func previewPyrightRename(t *testing.T, mgr *lsp.Manager, absPath, text string, 
 	)
 	for range pyrightFeatureLookup.Attempts {
 		edit, lastErr = mgr.Rename().Preview(t.Context(), pyrightFeatureLookup.Language, absPath, text, pos, newName)
-		if lastErr == nil && pyrightWorkspaceEditHasTextEdits(edit) {
+		if lastErr == nil && lsptest.WorkspaceEditHasTextEdits(edit) {
 			return edit
 		}
 		waitForPyrightFeature(t)
 	}
 	t.Fatalf("no rename edits after %d attempts; last error = %v, edit = %+v", pyrightFeatureLookup.Attempts, lastErr, edit)
 	return lsp.WorkspaceEdit{}
-}
-
-func assertPyrightWorkspaceSymbol(t *testing.T, symbols []lsp.WorkspaceSymbol, wantName, wantURI string) {
-	t.Helper()
-
-	for _, symbol := range symbols {
-		if symbol.Name != wantName || symbol.URI != wantURI {
-			continue
-		}
-		if symbol.Range == nil {
-			t.Fatalf("workspace symbol %q has nil range: %+v", wantName, symbol)
-		}
-		if symbol.Range.StartLine < 0 || symbol.Range.StartColumn < 0 {
-			t.Fatalf("workspace symbol range must be zero-based and non-negative: %+v", symbol.Range)
-		}
-		return
-	}
-	t.Fatalf("no workspace symbol %q at %s; symbols = %+v", wantName, wantURI, symbols)
-}
-
-func assertPyrightTextEditForURI(t *testing.T, label string, edit lsp.WorkspaceEdit, wantURI string) []lsp.WorkspaceTextEdit {
-	t.Helper()
-
-	edits := pyrightTextEditsForURI(edit, wantURI)
-	if len(edits) == 0 {
-		t.Fatalf("%s returned no text edits for %s; edit = %+v", label, wantURI, edit)
-	}
-	for _, te := range edits {
-		if te.Range.StartLine < 0 || te.Range.StartColumn < 0 || te.Range.EndLine < 0 || te.Range.EndColumn < 0 {
-			t.Fatalf("%s edit has negative zero-based range: %+v", label, te)
-		}
-	}
-	return edits
-}
-
-func pyrightTextEditsForURI(edit lsp.WorkspaceEdit, wantURI string) []lsp.WorkspaceTextEdit {
-	out := append([]lsp.WorkspaceTextEdit(nil), edit.Changes[wantURI]...)
-	for _, change := range edit.DocumentChanges {
-		if change.TextDocumentEdit == nil || change.TextDocumentEdit.TextDocument.URI != wantURI {
-			continue
-		}
-		out = append(out, change.TextDocumentEdit.Edits...)
-	}
-	return out
 }
 
 func assertPyrightRenameEdits(t *testing.T, edits []lsp.WorkspaceTextEdit, declaration, reference protocol.Position) {
@@ -218,20 +174,6 @@ func assertPyrightRenameEdits(t *testing.T, edits []lsp.WorkspaceTextEdit, decla
 
 func editStartKey(pos protocol.Position) string {
 	return fmt.Sprintf("%d:%d", pos.Line, pos.Character)
-}
-
-func pyrightWorkspaceEditHasTextEdits(edit lsp.WorkspaceEdit) bool {
-	for _, edits := range edit.Changes {
-		if len(edits) > 0 {
-			return true
-		}
-	}
-	for _, change := range edit.DocumentChanges {
-		if change.TextDocumentEdit != nil && len(change.TextDocumentEdit.Edits) > 0 {
-			return true
-		}
-	}
-	return false
 }
 
 func assertPyrightUnsupportedError(t *testing.T, label string, err error, want string) {

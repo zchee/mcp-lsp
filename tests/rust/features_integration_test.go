@@ -59,10 +59,10 @@ func TestIntegrationRustAnalyzerFeatureSuitePreviews(t *testing.T) {
 	}
 
 	symbols := lookupRustWorkspaceSymbols(t, mgr, "message")
-	assertRustWorkspaceSymbol(t, symbols, "message", mainURI)
+	lsptest.AssertWorkspaceSymbol(t, symbols, "message", mainURI)
 
 	formatEdit := previewRustFormatting(t, mgr, mainFile, text)
-	assertRustTextEditForURI(t, "formatting", formatEdit, mainURI)
+	lsptest.AssertTextEditForURI(t, "formatting", formatEdit, mainURI)
 
 	assertRustRangeFormattingPreviewOrUnsupported(t, mgr, mainFile, text, mainURI, protocol.Range{
 		Start: protocol.Position{Line: 2, Character: 0},
@@ -70,7 +70,7 @@ func TestIntegrationRustAnalyzerFeatureSuitePreviews(t *testing.T) {
 	})
 
 	renameEdit := previewRustRename(t, mgr, mainFile, text, queryPos, "greeting_message")
-	edits := assertRustTextEditForURI(t, "rename", renameEdit, mainURI)
+	edits := lsptest.AssertTextEditForURI(t, "rename", renameEdit, mainURI)
 	assertRustRenameEdits(t, edits, renamePos, queryPos)
 }
 
@@ -123,7 +123,7 @@ func previewRustFormatting(t *testing.T, mgr *lsp.Manager, absPath, text string)
 	options := protocol.FormattingOptions{TabSize: 4, InsertSpaces: true}
 	for range rustFeatureLookup.Attempts {
 		edit, lastErr = mgr.Formatting().Format(t.Context(), rustFeatureLookup.Language, absPath, text, options)
-		if lastErr == nil && rustWorkspaceEditHasTextEdits(edit) {
+		if lastErr == nil && lsptest.WorkspaceEditHasTextEdits(edit) {
 			return edit
 		}
 		waitForRustFeature(t)
@@ -144,7 +144,7 @@ func assertRustRangeFormattingPreviewOrUnsupported(t *testing.T, mgr *lsp.Manage
 		}
 		t.Fatalf("range formatting failed with unexpected error: %v", err)
 	}
-	assertRustTextEditForURI(t, "range formatting", edit, wantURI)
+	lsptest.AssertTextEditForURI(t, "range formatting", edit, wantURI)
 }
 
 func previewRustRename(t *testing.T, mgr *lsp.Manager, absPath, text string, pos protocol.Position, newName string) lsp.WorkspaceEdit {
@@ -157,57 +157,13 @@ func previewRustRename(t *testing.T, mgr *lsp.Manager, absPath, text string, pos
 	)
 	for range rustFeatureLookup.Attempts {
 		edit, lastErr = mgr.Rename().Preview(t.Context(), rustFeatureLookup.Language, absPath, text, pos, newName)
-		if lastErr == nil && rustWorkspaceEditHasTextEdits(edit) {
+		if lastErr == nil && lsptest.WorkspaceEditHasTextEdits(edit) {
 			return edit
 		}
 		waitForRustFeature(t)
 	}
 	t.Fatalf("no rename edits after %d attempts; last error = %v, edit = %+v", rustFeatureLookup.Attempts, lastErr, edit)
 	return lsp.WorkspaceEdit{}
-}
-
-func assertRustWorkspaceSymbol(t *testing.T, symbols []lsp.WorkspaceSymbol, wantName, wantURI string) {
-	t.Helper()
-
-	for _, symbol := range symbols {
-		if symbol.Name != wantName || symbol.URI != wantURI {
-			continue
-		}
-		if symbol.Range == nil {
-			t.Fatalf("workspace symbol %q has nil range: %+v", wantName, symbol)
-		}
-		if symbol.Range.StartLine < 0 || symbol.Range.StartColumn < 0 {
-			t.Fatalf("workspace symbol range must be zero-based and non-negative: %+v", symbol.Range)
-		}
-		return
-	}
-	t.Fatalf("no workspace symbol %q at %s; symbols = %+v", wantName, wantURI, symbols)
-}
-
-func assertRustTextEditForURI(t *testing.T, label string, edit lsp.WorkspaceEdit, wantURI string) []lsp.WorkspaceTextEdit {
-	t.Helper()
-
-	edits := rustTextEditsForURI(edit, wantURI)
-	if len(edits) == 0 {
-		t.Fatalf("%s returned no text edits for %s; edit = %+v", label, wantURI, edit)
-	}
-	for _, te := range edits {
-		if te.Range.StartLine < 0 || te.Range.StartColumn < 0 || te.Range.EndLine < 0 || te.Range.EndColumn < 0 {
-			t.Fatalf("%s edit has negative zero-based range: %+v", label, te)
-		}
-	}
-	return edits
-}
-
-func rustTextEditsForURI(edit lsp.WorkspaceEdit, wantURI string) []lsp.WorkspaceTextEdit {
-	out := append([]lsp.WorkspaceTextEdit(nil), edit.Changes[wantURI]...)
-	for _, change := range edit.DocumentChanges {
-		if change.TextDocumentEdit == nil || change.TextDocumentEdit.TextDocument.URI != wantURI {
-			continue
-		}
-		out = append(out, change.TextDocumentEdit.Edits...)
-	}
-	return out
 }
 
 func assertRustRenameEdits(t *testing.T, edits []lsp.WorkspaceTextEdit, declaration, reference protocol.Position) {
@@ -227,20 +183,6 @@ func assertRustRenameEdits(t *testing.T, edits []lsp.WorkspaceTextEdit, declarat
 	if diff := cmp.Diff(wantStarts, gotStarts); diff != "" {
 		t.Fatalf("rename edit starts mismatch (-want +got):\n%s\nedits = %+v", diff, edits)
 	}
-}
-
-func rustWorkspaceEditHasTextEdits(edit lsp.WorkspaceEdit) bool {
-	for _, edits := range edit.Changes {
-		if len(edits) > 0 {
-			return true
-		}
-	}
-	for _, change := range edit.DocumentChanges {
-		if change.TextDocumentEdit != nil && len(change.TextDocumentEdit.Edits) > 0 {
-			return true
-		}
-	}
-	return false
 }
 
 func validateRustFeatureLookupConfig(t *testing.T) {

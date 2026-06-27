@@ -18,9 +18,11 @@ package lsptest
 
 import (
 	"context"
+	"log/slog"
 	"os"
 	"os/exec"
 	"path/filepath"
+	"slices"
 	"strings"
 	"testing"
 	"time"
@@ -155,6 +157,20 @@ func (w Workspace) MarkerPosition(t *testing.T, rel, marker, ident string) proto
 	return protocol.Position{}
 }
 
+// NewManager constructs an [lsp.Manager] rooted at w and registers cleanup that
+// can outlive test-context cancellation.
+func NewManager(t *testing.T, cfg map[string]lsp.ServerConfig, w Workspace) *lsp.Manager {
+	t.Helper()
+
+	mgr := lsp.NewManager(cfg, w.Dir(), slog.New(slog.DiscardHandler))
+	t.Cleanup(func() {
+		if err := mgr.Close(context.WithoutCancel(t.Context())); err != nil {
+			t.Errorf("manager close reported errors: %v", err)
+		}
+	})
+	return mgr
+}
+
 // LookupDefinition drives [lsp.Definition.Lookup] against a real language
 // server, retrying while the server is still loading the workspace. It fails
 // the test if no definition resolves within cfg's attempt budget.
@@ -218,6 +234,70 @@ func AssertImplementationResolvesTo(t *testing.T, implementations []lsp.Implemen
 	t.Helper()
 
 	assertNavigationResolvesTo(t, "implementation", implementations, wantURI, want)
+}
+
+// AssertTextEditForURI reports a test failure unless edit contains a text edit
+// for wantURI and all returned edit ranges are non-negative.
+func AssertTextEditForURI(tb testing.TB, label string, edit lsp.WorkspaceEdit, wantURI string) []lsp.WorkspaceTextEdit {
+	tb.Helper()
+
+	edits := textEditsForURI(edit, wantURI)
+	if len(edits) == 0 {
+		tb.Fatalf("%s returned no text edits for %s; edit = %+v", label, wantURI, edit)
+	}
+	for _, te := range edits {
+		if te.Range.StartLine < 0 || te.Range.StartColumn < 0 || te.Range.EndLine < 0 || te.Range.EndColumn < 0 {
+			tb.Fatalf("%s edit has negative zero-based range: %+v", label, te)
+		}
+	}
+	return edits
+}
+
+func textEditsForURI(edit lsp.WorkspaceEdit, wantURI string) []lsp.WorkspaceTextEdit {
+	out := slices.Clone(edit.Changes[wantURI])
+	for _, change := range edit.DocumentChanges {
+		if change.TextDocumentEdit == nil || change.TextDocumentEdit.TextDocument.URI != wantURI {
+			continue
+		}
+		out = append(out, change.TextDocumentEdit.Edits...)
+	}
+	return out
+}
+
+// WorkspaceEditHasTextEdits reports whether edit contains at least one text
+// edit in either changes representation.
+func WorkspaceEditHasTextEdits(edit lsp.WorkspaceEdit) bool {
+	for _, edits := range edit.Changes {
+		if len(edits) > 0 {
+			return true
+		}
+	}
+	for _, change := range edit.DocumentChanges {
+		if change.TextDocumentEdit != nil && len(change.TextDocumentEdit.Edits) > 0 {
+			return true
+		}
+	}
+	return false
+}
+
+// AssertWorkspaceSymbol reports a test failure unless symbols contain wantName
+// at wantURI with a non-negative zero-based range.
+func AssertWorkspaceSymbol(tb testing.TB, symbols []lsp.WorkspaceSymbol, wantName, wantURI string) {
+	tb.Helper()
+
+	for _, symbol := range symbols {
+		if symbol.Name != wantName || symbol.URI != wantURI {
+			continue
+		}
+		if symbol.Range == nil {
+			tb.Fatalf("workspace symbol %q has nil range: %+v", wantName, symbol)
+		}
+		if symbol.Range.StartLine < 0 || symbol.Range.StartColumn < 0 {
+			tb.Fatalf("workspace symbol range must be zero-based and non-negative: %+v", symbol.Range)
+		}
+		return
+	}
+	tb.Fatalf("no workspace symbol %q at %s; symbols = %+v", wantName, wantURI, symbols)
 }
 
 // SleepOrCancel waits for d or returns the context error if ctx is canceled
