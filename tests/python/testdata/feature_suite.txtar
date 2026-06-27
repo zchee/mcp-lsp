@@ -1,0 +1,13 @@
+-- pyrightconfig.json --
+{
+  "include": ["main.py"],
+  "pythonVersion": "3.11",
+  "typeCheckingMode": "basic"
+}
+-- main.py --
+ANSWER: int = 42  # hover=ANSWER
+
+def message(name: str)->str:  # rename=message
+    return f"hello {name} {ANSWER}"
+
+result=message("python")  # query=message
