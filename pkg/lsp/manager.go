@@ -21,10 +21,16 @@ import (
 	"log/slog"
 	"path/filepath"
 	"sync"
+	"time"
 
 	"go.lsp.dev/protocol"
 	"go.lsp.dev/uri"
 )
+
+// Default timeout for operations that don't have a context deadline. This is a
+// safety valve to avoid blocking indefinitely on a server that has gone away or
+// otherwise failed to respond.
+const defaultTimeout = 5 * time.Second
 
 // Manager owns one language server per language. Servers are spawned lazily on
 // first use and reused across calls; a server that dies is replaced on the next

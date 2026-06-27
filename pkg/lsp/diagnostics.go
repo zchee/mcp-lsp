@@ -24,10 +24,7 @@ import (
 )
 
 // Default acquisition timings for the push (settle) read path.
-const (
-	defaultSettle  = 250 * time.Millisecond
-	defaultTimeout = 5 * time.Second
-)
+const defaultSettle = 250 * time.Millisecond
 
 // Diagnostic is the language-agnostic diagnostics DTO that drives the MCP tool
 // output schema. Positions are zero-based here, matching the LSP wire format;
