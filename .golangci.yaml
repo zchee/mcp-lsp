@@ -157,6 +157,9 @@ linters:
       enable-all: true
     importas:
       no-unaliased: true
+      alias:
+        - pkg: github.com/google/go-cmp/cmp
+          alias: gocmp
     lll:
       line-length: 200
       tab-width: 1

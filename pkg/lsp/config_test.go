@@ -17,7 +17,7 @@ package lsp
 import (
 	"testing"
 
-	"github.com/google/go-cmp/cmp"
+	gocmp "github.com/google/go-cmp/cmp"
 	"go.lsp.dev/protocol"
 )
 
@@ -38,7 +38,7 @@ func TestDefaultConfig(t *testing.T) {
 	}
 
 	got := DefaultConfig()
-	if diff := cmp.Diff(want, got); diff != "" {
+	if diff := gocmp.Diff(want, got); diff != "" {
 		t.Errorf("DefaultConfig() mismatch (-want +got):\n%s", diff)
 	}
 }

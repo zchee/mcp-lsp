@@ -20,7 +20,7 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/google/go-cmp/cmp"
+	gocmp "github.com/google/go-cmp/cmp"
 	"go.lsp.dev/uri"
 )
 
@@ -59,7 +59,7 @@ func TestApplyWorkspaceEditTextEditsApplyInReverseOrder(t *testing.T) {
 	if err != nil {
 		t.Fatalf("read file: %v", err)
 	}
-	if diff := cmp.Diff("XaYcde", string(gotContent)); diff != "" {
+	if diff := gocmp.Diff("XaYcde", string(gotContent)); diff != "" {
 		t.Errorf("file content mismatch (-want +got):\n%s", diff)
 	}
 }
@@ -131,7 +131,7 @@ func TestApplyWorkspaceEditRejectsUtf16MismatchedOffsets(t *testing.T) {
 	if err != nil {
 		t.Fatalf("read file: %v", err)
 	}
-	if diff := cmp.Diff("aXb", string(gotContent)); diff != "" {
+	if diff := gocmp.Diff("aXb", string(gotContent)); diff != "" {
 		t.Errorf("file content mismatch (-want +got):\n%s", diff)
 	}
 }

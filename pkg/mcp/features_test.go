@@ -21,7 +21,7 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/google/go-cmp/cmp"
+	gocmp "github.com/google/go-cmp/cmp"
 	"go.lsp.dev/protocol"
 	"go.lsp.dev/uri"
 
@@ -212,7 +212,7 @@ func TestHoverHandlerReadsFileDefaultsLanguageAndConvertsCoordinates(t *testing.
 			Range: &DefinitionRangeItem{StartLine: 2, StartColumn: 3, EndLine: 2, EndColumn: 6},
 		},
 	}
-	if diff := cmp.Diff(want, out); diff != "" {
+	if diff := gocmp.Diff(want, out); diff != "" {
 		t.Fatalf("hover output mismatch (-want +got):\n%s", diff)
 	}
 }
@@ -250,7 +250,7 @@ func TestWorkspaceSymbolHandlerDefaultsLanguageAndConvertsRanges(t *testing.T) {
 		},
 		{Name: "pkg", Kind: "4", URI: "file:///workspace/pkg"},
 	}}
-	if diff := cmp.Diff(want, out); diff != "" {
+	if diff := gocmp.Diff(want, out); diff != "" {
 		t.Fatalf("workspace symbol output mismatch (-want +got):\n%s", diff)
 	}
 }
@@ -284,13 +284,13 @@ func TestFormattingHandlersReadFilesAndConvertInputs(t *testing.T) {
 		t.Fatalf("Format path/text = %q/%q, want %q/file contents", formatter.gotFormatPath, formatter.gotFormatText, path)
 	}
 	wantFormatOptions := protocol.FormattingOptions{TabSize: 2, InsertSpaces: false}
-	if diff := cmp.Diff(wantFormatOptions, formatter.gotFormatOpts); diff != "" {
+	if diff := gocmp.Diff(wantFormatOptions, formatter.gotFormatOpts); diff != "" {
 		t.Fatalf("Format options mismatch (-want +got):\n%s", diff)
 	}
 	wantFormatEdit := protocol.WorkspaceEdit{Changes: map[uri.URI][]protocol.TextEdit{
 		fileURI: {{Range: protocol.Range{Start: protocol.Position{}, End: protocol.Position{}}, NewText: "// formatted\n"}},
 	}}
-	if diff := cmp.Diff(WorkspaceEditPreviewOutput{File: path, URI: fileURI.String(), Edit: wantFormatEdit}, formatOut); diff != "" {
+	if diff := gocmp.Diff(WorkspaceEditPreviewOutput{File: path, URI: fileURI.String(), Edit: wantFormatEdit}, formatOut); diff != "" {
 		t.Fatalf("formatting output mismatch (-want +got):\n%s", diff)
 	}
 
@@ -310,13 +310,13 @@ func TestFormattingHandlersReadFilesAndConvertInputs(t *testing.T) {
 		t.Fatalf("RangeFormat range = %+v, want %+v", formatter.gotRange, wantRange)
 	}
 	wantDefaultOptions := protocol.FormattingOptions{TabSize: 4, InsertSpaces: true}
-	if diff := cmp.Diff(wantDefaultOptions, formatter.gotRangeOptions); diff != "" {
+	if diff := gocmp.Diff(wantDefaultOptions, formatter.gotRangeOptions); diff != "" {
 		t.Fatalf("RangeFormat options mismatch (-want +got):\n%s", diff)
 	}
 	wantRangeEdit := protocol.WorkspaceEdit{Changes: map[uri.URI][]protocol.TextEdit{
 		fileURI: {{Range: wantRange, NewText: "renamed"}},
 	}}
-	if diff := cmp.Diff(WorkspaceEditPreviewOutput{File: path, URI: fileURI.String(), Edit: wantRangeEdit}, rangeOut); diff != "" {
+	if diff := gocmp.Diff(WorkspaceEditPreviewOutput{File: path, URI: fileURI.String(), Edit: wantRangeEdit}, rangeOut); diff != "" {
 		t.Fatalf("range formatting output mismatch (-want +got):\n%s", diff)
 	}
 }
@@ -395,7 +395,7 @@ func TestRenameHandlerValidatesAndReturnsWorkspaceEditPreview(t *testing.T) {
 	wantEdit := protocol.WorkspaceEdit{Changes: map[uri.URI][]protocol.TextEdit{
 		fileURI: {{Range: protocol.Range{Start: protocol.Position{Line: 2, Character: 4}, End: protocol.Position{Line: 2, Character: 8}}, NewText: "Renamed"}},
 	}}
-	if diff := cmp.Diff(WorkspaceEditPreviewOutput{File: path, URI: fileURI.String(), Edit: wantEdit}, out); diff != "" {
+	if diff := gocmp.Diff(WorkspaceEditPreviewOutput{File: path, URI: fileURI.String(), Edit: wantEdit}, out); diff != "" {
 		t.Fatalf("rename output mismatch (-want +got):\n%s", diff)
 	}
 }
@@ -438,7 +438,7 @@ func TestCodeActionHandlerConvertsRangeKindsAndEdits(t *testing.T) {
 	if looker.gotRange != wantRange {
 		t.Fatalf("Lookup range = %+v, want %+v", looker.gotRange, wantRange)
 	}
-	if diff := cmp.Diff([]protocol.CodeActionKind{protocol.CodeActionKindQuickFix}, looker.gotOnly); diff != "" {
+	if diff := gocmp.Diff([]protocol.CodeActionKind{protocol.CodeActionKindQuickFix}, looker.gotOnly); diff != "" {
 		t.Fatalf("Lookup only mismatch (-want +got):\n%s", diff)
 	}
 	if !looker.gotResolve {
@@ -460,7 +460,7 @@ func TestCodeActionHandlerConvertsRangeKindsAndEdits(t *testing.T) {
 			},
 		},
 	}
-	if diff := cmp.Diff(want, out); diff != "" {
+	if diff := gocmp.Diff(want, out); diff != "" {
 		t.Fatalf("code action output mismatch (-want +got):\n%s", diff)
 	}
 }
@@ -496,7 +496,7 @@ func TestCodeLensHandlerReadsFileAndConvertsOutputRanges(t *testing.T) {
 			},
 		},
 	}
-	if diff := cmp.Diff(want, out); diff != "" {
+	if diff := gocmp.Diff(want, out); diff != "" {
 		t.Fatalf("code lens output mismatch (-want +got):\n%s", diff)
 	}
 }

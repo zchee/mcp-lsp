@@ -17,7 +17,7 @@ package lsp
 import (
 	"testing"
 
-	"github.com/google/go-cmp/cmp"
+	gocmp "github.com/google/go-cmp/cmp"
 	"go.lsp.dev/protocol"
 	"go.lsp.dev/uri"
 )
@@ -51,7 +51,7 @@ func TestInitializeParamsAdvertisesFeatureSuiteCapabilities(t *testing.T) {
 	if workspace.Symbol.SymbolKind == nil {
 		t.Fatal("Workspace SymbolKind capabilities are nil")
 	}
-	if diff := cmp.Diff(supportedSymbolKinds(), workspace.Symbol.SymbolKind.ValueSet); diff != "" {
+	if diff := gocmp.Diff(supportedSymbolKinds(), workspace.Symbol.SymbolKind.ValueSet); diff != "" {
 		t.Fatalf("Workspace SymbolKind valueSet mismatch (-want +got):\n%s", diff)
 	}
 	if workspace.Symbol.ResolveSupport.Properties != nil {
@@ -69,13 +69,13 @@ func TestInitializeParamsAdvertisesFeatureSuiteCapabilities(t *testing.T) {
 		t.Fatal("Hover capabilities are nil")
 	}
 	wantMarkup := []protocol.MarkupKind{protocol.MarkupKindMarkdown, protocol.MarkupKindPlainText}
-	if diff := cmp.Diff(wantMarkup, textDocument.Hover.ContentFormat); diff != "" {
+	if diff := gocmp.Diff(wantMarkup, textDocument.Hover.ContentFormat); diff != "" {
 		t.Fatalf("Hover contentFormat mismatch (-want +got):\n%s", diff)
 	}
 	if textDocument.CodeAction == nil {
 		t.Fatal("CodeAction capabilities are nil")
 	}
-	if diff := cmp.Diff(supportedCodeActionKinds(), textDocument.CodeAction.CodeActionLiteralSupport.CodeActionKind.ValueSet); diff != "" {
+	if diff := gocmp.Diff(supportedCodeActionKinds(), textDocument.CodeAction.CodeActionLiteralSupport.CodeActionKind.ValueSet); diff != "" {
 		t.Fatalf("CodeAction kind valueSet mismatch (-want +got):\n%s", diff)
 	}
 	if textDocument.CodeAction.IsPreferredSupport == nil || !*textDocument.CodeAction.IsPreferredSupport {
@@ -87,7 +87,7 @@ func TestInitializeParamsAdvertisesFeatureSuiteCapabilities(t *testing.T) {
 	if textDocument.CodeAction.DataSupport == nil || !*textDocument.CodeAction.DataSupport {
 		t.Fatalf("CodeAction DataSupport = %v, want true", textDocument.CodeAction.DataSupport)
 	}
-	if diff := cmp.Diff([]string{"edit", "command"}, textDocument.CodeAction.ResolveSupport.Properties); diff != "" {
+	if diff := gocmp.Diff([]string{"edit", "command"}, textDocument.CodeAction.ResolveSupport.Properties); diff != "" {
 		t.Fatalf("CodeAction resolve properties mismatch (-want +got):\n%s", diff)
 	}
 	if textDocument.CodeAction.HonorsChangeAnnotations != nil {
@@ -96,7 +96,7 @@ func TestInitializeParamsAdvertisesFeatureSuiteCapabilities(t *testing.T) {
 	if textDocument.CodeLens == nil {
 		t.Fatal("CodeLens capabilities are nil")
 	}
-	if diff := cmp.Diff([]string{"command"}, textDocument.CodeLens.ResolveSupport.Properties); diff != "" {
+	if diff := gocmp.Diff([]string{"command"}, textDocument.CodeLens.ResolveSupport.Properties); diff != "" {
 		t.Fatalf("CodeLens resolve properties mismatch (-want +got):\n%s", diff)
 	}
 	if textDocument.Formatting == nil {
@@ -141,7 +141,7 @@ func TestSnapshotCapabilitiesCapturesFeatureSuiteProviders(t *testing.T) {
 		!got.rename {
 		t.Fatalf("snapshotCapabilities did not capture feature providers: %+v", got)
 	}
-	if diff := cmp.Diff([]string{"gopls.test"}, got.executeCommands); diff != "" {
+	if diff := gocmp.Diff([]string{"gopls.test"}, got.executeCommands); diff != "" {
 		t.Fatalf("executeCommands mismatch (-want +got):\n%s", diff)
 	}
 }
@@ -154,7 +154,7 @@ func TestSnapshotCapabilitiesClonesExecuteCommands(t *testing.T) {
 	}
 	got := snapshotCapabilities(capabilities)
 	capabilities.ExecuteCommandProvider.Commands[0] = "mutated"
-	if diff := cmp.Diff([]string{"one", "two"}, got.executeCommands); diff != "" {
+	if diff := gocmp.Diff([]string{"one", "two"}, got.executeCommands); diff != "" {
 		t.Fatalf("executeCommands were not cloned (-want +got):\n%s", diff)
 	}
 }

@@ -21,7 +21,7 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/google/go-cmp/cmp"
+	gocmp "github.com/google/go-cmp/cmp"
 	"go.lsp.dev/protocol"
 	"go.lsp.dev/uri"
 )
@@ -113,7 +113,7 @@ func TestClientApplyEditPolicyAppliesWhenEnabled(t *testing.T) {
 	if err != nil {
 		t.Fatalf("read file: %v", err)
 	}
-	if diff := cmp.Diff("package hello\n", string(gotContent)); diff != "" {
+	if diff := gocmp.Diff("package hello\n", string(gotContent)); diff != "" {
 		t.Errorf("file content mismatch (-want +got):\n%s", diff)
 	}
 }

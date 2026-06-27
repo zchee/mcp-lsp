@@ -25,7 +25,7 @@ import (
 	"testing"
 
 	"github.com/go-json-experiment/json"
-	"github.com/google/go-cmp/cmp"
+	gocmp "github.com/google/go-cmp/cmp"
 	"go.lsp.dev/protocol"
 	"go.lsp.dev/uri"
 )
@@ -401,7 +401,7 @@ func TestHoverLookupFlattensMarkupAndRecordsWireParams(t *testing.T) {
 
 	wantRange := NavigationRange{StartLine: 1, StartColumn: 2, EndLine: 1, EndColumn: 5}
 	want := &HoverResult{Kind: "markdown", Value: "**doc**", Range: &wantRange}
-	if diff := cmp.Diff(want, got); diff != "" {
+	if diff := gocmp.Diff(want, got); diff != "" {
 		t.Fatalf("hover result mismatch (-want +got):\n%s", diff)
 	}
 
@@ -449,7 +449,7 @@ func TestFlattenHoverSupportsLegacyMarkedStringWireShapes(t *testing.T) {
 			if err := json.Unmarshal([]byte(tt.raw), &hover); err != nil {
 				t.Fatalf("unmarshal hover: %v", err)
 			}
-			if diff := cmp.Diff(tt.want, flattenHover(&hover)); diff != "" {
+			if diff := gocmp.Diff(tt.want, flattenHover(&hover)); diff != "" {
 				t.Fatalf("hover mismatch (-want +got):\n%s", diff)
 			}
 		})
@@ -536,7 +536,7 @@ func TestWorkspaceSymbolsLookupFlattensResultUnions(t *testing.T) {
 			if err != nil {
 				t.Fatalf("WorkspaceSymbols.Lookup: %v", err)
 			}
-			if diff := cmp.Diff(tt.want, got); diff != "" {
+			if diff := gocmp.Diff(tt.want, got); diff != "" {
 				t.Fatalf("workspace symbols mismatch (-want +got):\n%s", diff)
 			}
 
@@ -568,7 +568,7 @@ func TestFlattenWorkspaceSymbolsSupportsURIOnlyLocations(t *testing.T) {
 			URI:  uri.File("/workspace/pkg").String(),
 		},
 	}
-	if diff := cmp.Diff(want, got); diff != "" {
+	if diff := gocmp.Diff(want, got); diff != "" {
 		t.Fatalf("workspace symbols mismatch (-want +got):\n%s", diff)
 	}
 }
@@ -612,7 +612,7 @@ func TestFormattingRangeFormattingAndRenameReturnWorkspaceEditPreviews(t *testin
 	wantFormat := WorkspaceEdit{Changes: map[string][]WorkspaceTextEdit{
 		fileURI.String(): {{Range: NavigationRange{StartLine: 0, StartColumn: 0, EndLine: 0, EndColumn: 0}, NewText: "// formatted\n"}},
 	}}
-	if diff := cmp.Diff(wantFormat, gotFormat); diff != "" {
+	if diff := gocmp.Diff(wantFormat, gotFormat); diff != "" {
 		t.Fatalf("format workspace edit mismatch (-want +got):\n%s", diff)
 	}
 
@@ -623,7 +623,7 @@ func TestFormattingRangeFormattingAndRenameReturnWorkspaceEditPreviews(t *testin
 	wantRangeFormat := WorkspaceEdit{Changes: map[string][]WorkspaceTextEdit{
 		fileURI.String(): {{Range: NavigationRange{StartLine: 1, StartColumn: 0, EndLine: 1, EndColumn: 7}, NewText: "renamed"}},
 	}}
-	if diff := cmp.Diff(wantRangeFormat, gotRangeFormat); diff != "" {
+	if diff := gocmp.Diff(wantRangeFormat, gotRangeFormat); diff != "" {
 		t.Fatalf("range format workspace edit mismatch (-want +got):\n%s", diff)
 	}
 
@@ -635,7 +635,7 @@ func TestFormattingRangeFormattingAndRenameReturnWorkspaceEditPreviews(t *testin
 	wantRename := WorkspaceEdit{Changes: map[string][]WorkspaceTextEdit{
 		fileURI.String(): {{Range: NavigationRange{StartLine: 2, StartColumn: 4, EndLine: 2, EndColumn: 8}, NewText: "Renamed"}},
 	}, DocumentChanges: []WorkspaceDocumentChange{}}
-	if diff := cmp.Diff(wantRename, gotRename); diff != "" {
+	if diff := gocmp.Diff(wantRename, gotRename); diff != "" {
 		t.Fatalf("rename workspace edit mismatch (-want +got):\n%s", diff)
 	}
 
@@ -646,7 +646,7 @@ func TestFormattingRangeFormattingAndRenameReturnWorkspaceEditPreviews(t *testin
 	if formatCalls[0].TextDocument.URI != fileURI {
 		t.Fatalf("format URI = %q, want %q", formatCalls[0].TextDocument.URI, fileURI)
 	}
-	if diff := cmp.Diff(formatOptions, formatCalls[0].Options); diff != "" {
+	if diff := gocmp.Diff(formatOptions, formatCalls[0].Options); diff != "" {
 		t.Fatalf("format options mismatch (-want +got):\n%s", diff)
 	}
 	rangeCalls := srv.rangeFormattingCalls()
@@ -726,7 +726,7 @@ func TestCodeActionsAndCodeLensesResolveWhenSupported(t *testing.T) {
 		{Title: "Run", Command: &Command{Title: "Run", Tooltip: tooltip, Command: "server.run"}},
 		{Title: "Fix", Kind: string(actionKind), IsPreferred: &isPreferred, Edit: &wantEdit, Command: &Command{Title: "Apply", Command: "server.apply"}},
 	}
-	if diff := cmp.Diff(wantActions, gotActions); diff != "" {
+	if diff := gocmp.Diff(wantActions, gotActions); diff != "" {
 		t.Fatalf("code actions mismatch (-want +got):\n%s", diff)
 	}
 	actionCalls := srv.codeActionCalls()
@@ -739,7 +739,7 @@ func TestCodeActionsAndCodeLensesResolveWhenSupported(t *testing.T) {
 	if actionCalls[0].Range != actionRange {
 		t.Fatalf("code action range = %+v, want %+v", actionCalls[0].Range, actionRange)
 	}
-	if diff := cmp.Diff([]protocol.CodeActionKind{actionKind}, actionCalls[0].Context.Only); diff != "" {
+	if diff := gocmp.Diff([]protocol.CodeActionKind{actionKind}, actionCalls[0].Context.Only); diff != "" {
 		t.Fatalf("code action only mismatch (-want +got):\n%s", diff)
 	}
 	if got := len(srv.codeActionResolveCalls()); got != 1 {
@@ -756,7 +756,7 @@ func TestCodeActionsAndCodeLensesResolveWhenSupported(t *testing.T) {
 			Command: &Command{Title: "Test", Command: "go.test"},
 		},
 	}
-	if diff := cmp.Diff(wantLenses, gotLenses); diff != "" {
+	if diff := gocmp.Diff(wantLenses, gotLenses); diff != "" {
 		t.Fatalf("code lenses mismatch (-want +got):\n%s", diff)
 	}
 	lensCalls := srv.codeLensCalls()

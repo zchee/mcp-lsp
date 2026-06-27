@@ -23,7 +23,7 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/google/go-cmp/cmp"
+	gocmp "github.com/google/go-cmp/cmp"
 	"go.lsp.dev/protocol"
 	"go.lsp.dev/uri"
 
@@ -244,7 +244,7 @@ func TestImplementationHandlerOneBasedOutput(t *testing.T) {
 			},
 		},
 	}
-	if diff := cmp.Diff(want, out); diff != "" {
+	if diff := gocmp.Diff(want, out); diff != "" {
 		t.Errorf("handler output mismatch (-want +got):\n%s", diff)
 	}
 }
@@ -284,7 +284,7 @@ func TestImplementationHandlerLinkOutput(t *testing.T) {
 			},
 		},
 	}
-	if diff := cmp.Diff(want, out); diff != "" {
+	if diff := gocmp.Diff(want, out); diff != "" {
 		t.Errorf("handler output mismatch (-want +got):\n%s", diff)
 	}
 }

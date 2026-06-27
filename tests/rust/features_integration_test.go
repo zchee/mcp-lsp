@@ -19,7 +19,7 @@ import (
 	"testing"
 	"time"
 
-	"github.com/google/go-cmp/cmp"
+	gocmp "github.com/google/go-cmp/cmp"
 	"go.lsp.dev/protocol"
 	"go.lsp.dev/uri"
 
@@ -180,7 +180,7 @@ func assertRustRenameEdits(t *testing.T, edits []lsp.WorkspaceTextEdit, declarat
 		}
 		gotStarts = append(gotStarts, lsp.NavigationRange{StartLine: edit.Range.StartLine, StartColumn: edit.Range.StartColumn})
 	}
-	if diff := cmp.Diff(wantStarts, gotStarts); diff != "" {
+	if diff := gocmp.Diff(wantStarts, gotStarts); diff != "" {
 		t.Fatalf("rename edit starts mismatch (-want +got):\n%s\nedits = %+v", diff, edits)
 	}
 }

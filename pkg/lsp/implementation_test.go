@@ -22,7 +22,7 @@ import (
 	"testing"
 	"time"
 
-	"github.com/google/go-cmp/cmp"
+	gocmp "github.com/google/go-cmp/cmp"
 	"go.lsp.dev/protocol"
 	"go.lsp.dev/uri"
 )
@@ -151,7 +151,7 @@ func TestImplementationLookupLocation(t *testing.T) {
 			TargetSelectionRange: wantRange,
 		},
 	}
-	if diff := cmp.Diff(want, got); diff != "" {
+	if diff := gocmp.Diff(want, got); diff != "" {
 		t.Errorf("Lookup implementation mismatch (-want +got):\n%s", diff)
 	}
 
@@ -204,7 +204,7 @@ func TestImplementationLookupLocationSlice(t *testing.T) {
 		{TargetURI: string(fooURI), TargetRange: firstRange, TargetSelectionRange: firstRange},
 		{TargetURI: string(barURI), TargetRange: secondRange, TargetSelectionRange: secondRange},
 	}
-	if diff := cmp.Diff(want, got); diff != "" {
+	if diff := gocmp.Diff(want, got); diff != "" {
 		t.Errorf("Lookup implementation mismatch (-want +got):\n%s", diff)
 	}
 }
@@ -250,7 +250,7 @@ func TestImplementationLookupDefinitionLinkSlice(t *testing.T) {
 			OriginSelectionRange: &origin,
 		},
 	}
-	if diff := cmp.Diff(want, got); diff != "" {
+	if diff := gocmp.Diff(want, got); diff != "" {
 		t.Errorf("Lookup implementation mismatch (-want +got):\n%s", diff)
 	}
 }

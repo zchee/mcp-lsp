@@ -18,7 +18,7 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/google/go-cmp/cmp"
+	gocmp "github.com/google/go-cmp/cmp"
 	"go.lsp.dev/protocol"
 	"go.lsp.dev/uri"
 )
@@ -143,7 +143,7 @@ func TestWorkspaceEditFromProtocolAndBack(t *testing.T) {
 			},
 		},
 	}
-	if diff := cmp.Diff(wantChanges, wireEdit.Changes); diff != "" {
+	if diff := gocmp.Diff(wantChanges, wireEdit.Changes); diff != "" {
 		t.Errorf("workspace edit changes mismatch (-want +got):\n%s", diff)
 	}
 	wantAnnotations := map[protocol.ChangeAnnotationIdentifier]protocol.ChangeAnnotation{
@@ -153,7 +153,7 @@ func TestWorkspaceEditFromProtocolAndBack(t *testing.T) {
 			Description:       &description,
 		},
 	}
-	if diff := cmp.Diff(wantAnnotations, wireEdit.ChangeAnnotations); diff != "" {
+	if diff := gocmp.Diff(wantAnnotations, wireEdit.ChangeAnnotations); diff != "" {
 		t.Errorf("workspace edit annotations mismatch (-want +got):\n%s", diff)
 	}
 }

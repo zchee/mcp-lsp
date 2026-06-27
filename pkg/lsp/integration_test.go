@@ -22,7 +22,7 @@ import (
 	"testing"
 	"time"
 
-	"github.com/google/go-cmp/cmp"
+	gocmp "github.com/google/go-cmp/cmp"
 	"go.lsp.dev/jsonrpc2"
 	"go.lsp.dev/protocol"
 	"go.lsp.dev/uri"
@@ -270,7 +270,7 @@ func TestDiagnosticsLookupPull(t *testing.T) {
 			Message: "undeclared name: foo",
 		},
 	}
-	if diff := cmp.Diff(want, got); diff != "" {
+	if diff := gocmp.Diff(want, got); diff != "" {
 		t.Errorf("Lookup diagnostics mismatch (-want +got):\n%s", diff)
 	}
 
@@ -335,7 +335,7 @@ func TestDiagnosticsLookupPush(t *testing.T) {
 			Severity: "warning", Message: "unused variable",
 		},
 	}
-	if diff := cmp.Diff(want, got); diff != "" {
+	if diff := gocmp.Diff(want, got); diff != "" {
 		t.Errorf("Lookup diagnostics mismatch (-want +got):\n%s", diff)
 	}
 }
@@ -376,7 +376,7 @@ func TestPublishDiagnosticsNotificationReachesStore(t *testing.T) {
 			Severity: "error", Message: "wired diagnostic",
 		},
 	}
-	if diff := cmp.Diff(want, flattenDiagnostics(raw)); diff != "" {
+	if diff := gocmp.Diff(want, flattenDiagnostics(raw)); diff != "" {
 		t.Errorf("published diagnostics mismatch (-want +got):\n%s", diff)
 	}
 }
@@ -451,7 +451,7 @@ func TestDiagnosticsLookupPushIgnoresCachedBaseline(t *testing.T) {
 			Severity: "warning", Message: "fresh diagnostic",
 		},
 	}
-	if diff := cmp.Diff(want, got); diff != "" {
+	if diff := gocmp.Diff(want, got); diff != "" {
 		t.Errorf("Lookup diagnostics mismatch (-want +got):\n%s", diff)
 	}
 }

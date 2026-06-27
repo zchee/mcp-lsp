@@ -21,7 +21,7 @@ import (
 	"path/filepath"
 	"testing"
 
-	"github.com/google/go-cmp/cmp"
+	gocmp "github.com/google/go-cmp/cmp"
 
 	"github.com/zchee/mcp-lsp/pkg/lsp"
 )
@@ -153,7 +153,7 @@ func TestDiagnosticsHandlerOneBasedConversion(t *testing.T) {
 			},
 		},
 	}
-	if diff := cmp.Diff(want, out); diff != "" {
+	if diff := gocmp.Diff(want, out); diff != "" {
 		t.Errorf("handler output mismatch (-want +got):\n%s", diff)
 	}
 }

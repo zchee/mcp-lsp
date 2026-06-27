@@ -18,7 +18,7 @@ import (
 	"runtime/debug"
 	"testing"
 
-	"github.com/google/go-cmp/cmp"
+	gocmp "github.com/google/go-cmp/cmp"
 )
 
 func TestCommitAbbrev(t *testing.T) {
@@ -126,7 +126,7 @@ func TestParseBuildInfo(t *testing.T) {
 			t.Parallel()
 
 			got := parseBuildInfo(tt.bi, tt.ok)
-			if diff := cmp.Diff(tt.want, got, cmp.AllowUnexported(embeddedInfo{})); diff != "" {
+			if diff := gocmp.Diff(tt.want, got, gocmp.AllowUnexported(embeddedInfo{})); diff != "" {
 				t.Errorf("parseBuildInfo() mismatch (-want +got):\n%s", diff)
 			}
 		})

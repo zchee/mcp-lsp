@@ -20,7 +20,7 @@ import (
 	"testing/synctest"
 	"time"
 
-	"github.com/google/go-cmp/cmp"
+	gocmp "github.com/google/go-cmp/cmp"
 	"go.lsp.dev/protocol"
 	"go.lsp.dev/uri"
 )
@@ -86,7 +86,7 @@ func TestStoreWaitSettledLastWins(t *testing.T) {
 		if got.err != nil {
 			t.Fatalf("waitSettled returned error: %v", got.err)
 		}
-		if diff := cmp.Diff(wantErrDiag(), flattenDiagnostics(got.diags)); diff != "" {
+		if diff := gocmp.Diff(wantErrDiag(), flattenDiagnostics(got.diags)); diff != "" {
 			t.Errorf("waitSettled diagnostics mismatch (-want +got):\n%s", diff)
 		}
 	})
@@ -127,7 +127,7 @@ func TestStoreWaitSettledAfterIgnoresBaseline(t *testing.T) {
 		if got.err != nil {
 			t.Fatalf("waitSettledAfter returned error: %v", got.err)
 		}
-		if diff := cmp.Diff(wantErrDiag(), flattenDiagnostics(got.diags)); diff != "" {
+		if diff := gocmp.Diff(wantErrDiag(), flattenDiagnostics(got.diags)); diff != "" {
 			t.Errorf("waitSettledAfter diagnostics mismatch (-want +got):\n%s", diff)
 		}
 	})
@@ -201,7 +201,7 @@ func TestStoreBroadcastAllReleases(t *testing.T) {
 		if got.err != nil {
 			t.Fatalf("waitSettled returned error: %v", got.err)
 		}
-		if diff := cmp.Diff(wantErrDiag(), flattenDiagnostics(got.diags)); diff != "" {
+		if diff := gocmp.Diff(wantErrDiag(), flattenDiagnostics(got.diags)); diff != "" {
 			t.Errorf("waitSettled diagnostics mismatch (-want +got):\n%s", diff)
 		}
 	})
@@ -222,14 +222,14 @@ func TestStoreSnapshot(t *testing.T) {
 	if !ok {
 		t.Fatal("snapshot did not report a document after publish")
 	}
-	if diff := cmp.Diff(wantErrDiag(), flattenDiagnostics(got)); diff != "" {
+	if diff := gocmp.Diff(wantErrDiag(), flattenDiagnostics(got)); diff != "" {
 		t.Errorf("snapshot mismatch (-want +got):\n%s", diff)
 	}
 
 	// The returned slice must be a copy: mutating it must not affect the cache.
 	got[0].Message = protocol.String("mutated")
 	again, _ := s.snapshot(u)
-	if diff := cmp.Diff(wantErrDiag(), flattenDiagnostics(again)); diff != "" {
+	if diff := gocmp.Diff(wantErrDiag(), flattenDiagnostics(again)); diff != "" {
 		t.Errorf("snapshot returned an aliased slice (-want +got):\n%s", diff)
 	}
 }
