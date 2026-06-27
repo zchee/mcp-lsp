@@ -19,6 +19,7 @@ import (
 	"errors"
 	"fmt"
 	"log/slog"
+	"maps"
 	"path/filepath"
 	"sync"
 
@@ -146,9 +147,7 @@ func cloneCurrentVersionsMap(src map[string]uint32) map[string]uint32 {
 		return nil
 	}
 	dst := make(map[string]uint32, len(src))
-	for key, value := range src {
-		dst[key] = value
-	}
+	maps.Copy(dst, src)
 	return dst
 }
 

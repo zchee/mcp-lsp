@@ -546,7 +546,3 @@ func TestFakeServerTracksDocumentLifecycle(t *testing.T) {
 		t.Errorf("closed doc URI = %q, want %q", closed[0].TextDocument.URI, uri.File("/workspace/main.go"))
 	}
 }
-
-func int32Ptr(v int32) *int32 {
-	return &v
-}

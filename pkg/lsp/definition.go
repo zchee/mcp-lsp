@@ -65,10 +65,8 @@ func (d *Definition) Lookup(ctx context.Context, lang, absPath, text string, pos
 
 func definitionParams(u uri.URI, pos protocol.Position) *protocol.DefinitionParams {
 	return &protocol.DefinitionParams{
-		TextDocumentPositionParams: protocol.TextDocumentPositionParams{
-			TextDocument: protocol.TextDocumentIdentifier{URI: u},
-			Position:     pos,
-		},
+		TextDocument: protocol.TextDocumentIdentifier{URI: u},
+		Position:     pos,
 	}
 }
 

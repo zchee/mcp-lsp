@@ -142,7 +142,7 @@ func TestApplyWorkspaceEditHandlerSupportsVersionChecks(t *testing.T) {
 				&protocol.TextDocumentEdit{
 					TextDocument: protocol.OptionalVersionedTextDocumentIdentifier{
 						TextDocumentIdentifier: protocol.TextDocumentIdentifier{URI: uri.File(path)},
-						Version:                int32Ptr(4),
+						Version:                new(int32(4)),
 					},
 					Edits: []protocol.TextDocumentEditElement{
 						&protocol.TextEdit{
@@ -166,8 +166,4 @@ func TestApplyWorkspaceEditHandlerSupportsVersionChecks(t *testing.T) {
 	if out.FailureReason == nil || !strings.Contains(*out.FailureReason, "version mismatch") {
 		t.Fatalf("failure reason = %v, want version mismatch", out.FailureReason)
 	}
-}
-
-func int32Ptr(v int32) *int32 {
-	return &v
 }

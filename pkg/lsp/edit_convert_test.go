@@ -52,13 +52,11 @@ func TestWorkspaceEditFromProtocolAndBack(t *testing.T) {
 				},
 				Edits: []protocol.TextDocumentEditElement{
 					&protocol.AnnotatedTextEdit{
-						TextEdit: protocol.TextEdit{
-							Range: protocol.Range{
-								Start: protocol.Position{Line: 1, Character: 0},
-								End:   protocol.Position{Line: 1, Character: 2},
-							},
-							NewText: "yo",
+						Range: protocol.Range{
+							Start: protocol.Position{Line: 1, Character: 0},
+							End:   protocol.Position{Line: 1, Character: 2},
 						},
+						NewText:      "yo",
 						AnnotationID: protocol.ChangeAnnotationIdentifier(annotationID),
 					},
 				},
@@ -66,8 +64,8 @@ func TestWorkspaceEditFromProtocolAndBack(t *testing.T) {
 			&protocol.CreateFile{
 				URI: uri.File("/tmp/workspace/new.txt"),
 				Options: &protocol.CreateFileOptions{
-					Overwrite:      boolPtr(true),
-					IgnoreIfExists: boolPtr(false),
+					Overwrite:      new(true),
+					IgnoreIfExists: new(false),
 				},
 			},
 		},
@@ -199,7 +197,7 @@ func TestWorkspaceEditFromProtocolRejectsNegativeVersion(t *testing.T) {
 			&protocol.TextDocumentEdit{
 				TextDocument: protocol.OptionalVersionedTextDocumentIdentifier{
 					TextDocumentIdentifier: protocol.TextDocumentIdentifier{URI: uri.File("/tmp/workspace/main.go")},
-					Version:                int32Ptr(-7),
+					Version:                new(int32(-7)),
 				},
 				Edits: []protocol.TextDocumentEditElement{
 					&protocol.TextEdit{
@@ -298,8 +296,4 @@ func TestWorkspaceEditToProtocolRejectsInvalidURI(t *testing.T) {
 	if got := err.Error(); !strings.Contains(got, "invalid changes URI") {
 		t.Fatalf("error = %q, want contains invalid changes URI", got)
 	}
-}
-
-func boolPtr(v bool) *bool {
-	return &v
 }

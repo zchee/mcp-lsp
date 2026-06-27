@@ -296,11 +296,11 @@ func TestFormattingHandlersReadFilesAndConvertInputs(t *testing.T) {
 
 	rangeHandler := rangeFormattingHandler(formatter, workspace)
 	_, rangeOut, err := rangeHandler(t.Context(), nil, RangeFormattingInput{
-		FormattingInput: FormattingInput{File: "main.go"},
-		StartLine:       2,
-		StartColumn:     1,
-		EndLine:         2,
-		EndColumn:       8,
+		File:        "main.go",
+		StartLine:   2,
+		StartColumn: 1,
+		EndLine:     2,
+		EndColumn:   8,
 	})
 	if err != nil {
 		t.Fatalf("range formatting handler: %v", err)
@@ -329,11 +329,11 @@ func TestRangeFormattingAndCodeActionValidateRangeBeforeFileIO(t *testing.T) {
 	formatter := &fakeFormatter{}
 	rangeHandler := rangeFormattingHandler(formatter, t.TempDir())
 	_, _, err := rangeHandler(t.Context(), nil, RangeFormattingInput{
-		FormattingInput: FormattingInput{File: missing},
-		StartLine:       0,
-		StartColumn:     1,
-		EndLine:         1,
-		EndColumn:       1,
+		File:        missing,
+		StartLine:   0,
+		StartColumn: 1,
+		EndLine:     1,
+		EndColumn:   1,
 	})
 	if err == nil || !strings.Contains(err.Error(), "line must be greater than zero") {
 		t.Fatalf("range formatting error = %v, want line validation error", err)

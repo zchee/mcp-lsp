@@ -60,10 +60,7 @@ type WorkspaceEditApplyOptions struct {
 func ApplyWorkspaceEdit(edit WorkspaceEdit, opts WorkspaceEditApplyOptions) (protocol.ApplyWorkspaceEditResult, error) {
 	root, err := rootPath(opts.WorkspaceRoot)
 	if err != nil {
-		return protocol.ApplyWorkspaceEditResult{
-			Applied:       false,
-			FailureReason: strptr(err.Error()),
-		}, nil
+		return protocol.ApplyWorkspaceEditResult{}, fmt.Errorf("workspace root: %w", err)
 	}
 
 	changeIndex := uint32(0)
@@ -288,8 +285,8 @@ func lspPositionToOffset(text string, line, column int) (int, error) {
 		return 0, fmt.Errorf("invalid line start")
 	}
 	lineText := text[lineStart:lineEnd]
-	if strings.HasSuffix(lineText, "\r") {
-		lineText = strings.TrimSuffix(lineText, "\r")
+	if before, ok := strings.CutSuffix(lineText, "\r"); ok {
+		lineText = before
 	}
 
 	offset, err := utf16Offset(lineText, column)
@@ -543,5 +540,3 @@ func applyResourceDelete(root string, op *WorkspaceDeleteFile) error {
 	}
 	return nil
 }
-
-func strptr(v string) *string { return &v }

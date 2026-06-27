@@ -88,9 +88,9 @@ func NewServer(mgr *lsp.Manager, logger *slog.Logger) *mcp.Server {
 		Description: "Apply an LSP workspace edit to files under the workspace root with an explicit mutation policy.",
 		Annotations: &mcp.ToolAnnotations{
 			ReadOnlyHint:    false,
-			DestructiveHint: boolPtr(true),
+			DestructiveHint: new(true),
 			IdempotentHint:  false,
-			OpenWorldHint:   boolPtr(false),
+			OpenWorldHint:   new(false),
 		},
 	}, applyWorkspaceEditHandler(mgr.WorkspaceRoot()))
 	mcp.AddTool(s, &mcp.Tool{
@@ -98,14 +98,10 @@ func NewServer(mgr *lsp.Manager, logger *slog.Logger) *mcp.Server {
 		Description: "Execute a server-advertised workspace command; may mutate files when applyEdits is true.",
 		Annotations: &mcp.ToolAnnotations{
 			ReadOnlyHint:    false,
-			DestructiveHint: boolPtr(true),
+			DestructiveHint: new(true),
 			IdempotentHint:  false,
-			OpenWorldHint:   boolPtr(false),
+			OpenWorldHint:   new(false),
 		},
 	}, executeCommandHandler(mgr.Commands()))
 	return s
-}
-
-func boolPtr(v bool) *bool {
-	return &v
 }

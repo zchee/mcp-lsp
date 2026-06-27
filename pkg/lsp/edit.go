@@ -401,9 +401,7 @@ func textDocumentChangeToProtocol(change *WorkspaceTextDocumentEdit) (protocol.D
 		edits = append(edits, converted)
 	}
 
-	textDoc := protocol.OptionalVersionedTextDocumentIdentifier{
-		TextDocumentIdentifier: protocol.TextDocumentIdentifier{URI: u},
-	}
+	textDoc := protocol.OptionalVersionedTextDocumentIdentifier{URI: u}
 	if change.TextDocument.Version != nil {
 		if *change.TextDocument.Version > math.MaxInt32 {
 			return nil, fmt.Errorf("text document version exceeds int32 range")
@@ -422,9 +420,11 @@ func textDocumentEditElementToProtocol(edit WorkspaceTextEdit) (protocol.TextDoc
 	if edit.AnnotationID == nil {
 		return &pe, nil
 	}
-	annotated := protocol.AnnotatedTextEdit{TextEdit: pe}
-	annotated.AnnotationID = protocol.ChangeAnnotationIdentifier(*edit.AnnotationID)
-	return &annotated, nil
+	return &protocol.AnnotatedTextEdit{
+		Range:        pe.Range,
+		NewText:      pe.NewText,
+		AnnotationID: protocol.ChangeAnnotationIdentifier(*edit.AnnotationID),
+	}, nil
 }
 
 func createFileChangeToProtocol(change *WorkspaceCreateFile) (protocol.DocumentChange, error) {

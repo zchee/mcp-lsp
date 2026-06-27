@@ -24,6 +24,7 @@ import (
 	"sync"
 	"testing"
 
+	json "github.com/go-json-experiment/json"
 	"github.com/google/go-cmp/cmp"
 	"go.lsp.dev/protocol"
 	"go.lsp.dev/uri"
@@ -280,10 +281,6 @@ func requireErrorContains(t *testing.T, err error, want string) {
 	}
 }
 
-func stringPtr(value string) *string {
-	return &value
-}
-
 func TestFeatureLookupsRejectUnsupportedCapabilitiesBeforeSync(t *testing.T) {
 	t.Parallel()
 
@@ -427,6 +424,38 @@ func TestHoverLookupFlattensMarkupAndRecordsWireParams(t *testing.T) {
 	}
 }
 
+func TestFlattenHoverSupportsLegacyMarkedStringWireShapes(t *testing.T) {
+	t.Parallel()
+
+	tests := map[string]struct {
+		raw  string
+		want *HoverResult
+	}{
+		"marked string with language": {
+			raw:  `{"contents":{"language":"go","value":"func main()"}}`,
+			want: &HoverResult{Kind: "plaintext", Value: "```go\nfunc main()\n```"},
+		},
+		"marked string slice": {
+			raw:  `{"contents":["plain",{"language":"go","value":"func main()"}]}`,
+			want: &HoverResult{Kind: "plaintext", Value: "plain\n\n```go\nfunc main()\n```"},
+		},
+	}
+
+	for name, tt := range tests {
+		t.Run(name, func(t *testing.T) {
+			t.Parallel()
+
+			var hover protocol.Hover
+			if err := json.Unmarshal([]byte(tt.raw), &hover); err != nil {
+				t.Fatalf("unmarshal hover: %v", err)
+			}
+			if diff := cmp.Diff(tt.want, flattenHover(&hover)); diff != "" {
+				t.Fatalf("hover mismatch (-want +got):\n%s", diff)
+			}
+		})
+	}
+}
+
 func TestWorkspaceSymbolsLookupFlattensResultUnions(t *testing.T) {
 	t.Parallel()
 
@@ -439,11 +468,9 @@ func TestWorkspaceSymbolsLookupFlattensResultUnions(t *testing.T) {
 			name: "symbol information",
 			result: protocol.SymbolInformationSlice{
 				{
-					BaseSymbolInformation: protocol.BaseSymbolInformation{
-						Name:          "Handler",
-						Kind:          protocol.SymbolKindFunction,
-						ContainerName: stringPtr("server"),
-					},
+					Name:          "Handler",
+					Kind:          protocol.SymbolKindFunction,
+					ContainerName: new("server"),
 					Location: protocol.Location{
 						URI: uri.File("/workspace/server.go"),
 						Range: protocol.Range{
@@ -467,10 +494,8 @@ func TestWorkspaceSymbolsLookupFlattensResultUnions(t *testing.T) {
 			name: "workspace symbol location",
 			result: protocol.WorkspaceSymbolSlice{
 				{
-					BaseSymbolInformation: protocol.BaseSymbolInformation{
-						Name: "pkg",
-						Kind: protocol.SymbolKindPackage,
-					},
+					Name: "pkg",
+					Kind: protocol.SymbolKindPackage,
 					Location: &protocol.Location{
 						URI: uri.File("/workspace/pkg"),
 						Range: protocol.Range{
@@ -531,10 +556,8 @@ func TestFlattenWorkspaceSymbolsSupportsURIOnlyLocations(t *testing.T) {
 
 	got := flattenWorkspaceSymbols(protocol.WorkspaceSymbolSlice{
 		{
-			BaseSymbolInformation: protocol.BaseSymbolInformation{
-				Name: "pkg",
-				Kind: protocol.SymbolKindPackage,
-			},
+			Name:     "pkg",
+			Kind:     protocol.SymbolKindPackage,
 			Location: &protocol.LocationUriOnly{URI: uri.File("/workspace/pkg")},
 		},
 	})
