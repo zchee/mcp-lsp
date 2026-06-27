@@ -26,10 +26,10 @@ import (
 	"github.com/zchee/mcp-lsp/tests/internal/lsptest"
 )
 
-func TestIntegrationPyrightFeatureSuitePreviews(t *testing.T) {
+func TestIntegrationPyrightReadOnlyPreviews(t *testing.T) {
 	requireIntegration(t)
 
-	ws := extractFixture(t, "feature_suite.txtar")
+	ws := extractFixture(t, "read_only_preview_suite.txtar")
 	mgr := newManager(t, ws)
 
 	mainFile := ws.Path("main.py")
@@ -66,48 +66,48 @@ func TestIntegrationPyrightFeatureSuitePreviews(t *testing.T) {
 
 func lookupPyrightHover(t *testing.T, mgr *lsp.Manager, absPath, text string, pos protocol.Position) *lsp.HoverResult {
 	t.Helper()
-	validatePyrightFeatureLookupConfig(t)
+	validatePyrightReadOnlyPreviewLookupConfig(t)
 
 	var (
 		hover   *lsp.HoverResult
 		lastErr error
 	)
-	for range pyrightFeatureLookup.Attempts {
-		hover, lastErr = mgr.Hover().Lookup(t.Context(), pyrightFeatureLookup.Language, absPath, text, pos)
+	for range pyrightReadOnlyPreviewLookup.Attempts {
+		hover, lastErr = mgr.Hover().Lookup(t.Context(), pyrightReadOnlyPreviewLookup.Language, absPath, text, pos)
 		if lastErr == nil && hover != nil && hover.Value != "" {
 			return hover
 		}
-		waitForPyrightFeature(t)
+		waitForPyrightReadOnlyPreview(t)
 	}
-	t.Fatalf("no hover resolved after %d attempts; last error = %v, hover = %+v", pyrightFeatureLookup.Attempts, lastErr, hover)
+	t.Fatalf("no hover resolved after %d attempts; last error = %v, hover = %+v", pyrightReadOnlyPreviewLookup.Attempts, lastErr, hover)
 	return nil
 }
 
 func lookupPyrightWorkspaceSymbols(t *testing.T, mgr *lsp.Manager, query string) []lsp.WorkspaceSymbol {
 	t.Helper()
-	validatePyrightFeatureLookupConfig(t)
+	validatePyrightReadOnlyPreviewLookupConfig(t)
 
 	var (
 		symbols []lsp.WorkspaceSymbol
 		lastErr error
 	)
-	for range pyrightFeatureLookup.Attempts {
-		symbols, lastErr = mgr.WorkspaceSymbols().Lookup(t.Context(), pyrightFeatureLookup.Language, query)
+	for range pyrightReadOnlyPreviewLookup.Attempts {
+		symbols, lastErr = mgr.WorkspaceSymbols().Lookup(t.Context(), pyrightReadOnlyPreviewLookup.Language, query)
 		if lastErr == nil && len(symbols) > 0 {
 			return symbols
 		}
-		waitForPyrightFeature(t)
+		waitForPyrightReadOnlyPreview(t)
 	}
-	t.Fatalf("no workspace symbols resolved after %d attempts; last error = %v, symbols = %+v", pyrightFeatureLookup.Attempts, lastErr, symbols)
+	t.Fatalf("no workspace symbols resolved after %d attempts; last error = %v, symbols = %+v", pyrightReadOnlyPreviewLookup.Attempts, lastErr, symbols)
 	return nil
 }
 
 func assertPyrightFormattingPreviewOrUnsupported(t *testing.T, mgr *lsp.Manager, absPath, text, wantURI string) {
 	t.Helper()
-	validatePyrightFeatureLookupConfig(t)
+	validatePyrightReadOnlyPreviewLookupConfig(t)
 
 	options := protocol.FormattingOptions{TabSize: 4, InsertSpaces: true}
-	edit, err := mgr.Formatting().Format(t.Context(), pyrightFeatureLookup.Language, absPath, text, options)
+	edit, err := mgr.Formatting().Format(t.Context(), pyrightReadOnlyPreviewLookup.Language, absPath, text, options)
 	if err != nil {
 		assertPyrightUnsupportedError(t, "formatting", err, "formatting request is not supported by language server")
 		return
@@ -117,10 +117,10 @@ func assertPyrightFormattingPreviewOrUnsupported(t *testing.T, mgr *lsp.Manager,
 
 func assertPyrightRangeFormattingPreviewOrUnsupported(t *testing.T, mgr *lsp.Manager, absPath, text, wantURI string, rng protocol.Range) {
 	t.Helper()
-	validatePyrightFeatureLookupConfig(t)
+	validatePyrightReadOnlyPreviewLookupConfig(t)
 
 	options := protocol.FormattingOptions{TabSize: 4, InsertSpaces: true}
-	edit, err := mgr.Formatting().RangeFormat(t.Context(), pyrightFeatureLookup.Language, absPath, text, rng, options)
+	edit, err := mgr.Formatting().RangeFormat(t.Context(), pyrightReadOnlyPreviewLookup.Language, absPath, text, rng, options)
 	if err != nil {
 		assertPyrightUnsupportedError(t, "range formatting", err, "range formatting request is not supported by language server")
 		return
@@ -130,20 +130,20 @@ func assertPyrightRangeFormattingPreviewOrUnsupported(t *testing.T, mgr *lsp.Man
 
 func previewPyrightRename(t *testing.T, mgr *lsp.Manager, absPath, text string, pos protocol.Position, newName string) lsp.WorkspaceEdit {
 	t.Helper()
-	validatePyrightFeatureLookupConfig(t)
+	validatePyrightReadOnlyPreviewLookupConfig(t)
 
 	var (
 		edit    lsp.WorkspaceEdit
 		lastErr error
 	)
-	for range pyrightFeatureLookup.Attempts {
-		edit, lastErr = mgr.Rename().Preview(t.Context(), pyrightFeatureLookup.Language, absPath, text, pos, newName)
+	for range pyrightReadOnlyPreviewLookup.Attempts {
+		edit, lastErr = mgr.Rename().Preview(t.Context(), pyrightReadOnlyPreviewLookup.Language, absPath, text, pos, newName)
 		if lastErr == nil && lsptest.WorkspaceEditHasTextEdits(edit) {
 			return edit
 		}
-		waitForPyrightFeature(t)
+		waitForPyrightReadOnlyPreview(t)
 	}
-	t.Fatalf("no rename edits after %d attempts; last error = %v, edit = %+v", pyrightFeatureLookup.Attempts, lastErr, edit)
+	t.Fatalf("no rename edits after %d attempts; last error = %v, edit = %+v", pyrightReadOnlyPreviewLookup.Attempts, lastErr, edit)
 	return lsp.WorkspaceEdit{}
 }
 
@@ -184,18 +184,18 @@ func assertPyrightUnsupportedError(t *testing.T, label string, err error, want s
 	}
 }
 
-func validatePyrightFeatureLookupConfig(t *testing.T) {
+func validatePyrightReadOnlyPreviewLookupConfig(t *testing.T) {
 	t.Helper()
 
-	if pyrightFeatureLookup.Language == "" || pyrightFeatureLookup.ServerName == "" || pyrightFeatureLookup.Attempts <= 0 || pyrightFeatureLookup.RetryDelay <= 0 {
-		t.Fatalf("invalid pyright feature lookup config: %+v", pyrightFeatureLookup)
+	if pyrightReadOnlyPreviewLookup.Language == "" || pyrightReadOnlyPreviewLookup.ServerName == "" || pyrightReadOnlyPreviewLookup.Attempts <= 0 || pyrightReadOnlyPreviewLookup.RetryDelay <= 0 {
+		t.Fatalf("invalid pyright read-only preview lookup config: %+v", pyrightReadOnlyPreviewLookup)
 	}
 }
 
-func waitForPyrightFeature(t *testing.T) {
+func waitForPyrightReadOnlyPreview(t *testing.T) {
 	t.Helper()
 
-	if err := lsptest.SleepOrCancel(t.Context(), pyrightFeatureLookup.RetryDelay); err != nil {
-		t.Fatalf("context canceled while waiting for %s feature result: %v", pyrightFeatureLookup.ServerName, err)
+	if err := lsptest.SleepOrCancel(t.Context(), pyrightReadOnlyPreviewLookup.RetryDelay); err != nil {
+		t.Fatalf("context canceled while waiting for %s read-only preview result: %v", pyrightReadOnlyPreviewLookup.ServerName, err)
 	}
 }

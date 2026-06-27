@@ -40,7 +40,7 @@ const (
 	pyrightSettle  = 250 * time.Millisecond
 )
 
-var pyrightFeatureLookup = lsptest.LookupConfig{
+var pyrightReadOnlyPreviewLookup = lsptest.LookupConfig{
 	Language:   pythonLanguage,
 	ServerName: pyrightCommand,
 	Attempts:   20,

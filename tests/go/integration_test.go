@@ -23,14 +23,14 @@ import (
 	"github.com/zchee/mcp-lsp/tests/internal/lsptest"
 )
 
-var goDefinitionLookup = lsptest.DefinitionLookupConfig{
+var goDefinitionLookup = lsptest.LookupConfig{
 	Language:   "go",
 	ServerName: "gopls",
 	Attempts:   10,
 	RetryDelay: 250 * time.Millisecond,
 }
 
-var goImplementationLookup = lsptest.ImplementationLookupConfig{
+var goImplementationLookup = lsptest.LookupConfig{
 	Language:   "go",
 	ServerName: "gopls",
 	Attempts:   10,

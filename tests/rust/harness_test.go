@@ -39,14 +39,14 @@ const (
 	rustSettle          = 250 * time.Millisecond
 )
 
-var rustDefinitionLookup = lsptest.DefinitionLookupConfig{
+var rustDefinitionLookup = lsptest.LookupConfig{
 	Language:   rustLanguage,
 	ServerName: rustAnalyzerCommand,
 	Attempts:   20,
 	RetryDelay: 250 * time.Millisecond,
 }
 
-var rustImplementationLookup = lsptest.ImplementationLookupConfig{
+var rustImplementationLookup = lsptest.LookupConfig{
 	Language:   rustLanguage,
 	ServerName: rustAnalyzerCommand,
 	Attempts:   20,

@@ -27,17 +27,17 @@ import (
 	"github.com/zchee/mcp-lsp/tests/internal/lsptest"
 )
 
-var goFeatureLookup = lsptest.LookupConfig{
+var goReadOnlyPreviewLookup = lsptest.LookupConfig{
 	Language:   "go",
 	ServerName: "gopls",
 	Attempts:   10,
 	RetryDelay: 250 * time.Millisecond,
 }
 
-func TestIntegrationFeatureSuitePreviewsWithGopls(t *testing.T) {
+func TestIntegrationReadOnlyPreviewsWithGopls(t *testing.T) {
 	requireIntegration(t)
 
-	ws := extractFixture(t, "feature_suite.txtar")
+	ws := extractFixture(t, "read_only_preview_suite.txtar")
 	mgr := newManager(t, ws)
 
 	mainFile := ws.Path("main.go")
@@ -76,68 +76,68 @@ func TestIntegrationFeatureSuitePreviewsWithGopls(t *testing.T) {
 
 func lookupHover(t *testing.T, mgr *lsp.Manager, absPath, text string, pos protocol.Position) *lsp.HoverResult {
 	t.Helper()
-	validateFeatureLookupConfig(t)
+	validateReadOnlyPreviewLookupConfig(t)
 
 	var (
 		hover   *lsp.HoverResult
 		lastErr error
 	)
-	for range goFeatureLookup.Attempts {
-		hover, lastErr = mgr.Hover().Lookup(t.Context(), goFeatureLookup.Language, absPath, text, pos)
+	for range goReadOnlyPreviewLookup.Attempts {
+		hover, lastErr = mgr.Hover().Lookup(t.Context(), goReadOnlyPreviewLookup.Language, absPath, text, pos)
 		if lastErr == nil && hover != nil && hover.Value != "" {
 			return hover
 		}
-		waitForFeature(t)
+		waitForReadOnlyPreview(t)
 	}
-	t.Fatalf("no hover resolved after %d attempts; last error = %v, hover = %+v", goFeatureLookup.Attempts, lastErr, hover)
+	t.Fatalf("no hover resolved after %d attempts; last error = %v, hover = %+v", goReadOnlyPreviewLookup.Attempts, lastErr, hover)
 	return nil
 }
 
 func lookupWorkspaceSymbols(t *testing.T, mgr *lsp.Manager, query string) []lsp.WorkspaceSymbol {
 	t.Helper()
-	validateFeatureLookupConfig(t)
+	validateReadOnlyPreviewLookupConfig(t)
 
 	var (
 		symbols []lsp.WorkspaceSymbol
 		lastErr error
 	)
-	for range goFeatureLookup.Attempts {
-		symbols, lastErr = mgr.WorkspaceSymbols().Lookup(t.Context(), goFeatureLookup.Language, query)
+	for range goReadOnlyPreviewLookup.Attempts {
+		symbols, lastErr = mgr.WorkspaceSymbols().Lookup(t.Context(), goReadOnlyPreviewLookup.Language, query)
 		if lastErr == nil && len(symbols) > 0 {
 			return symbols
 		}
-		waitForFeature(t)
+		waitForReadOnlyPreview(t)
 	}
-	t.Fatalf("no workspace symbols resolved after %d attempts; last error = %v, symbols = %+v", goFeatureLookup.Attempts, lastErr, symbols)
+	t.Fatalf("no workspace symbols resolved after %d attempts; last error = %v, symbols = %+v", goReadOnlyPreviewLookup.Attempts, lastErr, symbols)
 	return nil
 }
 
 func previewFormatting(t *testing.T, mgr *lsp.Manager, absPath, text string) lsp.WorkspaceEdit {
 	t.Helper()
-	validateFeatureLookupConfig(t)
+	validateReadOnlyPreviewLookupConfig(t)
 
 	var (
 		edit    lsp.WorkspaceEdit
 		lastErr error
 	)
 	options := protocol.FormattingOptions{TabSize: 4, InsertSpaces: true}
-	for range goFeatureLookup.Attempts {
-		edit, lastErr = mgr.Formatting().Format(t.Context(), goFeatureLookup.Language, absPath, text, options)
+	for range goReadOnlyPreviewLookup.Attempts {
+		edit, lastErr = mgr.Formatting().Format(t.Context(), goReadOnlyPreviewLookup.Language, absPath, text, options)
 		if lastErr == nil && lsptest.WorkspaceEditHasTextEdits(edit) {
 			return edit
 		}
-		waitForFeature(t)
+		waitForReadOnlyPreview(t)
 	}
-	t.Fatalf("no formatting edits after %d attempts; last error = %v, edit = %+v", goFeatureLookup.Attempts, lastErr, edit)
+	t.Fatalf("no formatting edits after %d attempts; last error = %v, edit = %+v", goReadOnlyPreviewLookup.Attempts, lastErr, edit)
 	return lsp.WorkspaceEdit{}
 }
 
 func assertRangeFormattingPreviewOrUnsupported(t *testing.T, mgr *lsp.Manager, absPath, text, wantURI string, rng protocol.Range) {
 	t.Helper()
-	validateFeatureLookupConfig(t)
+	validateReadOnlyPreviewLookupConfig(t)
 
 	options := protocol.FormattingOptions{TabSize: 4, InsertSpaces: true}
-	edit, err := mgr.Formatting().RangeFormat(t.Context(), goFeatureLookup.Language, absPath, text, rng, options)
+	edit, err := mgr.Formatting().RangeFormat(t.Context(), goReadOnlyPreviewLookup.Language, absPath, text, rng, options)
 	if err != nil {
 		if strings.Contains(err.Error(), "range formatting request is not supported") {
 			return
@@ -149,20 +149,20 @@ func assertRangeFormattingPreviewOrUnsupported(t *testing.T, mgr *lsp.Manager, a
 
 func previewRename(t *testing.T, mgr *lsp.Manager, absPath, text string, pos protocol.Position, newName string) lsp.WorkspaceEdit {
 	t.Helper()
-	validateFeatureLookupConfig(t)
+	validateReadOnlyPreviewLookupConfig(t)
 
 	var (
 		edit    lsp.WorkspaceEdit
 		lastErr error
 	)
-	for range goFeatureLookup.Attempts {
-		edit, lastErr = mgr.Rename().Preview(t.Context(), goFeatureLookup.Language, absPath, text, pos, newName)
+	for range goReadOnlyPreviewLookup.Attempts {
+		edit, lastErr = mgr.Rename().Preview(t.Context(), goReadOnlyPreviewLookup.Language, absPath, text, pos, newName)
 		if lastErr == nil && lsptest.WorkspaceEditHasTextEdits(edit) {
 			return edit
 		}
-		waitForFeature(t)
+		waitForReadOnlyPreview(t)
 	}
-	t.Fatalf("no rename edits after %d attempts; last error = %v, edit = %+v", goFeatureLookup.Attempts, lastErr, edit)
+	t.Fatalf("no rename edits after %d attempts; last error = %v, edit = %+v", goReadOnlyPreviewLookup.Attempts, lastErr, edit)
 	return lsp.WorkspaceEdit{}
 }
 
@@ -185,18 +185,18 @@ func assertRenameEdits(t *testing.T, edits []lsp.WorkspaceTextEdit, declaration,
 	}
 }
 
-func validateFeatureLookupConfig(t *testing.T) {
+func validateReadOnlyPreviewLookupConfig(t *testing.T) {
 	t.Helper()
 
-	if goFeatureLookup.Language == "" || goFeatureLookup.ServerName == "" || goFeatureLookup.Attempts <= 0 || goFeatureLookup.RetryDelay <= 0 {
-		t.Fatalf("invalid feature lookup config: %+v", goFeatureLookup)
+	if goReadOnlyPreviewLookup.Language == "" || goReadOnlyPreviewLookup.ServerName == "" || goReadOnlyPreviewLookup.Attempts <= 0 || goReadOnlyPreviewLookup.RetryDelay <= 0 {
+		t.Fatalf("invalid read-only preview lookup config: %+v", goReadOnlyPreviewLookup)
 	}
 }
 
-func waitForFeature(t *testing.T) {
+func waitForReadOnlyPreview(t *testing.T) {
 	t.Helper()
 
-	if err := lsptest.SleepOrCancel(t.Context(), goFeatureLookup.RetryDelay); err != nil {
-		t.Fatalf("context canceled while waiting for %s feature result: %v", goFeatureLookup.ServerName, err)
+	if err := lsptest.SleepOrCancel(t.Context(), goReadOnlyPreviewLookup.RetryDelay); err != nil {
+		t.Fatalf("context canceled while waiting for %s read-only preview result: %v", goReadOnlyPreviewLookup.ServerName, err)
 	}
 }

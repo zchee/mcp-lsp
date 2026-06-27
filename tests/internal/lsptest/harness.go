@@ -50,14 +50,6 @@ type LookupConfig struct {
 	RetryDelay time.Duration
 }
 
-// DefinitionLookupConfig controls retry behavior for real language-server
-// definition lookups.
-type DefinitionLookupConfig = LookupConfig
-
-// ImplementationLookupConfig controls retry behavior for real language-server
-// implementation lookups.
-type ImplementationLookupConfig = LookupConfig
-
 // RequireIntegration skips t unless the integration gate is set and serverName
 // is resolvable on PATH.
 func RequireIntegration(t *testing.T, serverName string) {
@@ -206,7 +198,7 @@ func NewManager(t *testing.T, cfg map[string]lsp.ServerConfig, w Workspace) *lsp
 // LookupDefinition drives [lsp.Definition.Lookup] against a real language
 // server, retrying while the server is still loading the workspace. It fails
 // the test if no definition resolves within cfg's attempt budget.
-func LookupDefinition(t *testing.T, mgr *lsp.Manager, cfg DefinitionLookupConfig, absPath, text string, pos protocol.Position) []lsp.NavigationLocation {
+func LookupDefinition(t *testing.T, mgr *lsp.Manager, cfg LookupConfig, absPath, text string, pos protocol.Position) []lsp.NavigationLocation {
 	t.Helper()
 	validateLookupConfig(t, "definition", cfg)
 
@@ -230,7 +222,7 @@ func LookupDefinition(t *testing.T, mgr *lsp.Manager, cfg DefinitionLookupConfig
 // LookupImplementation drives [lsp.Implementation.Lookup] against a real
 // language server, retrying while the server is still loading the workspace. It
 // fails the test if no implementation resolves within cfg's attempt budget.
-func LookupImplementation(t *testing.T, mgr *lsp.Manager, cfg ImplementationLookupConfig, absPath, text string, pos protocol.Position) []lsp.NavigationLocation {
+func LookupImplementation(t *testing.T, mgr *lsp.Manager, cfg LookupConfig, absPath, text string, pos protocol.Position) []lsp.NavigationLocation {
 	t.Helper()
 	validateLookupConfig(t, "implementation", cfg)
 

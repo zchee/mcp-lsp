@@ -1,4 +1,4 @@
-This fixture is a small Go module for read-only feature-suite integration
+This fixture is a small Go module for read-only preview integration
 coverage against gopls. The source is intentionally not gofmt-formatted so the
 formatting and range-formatting previews return edits without mutating files.
 
@@ -9,7 +9,7 @@ Markers embedded in the source drive the test:
   query=message  marks a function reference that should be renamed too.
 
 -- go.mod --
-module featuresuite
+module readonlypreview
 
 go 1.27
 

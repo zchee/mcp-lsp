@@ -27,17 +27,17 @@ import (
 	"github.com/zchee/mcp-lsp/tests/internal/lsptest"
 )
 
-var rustFeatureLookup = lsptest.LookupConfig{
+var rustReadOnlyPreviewLookup = lsptest.LookupConfig{
 	Language:   rustLanguage,
 	ServerName: rustAnalyzerCommand,
 	Attempts:   20,
 	RetryDelay: 250 * time.Millisecond,
 }
 
-func TestIntegrationRustAnalyzerFeatureSuitePreviews(t *testing.T) {
+func TestIntegrationRustAnalyzerReadOnlyPreviews(t *testing.T) {
 	requireIntegration(t)
 
-	ws := extractFixture(t, "feature_suite.txtar")
+	ws := extractFixture(t, "read_only_preview_suite.txtar")
 	mgr := newManager(t, ws)
 
 	mainFile := ws.Path("src/main.rs")
@@ -76,68 +76,68 @@ func TestIntegrationRustAnalyzerFeatureSuitePreviews(t *testing.T) {
 
 func lookupRustHover(t *testing.T, mgr *lsp.Manager, absPath, text string, pos protocol.Position) *lsp.HoverResult {
 	t.Helper()
-	validateRustFeatureLookupConfig(t)
+	validateRustReadOnlyPreviewLookupConfig(t)
 
 	var (
 		hover   *lsp.HoverResult
 		lastErr error
 	)
-	for range rustFeatureLookup.Attempts {
-		hover, lastErr = mgr.Hover().Lookup(t.Context(), rustFeatureLookup.Language, absPath, text, pos)
+	for range rustReadOnlyPreviewLookup.Attempts {
+		hover, lastErr = mgr.Hover().Lookup(t.Context(), rustReadOnlyPreviewLookup.Language, absPath, text, pos)
 		if lastErr == nil && hover != nil && hover.Value != "" {
 			return hover
 		}
-		waitForRustFeature(t)
+		waitForRustReadOnlyPreview(t)
 	}
-	t.Fatalf("no hover resolved after %d attempts; last error = %v, hover = %+v", rustFeatureLookup.Attempts, lastErr, hover)
+	t.Fatalf("no hover resolved after %d attempts; last error = %v, hover = %+v", rustReadOnlyPreviewLookup.Attempts, lastErr, hover)
 	return nil
 }
 
 func lookupRustWorkspaceSymbols(t *testing.T, mgr *lsp.Manager, query string) []lsp.WorkspaceSymbol {
 	t.Helper()
-	validateRustFeatureLookupConfig(t)
+	validateRustReadOnlyPreviewLookupConfig(t)
 
 	var (
 		symbols []lsp.WorkspaceSymbol
 		lastErr error
 	)
-	for range rustFeatureLookup.Attempts {
-		symbols, lastErr = mgr.WorkspaceSymbols().Lookup(t.Context(), rustFeatureLookup.Language, query)
+	for range rustReadOnlyPreviewLookup.Attempts {
+		symbols, lastErr = mgr.WorkspaceSymbols().Lookup(t.Context(), rustReadOnlyPreviewLookup.Language, query)
 		if lastErr == nil && len(symbols) > 0 {
 			return symbols
 		}
-		waitForRustFeature(t)
+		waitForRustReadOnlyPreview(t)
 	}
-	t.Fatalf("no workspace symbols resolved after %d attempts; last error = %v, symbols = %+v", rustFeatureLookup.Attempts, lastErr, symbols)
+	t.Fatalf("no workspace symbols resolved after %d attempts; last error = %v, symbols = %+v", rustReadOnlyPreviewLookup.Attempts, lastErr, symbols)
 	return nil
 }
 
 func previewRustFormatting(t *testing.T, mgr *lsp.Manager, absPath, text string) lsp.WorkspaceEdit {
 	t.Helper()
-	validateRustFeatureLookupConfig(t)
+	validateRustReadOnlyPreviewLookupConfig(t)
 
 	var (
 		edit    lsp.WorkspaceEdit
 		lastErr error
 	)
 	options := protocol.FormattingOptions{TabSize: 4, InsertSpaces: true}
-	for range rustFeatureLookup.Attempts {
-		edit, lastErr = mgr.Formatting().Format(t.Context(), rustFeatureLookup.Language, absPath, text, options)
+	for range rustReadOnlyPreviewLookup.Attempts {
+		edit, lastErr = mgr.Formatting().Format(t.Context(), rustReadOnlyPreviewLookup.Language, absPath, text, options)
 		if lastErr == nil && lsptest.WorkspaceEditHasTextEdits(edit) {
 			return edit
 		}
-		waitForRustFeature(t)
+		waitForRustReadOnlyPreview(t)
 	}
-	t.Fatalf("no formatting edits after %d attempts; last error = %v, edit = %+v", rustFeatureLookup.Attempts, lastErr, edit)
+	t.Fatalf("no formatting edits after %d attempts; last error = %v, edit = %+v", rustReadOnlyPreviewLookup.Attempts, lastErr, edit)
 	return lsp.WorkspaceEdit{}
 }
 
 func assertRustRangeFormattingPreviewOrUnsupported(t *testing.T, mgr *lsp.Manager, absPath, text, wantURI string, rng protocol.Range) {
 	t.Helper()
-	validateRustFeatureLookupConfig(t)
+	validateRustReadOnlyPreviewLookupConfig(t)
 
 	options := protocol.FormattingOptions{TabSize: 4, InsertSpaces: true}
-	edit, err := mgr.Formatting().RangeFormat(t.Context(), rustFeatureLookup.Language, absPath, text, rng, options)
+	edit, err := mgr.Formatting().RangeFormat(t.Context(), rustReadOnlyPreviewLookup.Language, absPath, text, rng, options)
 	if err != nil {
 		if strings.Contains(err.Error(), "range formatting request is not supported") {
 			return
@@ -149,20 +149,20 @@ func assertRustRangeFormattingPreviewOrUnsupported(t *testing.T, mgr *lsp.Manage
 
 func previewRustRename(t *testing.T, mgr *lsp.Manager, absPath, text string, pos protocol.Position, newName string) lsp.WorkspaceEdit {
 	t.Helper()
-	validateRustFeatureLookupConfig(t)
+	validateRustReadOnlyPreviewLookupConfig(t)
 
 	var (
 		edit    lsp.WorkspaceEdit
 		lastErr error
 	)
-	for range rustFeatureLookup.Attempts {
-		edit, lastErr = mgr.Rename().Preview(t.Context(), rustFeatureLookup.Language, absPath, text, pos, newName)
+	for range rustReadOnlyPreviewLookup.Attempts {
+		edit, lastErr = mgr.Rename().Preview(t.Context(), rustReadOnlyPreviewLookup.Language, absPath, text, pos, newName)
 		if lastErr == nil && lsptest.WorkspaceEditHasTextEdits(edit) {
 			return edit
 		}
-		waitForRustFeature(t)
+		waitForRustReadOnlyPreview(t)
 	}
-	t.Fatalf("no rename edits after %d attempts; last error = %v, edit = %+v", rustFeatureLookup.Attempts, lastErr, edit)
+	t.Fatalf("no rename edits after %d attempts; last error = %v, edit = %+v", rustReadOnlyPreviewLookup.Attempts, lastErr, edit)
 	return lsp.WorkspaceEdit{}
 }
 
@@ -185,18 +185,18 @@ func assertRustRenameEdits(t *testing.T, edits []lsp.WorkspaceTextEdit, declarat
 	}
 }
 
-func validateRustFeatureLookupConfig(t *testing.T) {
+func validateRustReadOnlyPreviewLookupConfig(t *testing.T) {
 	t.Helper()
 
-	if rustFeatureLookup.Language == "" || rustFeatureLookup.ServerName == "" || rustFeatureLookup.Attempts <= 0 || rustFeatureLookup.RetryDelay <= 0 {
-		t.Fatalf("invalid Rust feature lookup config: %+v", rustFeatureLookup)
+	if rustReadOnlyPreviewLookup.Language == "" || rustReadOnlyPreviewLookup.ServerName == "" || rustReadOnlyPreviewLookup.Attempts <= 0 || rustReadOnlyPreviewLookup.RetryDelay <= 0 {
+		t.Fatalf("invalid Rust read-only preview lookup config: %+v", rustReadOnlyPreviewLookup)
 	}
 }
 
-func waitForRustFeature(t *testing.T) {
+func waitForRustReadOnlyPreview(t *testing.T) {
 	t.Helper()
 
-	if err := lsptest.SleepOrCancel(t.Context(), rustFeatureLookup.RetryDelay); err != nil {
-		t.Fatalf("context canceled while waiting for %s feature result: %v", rustFeatureLookup.ServerName, err)
+	if err := lsptest.SleepOrCancel(t.Context(), rustReadOnlyPreviewLookup.RetryDelay); err != nil {
+		t.Fatalf("context canceled while waiting for %s read-only preview result: %v", rustReadOnlyPreviewLookup.ServerName, err)
 	}
 }

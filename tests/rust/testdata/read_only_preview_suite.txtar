@@ -1,4 +1,4 @@
-This fixture is a small Cargo package for read-only feature-suite integration
+This fixture is a small Cargo package for read-only preview integration
 coverage against rust-analyzer. The source is intentionally not rustfmt-formatted
 so formatting previews return edits without mutating files.
 
@@ -10,7 +10,7 @@ Markers embedded in the source drive the test:
 
 -- Cargo.toml --
 [package]
-name = "mcp_lsp_rust_feature_fixture"
+name = "mcp_lsp_rust_readonly_preview_fixture"
 version = "0.1.0"
 edition = "2024"
 
