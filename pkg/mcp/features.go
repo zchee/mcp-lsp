@@ -170,11 +170,11 @@ func formattingHandler(formatter formatter, workspaceRoot string) mcp.ToolHandle
 
 func rangeFormattingHandler(formatter formatter, workspaceRoot string) mcp.ToolHandlerFor[RangeFormattingInput, WorkspaceEditPreviewOutput] {
 	return func(ctx context.Context, _ *mcp.CallToolRequest, in RangeFormattingInput) (*mcp.CallToolResult, WorkspaceEditPreviewOutput, error) {
-		absPath, text, lang, err := readFeatureFile(workspaceRoot, in.File, in.Language)
+		rng, err := inputRange(in.StartLine, in.StartColumn, in.EndLine, in.EndColumn)
 		if err != nil {
 			return nil, WorkspaceEditPreviewOutput{}, err
 		}
-		rng, err := inputRange(in.StartLine, in.StartColumn, in.EndLine, in.EndColumn)
+		absPath, text, lang, err := readFeatureFile(workspaceRoot, in.File, in.Language)
 		if err != nil {
 			return nil, WorkspaceEditPreviewOutput{}, err
 		}
@@ -262,11 +262,11 @@ type CommandItem struct {
 
 func codeActionHandler(looker codeActionLooker, workspaceRoot string) mcp.ToolHandlerFor[CodeActionInput, CodeActionOutput] {
 	return func(ctx context.Context, _ *mcp.CallToolRequest, in CodeActionInput) (*mcp.CallToolResult, CodeActionOutput, error) {
-		absPath, text, lang, err := readFeatureFile(workspaceRoot, in.File, in.Language)
+		rng, err := inputRange(in.StartLine, in.StartColumn, in.EndLine, in.EndColumn)
 		if err != nil {
 			return nil, CodeActionOutput{}, err
 		}
-		rng, err := inputRange(in.StartLine, in.StartColumn, in.EndLine, in.EndColumn)
+		absPath, text, lang, err := readFeatureFile(workspaceRoot, in.File, in.Language)
 		if err != nil {
 			return nil, CodeActionOutput{}, err
 		}
