@@ -83,7 +83,7 @@ jobs:
           verbose: true
 
       - name: Upload test results
-        if: always()
+        if: failure()
         uses: codecov/codecov-action@v6
         with:
           report_type: test_results
