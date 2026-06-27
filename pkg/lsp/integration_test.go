@@ -28,6 +28,30 @@ import (
 	"go.lsp.dev/uri"
 )
 
+// fakeClock is a deterministic clock for integration-style tests that cannot
+// run inside a testing/synctest bubble because they use jsonrpc2 over pipes.
+type fakeClock struct {
+	mu  sync.Mutex
+	now time.Time
+}
+
+func newFakeClock() *fakeClock {
+	return &fakeClock{now: time.Unix(0, 0)}
+}
+
+func (c *fakeClock) Now() time.Time {
+	c.mu.Lock()
+	defer c.mu.Unlock()
+	return c.now
+}
+
+func (c *fakeClock) Advance(d time.Duration) {
+	c.mu.Lock()
+	defer c.mu.Unlock()
+
+	c.now = c.now.Add(d)
+}
+
 // fakeServer is an in-memory [protocol.Server] test double. It records the
 // requests mcp-lsp issues and answers diagnostic requests with a configurable report. It
 // can also push publishDiagnostics to the client through the dispatcher handed
@@ -58,29 +82,7 @@ type fakeServer struct {
 	client protocol.Client
 }
 
-// fakeClock is a deterministic clock for integration-style tests that cannot
-// run inside a testing/synctest bubble because they use jsonrpc2 over pipes.
-type fakeClock struct {
-	mu  sync.Mutex
-	now time.Time
-}
-
-func newFakeClock() *fakeClock {
-	return &fakeClock{now: time.Unix(0, 0)}
-}
-
-func (c *fakeClock) Now() time.Time {
-	c.mu.Lock()
-	defer c.mu.Unlock()
-	return c.now
-}
-
-func (c *fakeClock) Advance(d time.Duration) {
-	c.mu.Lock()
-	defer c.mu.Unlock()
-
-	c.now = c.now.Add(d)
-}
+var _ protocol.Server = (*fakeServer)(nil)
 
 func (f *fakeServer) Initialize(_ context.Context, _ *protocol.InitializeParams) (*protocol.InitializeResult, error) {
 	res := &protocol.InitializeResult{
