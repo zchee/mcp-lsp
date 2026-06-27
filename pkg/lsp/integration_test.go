@@ -295,17 +295,18 @@ func TestDiagnosticsLookupPush(t *testing.T) {
 	if sess.pullSupported {
 		t.Fatal("session advertised pull support the fake did not offer")
 	}
+	clock := newFakeClock()
+	sess.store.nowFn = clock.Now
 
 	u := uri.File("/workspace/main.go")
+	diags := fakeDiagnostics(sess, "go")
 
 	// The server pushes an empty pre-analysis report, then the real diagnostics,
 	// both within the settle window after didOpen. waitSettled must return the
 	// latter.
-	fake.onDidOpen = func(ctx context.Context, _ *protocol.DidOpenTextDocumentParams) error {
-		if err := fake.client.PublishDiagnostics(ctx, &protocol.PublishDiagnosticsParams{URI: u}); err != nil {
-			return err
-		}
-		return fake.client.PublishDiagnostics(ctx, &protocol.PublishDiagnosticsParams{
+	fake.onDidOpen = func(_ context.Context, _ *protocol.DidOpenTextDocumentParams) error {
+		sess.store.publish(&protocol.PublishDiagnosticsParams{URI: u})
+		sess.store.publish(&protocol.PublishDiagnosticsParams{
 			URI: u,
 			Diagnostics: []protocol.Diagnostic{
 				{
@@ -318,9 +319,11 @@ func TestDiagnosticsLookupPush(t *testing.T) {
 				},
 			},
 		})
+		clock.Advance(diags.settle)
+		sess.store.broadcastAll()
+		return nil
 	}
 
-	diags := fakeDiagnostics(sess, "go")
 	got, err := diags.Lookup(t.Context(), "go", "/workspace/main.go", "package main\n")
 	if err != nil {
 		t.Fatalf("Lookup: %v", err)
@@ -334,6 +337,47 @@ func TestDiagnosticsLookupPush(t *testing.T) {
 	}
 	if diff := cmp.Diff(want, got); diff != "" {
 		t.Errorf("Lookup diagnostics mismatch (-want +got):\n%s", diff)
+	}
+}
+
+func TestPublishDiagnosticsNotificationReachesStore(t *testing.T) {
+	t.Parallel()
+
+	fake := &fakeServer{pullSupported: false}
+	sess := wireSession(t, fake)
+	u := uri.File("/workspace/main.go")
+
+	if err := fake.client.PublishDiagnostics(t.Context(), &protocol.PublishDiagnosticsParams{
+		URI: u,
+		Diagnostics: []protocol.Diagnostic{
+			{
+				Range: protocol.Range{
+					Start: protocol.Position{Line: 2, Character: 3},
+					End:   protocol.Position{Line: 2, Character: 8},
+				},
+				Severity: protocol.DiagnosticSeverityError,
+				Message:  protocol.String("wired diagnostic"),
+			},
+		},
+	}); err != nil {
+		t.Fatalf("PublishDiagnostics: %v", err)
+	}
+
+	ctx, cancel := context.WithTimeout(t.Context(), 2*time.Second)
+	defer cancel()
+	raw, err := sess.store.waitSettledAfter(ctx, u, 0, 0)
+	if err != nil {
+		t.Fatalf("wait for published diagnostics: %v", err)
+	}
+
+	want := []Diagnostic{
+		{
+			StartLine: 2, StartColumn: 3, EndLine: 2, EndColumn: 8,
+			Severity: "error", Message: "wired diagnostic",
+		},
+	}
+	if diff := cmp.Diff(want, flattenDiagnostics(raw)); diff != "" {
+		t.Errorf("published diagnostics mismatch (-want +got):\n%s", diff)
 	}
 }
 
