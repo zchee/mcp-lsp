@@ -8,17 +8,17 @@ replace (
 )
 
 require (
+	github.com/go-json-experiment/json v0.0.0-20260623181947-01eb4420fa68
 	github.com/google/go-cmp v0.7.0
 	github.com/modelcontextprotocol/go-sdk v1.6.1-0.20260624100256-7f4aa4a0cec8 // main
 	github.com/phuslu/log v1.0.127
-	go.lsp.dev/jsonrpc2 v1.0.0
-	go.lsp.dev/protocol v1.0.1-0.20260623001938-8bb731f68700
-	go.lsp.dev/uri v1.0.0
+	go.lsp.dev/jsonrpc2 v1.0.1-0.20260627120301-285c360f0749
+	go.lsp.dev/protocol v1.0.1-0.20260627145541-94740ef87401
+	go.lsp.dev/uri v1.0.1-0.20260627120319-3b145b12272a
 	golang.org/x/tools v0.46.0
 )
 
 require (
-	github.com/go-json-experiment/json v0.0.0-20260601182631-00ed12fed2a6 // indirect
 	github.com/google/jsonschema-go v0.4.3 // indirect
 	github.com/segmentio/asm v1.1.3 // indirect
 	github.com/segmentio/encoding v0.5.4 // indirect
