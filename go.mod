@@ -12,9 +12,9 @@ require (
 	github.com/google/go-cmp v0.7.0
 	github.com/modelcontextprotocol/go-sdk v1.6.1-0.20260624100256-7f4aa4a0cec8 // main
 	github.com/phuslu/log v1.0.127
-	go.lsp.dev/jsonrpc2 v1.0.1-0.20260627120301-285c360f0749
-	go.lsp.dev/protocol v1.0.1-0.20260627145541-94740ef87401
-	go.lsp.dev/uri v1.0.1-0.20260627120319-3b145b12272a
+	go.lsp.dev/jsonrpc2 v1.0.1
+	go.lsp.dev/protocol v1.0.1-0.20260627153620-175c67bd3c33
+	go.lsp.dev/uri v1.0.1
 	golang.org/x/tools v0.46.0
 )
 
