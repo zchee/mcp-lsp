@@ -56,7 +56,18 @@ func (c *CodeActions) Lookup(ctx context.Context, lang, absPath, text string, rn
 	if err := sess.syncTextDocument(ctx, u, languageID, text); err != nil {
 		return nil, err
 	}
-	raw, err := sess.server.CodeAction(ctx, &protocol.CodeActionParams{TextDocument: protocol.TextDocumentIdentifier{URI: u}, Range: rng, Context: protocol.CodeActionContext{Diagnostics: []protocol.Diagnostic{}, Only: only}})
+	raw, err := sess.server.CodeAction(
+		ctx, &protocol.CodeActionParams{
+			TextDocument: protocol.TextDocumentIdentifier{
+				URI: u,
+			},
+			Range: rng,
+			Context: protocol.CodeActionContext{
+				Diagnostics: []protocol.Diagnostic{},
+				Only:        only,
+			},
+		},
+	)
 	if err != nil {
 		return nil, fmt.Errorf("code action request: %w", err)
 	}
