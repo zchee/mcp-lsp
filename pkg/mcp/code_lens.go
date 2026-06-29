@@ -64,7 +64,12 @@ func codeLensHandler(looker codeLensLooker, workspaceRoot string) mcp.ToolHandle
 func toCodeLensItems(lenses []lsp.CodeLens) []CodeLensItem {
 	items := make([]CodeLensItem, 0, len(lenses))
 	for _, lens := range lenses {
-		items = append(items, CodeLensItem{Range: toNavigationRangeItem(lens.Range), Command: toCommandItem(lens.Command)})
+		items = append(
+			items, CodeLensItem{
+				Range:   toNavigationRangeItem(lens.Range),
+				Command: toCommandItem(lens.Command),
+			},
+		)
 	}
 	return items
 }

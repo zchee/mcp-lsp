@@ -60,7 +60,12 @@ func workspaceSymbolHandler(looker workspaceSymbolLooker) mcp.ToolHandlerFor[Wor
 func toWorkspaceSymbolItems(symbols []lsp.WorkspaceSymbol) []WorkspaceSymbolItem {
 	items := make([]WorkspaceSymbolItem, 0, len(symbols))
 	for _, symbol := range symbols {
-		item := WorkspaceSymbolItem{Name: symbol.Name, Kind: symbol.Kind, ContainerName: symbol.ContainerName, URI: symbol.URI}
+		item := WorkspaceSymbolItem{
+			Name:          symbol.Name,
+			Kind:          symbol.Kind,
+			ContainerName: symbol.ContainerName,
+			URI:           symbol.URI,
+		}
 		if symbol.Range != nil {
 			rng := toNavigationRangeItem(*symbol.Range)
 			item.Range = &rng

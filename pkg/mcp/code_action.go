@@ -90,7 +90,13 @@ func codeActionKinds(kinds []string) []protocol.CodeActionKind {
 func toCodeActionItems(actions []lsp.CodeAction) ([]CodeActionItem, error) {
 	items := make([]CodeActionItem, 0, len(actions))
 	for _, action := range actions {
-		item := CodeActionItem{Title: action.Title, Kind: action.Kind, IsPreferred: action.IsPreferred, DisabledReason: action.DisabledReason, Command: toCommandItem(action.Command)}
+		item := CodeActionItem{
+			Title:          action.Title,
+			Kind:           action.Kind,
+			IsPreferred:    action.IsPreferred,
+			DisabledReason: action.DisabledReason,
+			Command:        toCommandItem(action.Command),
+		}
 		if action.Edit != nil {
 			wire, err := lsp.WorkspaceEditToProtocol(*action.Edit)
 			if err != nil {

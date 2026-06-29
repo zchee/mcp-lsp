@@ -94,5 +94,8 @@ func formattingOptions(tabSize uint32, insertSpaces *bool) protocol.FormattingOp
 	if insertSpaces != nil {
 		spaces = *insertSpaces
 	}
-	return protocol.FormattingOptions{TabSize: tabSize, InsertSpaces: spaces}
+	return protocol.FormattingOptions{
+		TabSize:      tabSize,
+		InsertSpaces: spaces,
+	}
 }

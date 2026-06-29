@@ -65,5 +65,9 @@ func toCommandItem(command *lsp.Command) *CommandItem {
 	if command == nil {
 		return nil
 	}
-	return &CommandItem{Title: command.Title, Tooltip: command.Tooltip, Command: command.Command}
+	return &CommandItem{
+		Title:   command.Title,
+		Tooltip: command.Tooltip,
+		Command: command.Command,
+	}
 }
