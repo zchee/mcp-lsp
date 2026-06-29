@@ -25,9 +25,7 @@ import (
 	"go.lsp.dev/uri"
 )
 
-// fakeDiagnostics wraps a wired session so [Diagnostics.Lookup] can drive it
-// without a real [Manager.session] spawn.
-func fakeDiagnostics(sess *serverSession, lang string) *Diagnostics {
+func (*fakeServer) diagnostics(sess *serverSession, lang string) *Diagnostics {
 	mgr := &Manager{
 		cfg:      map[string]ServerConfig{lang: {LanguageID: protocol.LanguageKindGo}},
 		sessions: map[string]*serverSession{lang: sess},
@@ -62,7 +60,7 @@ func TestDiagnosticsLookupPull(t *testing.T) {
 		t.Fatal("session did not detect pull support advertised by the fake")
 	}
 
-	diags := fakeDiagnostics(sess, "go")
+	diags := fake.diagnostics(sess, "go")
 	got, err := diags.Lookup(t.Context(), "go", "/workspace/main.go", "package main\n")
 	if err != nil {
 		t.Fatalf("Lookup: %v", err)
@@ -104,7 +102,7 @@ func TestDiagnosticsLookupPush(t *testing.T) {
 	sess.store.nowFn = clock.Now
 
 	u := uri.File("/workspace/main.go")
-	diags := fakeDiagnostics(sess, "go")
+	diags := fake.diagnostics(sess, "go")
 
 	// The server pushes an empty pre-analysis report, then the real diagnostics,
 	// both within the settle window after didOpen. waitSettled must return the
@@ -212,7 +210,7 @@ func TestDiagnosticsLookupPushIgnoresCachedBaseline(t *testing.T) {
 		},
 	})
 
-	diags := fakeDiagnostics(sess, "go")
+	diags := fake.diagnostics(sess, "go")
 	clock.Advance(diags.settle + time.Millisecond)
 
 	published := make(chan struct{})
