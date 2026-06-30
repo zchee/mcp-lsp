@@ -26,11 +26,12 @@ import (
 // Registry is the runtime language registry. It combines catalog metadata with
 // active server configs from configuration, discovery, or CLI overrides.
 type Registry struct {
-	specs      map[string]LanguageSpec
-	servers    map[string]ServerConfig
-	aliases    map[string]string
-	extensions map[string]string
-	shebangs   map[string]string
+	specs       map[string]LanguageSpec
+	servers     map[string]ServerConfig
+	aliases     map[string]string
+	extensions  map[string]string
+	shebangs    map[string]string
+	shebangKeys []string
 }
 
 // NewRegistry returns a runtime registry built from language specs and active
@@ -51,6 +52,7 @@ func NewRegistry(specs []LanguageSpec, servers map[string]ServerConfig) (*Regist
 	if err := r.rebuildIndexes(); err != nil {
 		return nil, err
 	}
+	var addedNewSpec bool
 	for lang, cfg := range servers {
 		canonical, ok := r.CanonicalLanguage(lang)
 		if !ok {
@@ -61,9 +63,7 @@ func NewRegistry(specs []LanguageSpec, servers map[string]ServerConfig) (*Regist
 			if err := r.addSpec(&LanguageSpec{Language: canonical, LanguageID: protocol.LanguageKind(canonical)}); err != nil {
 				return nil, err
 			}
-			if err := r.rebuildIndexes(); err != nil {
-				return nil, err
-			}
+			addedNewSpec = true
 		}
 		if cfg.Command == "" {
 			return nil, fmt.Errorf("server command is required for language %q", canonical)
@@ -77,6 +77,11 @@ func NewRegistry(specs []LanguageSpec, servers map[string]ServerConfig) (*Regist
 			}
 		}
 		r.servers[canonical] = cfg
+	}
+	if addedNewSpec {
+		if err := r.rebuildIndexes(); err != nil {
+			return nil, err
+		}
 	}
 	return r, nil
 }
@@ -172,9 +177,9 @@ func (r *Registry) LanguageForFile(file, text string) (language string, ok bool)
 	if strings.HasPrefix(text, "#!") {
 		firstLine, _, _ := strings.Cut(text, "\n")
 		lower := strings.ToLower(firstLine)
-		for shebang, lang := range r.shebangs {
+		for _, shebang := range r.shebangKeys {
 			if strings.Contains(lower, shebang) {
-				return lang, true
+				return r.shebangs[shebang], true
 			}
 		}
 	}
@@ -262,9 +267,23 @@ func (r *Registry) rebuildIndexes() error {
 			shebangs[shebang] = canonical
 		}
 	}
+	shebangKeys := make([]string, 0, len(shebangs))
+	for shebang := range shebangs {
+		shebangKeys = append(shebangKeys, shebang)
+	}
+	// Match longer shebangs first so a more specific key (e.g. "python3")
+	// wins over a prefix key (e.g. "python") and matching stays deterministic
+	// regardless of map iteration order.
+	slices.SortFunc(shebangKeys, func(a, b string) int {
+		if d := len(b) - len(a); d != 0 {
+			return d
+		}
+		return strings.Compare(a, b)
+	})
 	r.aliases = aliases
 	r.extensions = extensions
 	r.shebangs = shebangs
+	r.shebangKeys = shebangKeys
 	return nil
 }
 

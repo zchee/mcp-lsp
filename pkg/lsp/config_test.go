@@ -342,3 +342,41 @@ func TestRegistryMergesDuplicateCanonicalSpecs(t *testing.T) {
 		t.Errorf("LanguageForFile(page.gohtml) = %q/%t, want %q/true", got, ok, languageGo)
 	}
 }
+
+func TestRegistryPrefersLongestShebangMatch(t *testing.T) {
+	t.Parallel()
+
+	// A short shebang ("python") and a longer one ("python3") map to different
+	// languages. The longer, more specific key must win regardless of map
+	// iteration order, so matching iterates shebang keys longest-first.
+	registry, err := NewRegistry([]LanguageSpec{
+		{Language: "python", Shebangs: []string{"python"}},
+		{Language: "python3", Shebangs: []string{"python3"}},
+	}, nil)
+	if err != nil {
+		t.Fatalf("NewRegistry shebang specs: %v", err)
+	}
+
+	tests := map[string]struct {
+		text string
+		want string
+	}{
+		"longer shebang wins": {
+			text: "#!/usr/bin/env python3\n",
+			want: "python3",
+		},
+		"shorter shebang still matches": {
+			text: "#!/usr/bin/python\n",
+			want: "python",
+		},
+	}
+	for name, tt := range tests {
+		t.Run(name, func(t *testing.T) {
+			t.Parallel()
+			got, ok := registry.LanguageForFile("script", tt.text)
+			if !ok || got != tt.want {
+				t.Errorf("LanguageForFile(%q) = %q/%t, want %q/true", tt.text, got, ok, tt.want)
+			}
+		})
+	}
+}
