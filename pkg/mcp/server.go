@@ -26,6 +26,12 @@ import (
 // NewServer assembles an [mcp.Server] that exposes language server capabilities
 // backed by mgr as read-only tools.
 func NewServer(mgr *lsp.Manager, logger *slog.Logger) *mcp.Server {
+	return NewServerWithDefaultLanguage(mgr, logger, defaultLanguage)
+}
+
+// NewServerWithDefaultLanguage assembles an [mcp.Server] whose tools use
+// defaultLang when the tool input omits its language identifier.
+func NewServerWithDefaultLanguage(mgr *lsp.Manager, logger *slog.Logger, defaultLang string) *mcp.Server {
 	serverOpts := &mcp.ServerOptions{
 		Logger: logger,
 	}
@@ -40,70 +46,70 @@ func NewServer(mgr *lsp.Manager, logger *slog.Logger) *mcp.Server {
 		Annotations: &mcp.ToolAnnotations{
 			ReadOnlyHint: true,
 		},
-	}, diagnosticsHandler(mgr.Diagnostics(), mgr.WorkspaceRoot()))
+	}, diagnosticsHandler(mgr.Diagnostics(), mgr.WorkspaceRoot(), defaultLang))
 	mcp.AddTool(s, &mcp.Tool{
 		Name:        "lsp_definition",
 		Description: "Find definition locations for a symbol at a file position via its language server.",
 		Annotations: &mcp.ToolAnnotations{
 			ReadOnlyHint: true,
 		},
-	}, definitionHandler(mgr.Definition(), mgr.WorkspaceRoot()))
+	}, definitionHandler(mgr.Definition(), mgr.WorkspaceRoot(), defaultLang))
 	mcp.AddTool(s, &mcp.Tool{
 		Name:        "lsp_implementation",
 		Description: "Find implementation locations for an interface, trait, or method at a file position via its language server.",
 		Annotations: &mcp.ToolAnnotations{
 			ReadOnlyHint: true,
 		},
-	}, implementationHandler(mgr.Implementation(), mgr.WorkspaceRoot()))
+	}, implementationHandler(mgr.Implementation(), mgr.WorkspaceRoot(), defaultLang))
 	mcp.AddTool(s, &mcp.Tool{
 		Name:        "lsp_hover",
 		Description: "Return hover information for a file position via its language server.",
 		Annotations: &mcp.ToolAnnotations{
 			ReadOnlyHint: true,
 		},
-	}, hoverHandler(mgr.Hover(), mgr.WorkspaceRoot()))
+	}, hoverHandler(mgr.Hover(), mgr.WorkspaceRoot(), defaultLang))
 	mcp.AddTool(s, &mcp.Tool{
 		Name:        "lsp_workspace_symbol",
 		Description: "Search workspace symbols via the language server.",
 		Annotations: &mcp.ToolAnnotations{
 			ReadOnlyHint: true,
 		},
-	}, workspaceSymbolHandler(mgr.WorkspaceSymbols()))
+	}, workspaceSymbolHandler(mgr.WorkspaceSymbols(), defaultLang))
 	mcp.AddTool(s, &mcp.Tool{
 		Name:        "lsp_formatting",
 		Description: "Preview full-document formatting edits without applying them.",
 		Annotations: &mcp.ToolAnnotations{
 			ReadOnlyHint: true,
 		},
-	}, formattingHandler(mgr.Formatting(), mgr.WorkspaceRoot()))
+	}, formattingHandler(mgr.Formatting(), mgr.WorkspaceRoot(), defaultLang))
 	mcp.AddTool(s, &mcp.Tool{
 		Name:        "lsp_range_formatting",
 		Description: "Preview range formatting edits without applying them.",
 		Annotations: &mcp.ToolAnnotations{
 			ReadOnlyHint: true,
 		},
-	}, rangeFormattingHandler(mgr.Formatting(), mgr.WorkspaceRoot()))
+	}, rangeFormattingHandler(mgr.Formatting(), mgr.WorkspaceRoot(), defaultLang))
 	mcp.AddTool(s, &mcp.Tool{
 		Name:        "lsp_rename",
 		Description: "Preview rename workspace edits without applying them.",
 		Annotations: &mcp.ToolAnnotations{
 			ReadOnlyHint: true,
 		},
-	}, renameHandler(mgr.Rename(), mgr.WorkspaceRoot()))
+	}, renameHandler(mgr.Rename(), mgr.WorkspaceRoot(), defaultLang))
 	mcp.AddTool(s, &mcp.Tool{
 		Name:        "lsp_code_action",
 		Description: "Preview code actions for a file range via its language server.",
 		Annotations: &mcp.ToolAnnotations{
 			ReadOnlyHint: true,
 		},
-	}, codeActionHandler(mgr.CodeActions(), mgr.WorkspaceRoot()))
+	}, codeActionHandler(mgr.CodeActions(), mgr.WorkspaceRoot(), defaultLang))
 	mcp.AddTool(s, &mcp.Tool{
 		Name:        "lsp_code_lens",
 		Description: "Return code lenses for a file via its language server.",
 		Annotations: &mcp.ToolAnnotations{
 			ReadOnlyHint: true,
 		},
-	}, codeLensHandler(mgr.CodeLenses(), mgr.WorkspaceRoot()))
+	}, codeLensHandler(mgr.CodeLenses(), mgr.WorkspaceRoot(), defaultLang))
 	mcp.AddTool(s, &mcp.Tool{
 		Name:        "lsp_apply_workspace_edit",
 		Description: "Apply an LSP workspace edit to files under the workspace root with an explicit mutation policy.",
@@ -123,7 +129,7 @@ func NewServer(mgr *lsp.Manager, logger *slog.Logger) *mcp.Server {
 			IdempotentHint:  false,
 			OpenWorldHint:   new(false),
 		},
-	}, executeCommandHandler(mgr.Commands()))
+	}, executeCommandHandler(mgr.Commands(), defaultLang))
 
 	return s
 }

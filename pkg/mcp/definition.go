@@ -69,7 +69,7 @@ type DefinitionOutput struct {
 // definitionHandler returns the tool handler bound to looker. The handler
 // validates input, reads the file, looks up definitions, and converts one-based
 // agent positions at the MCP boundary.
-func definitionHandler(looker defLooker, workspaceRoot string) mcp.ToolHandlerFor[DefinitionInput, DefinitionOutput] {
+func definitionHandler(looker defLooker, workspaceRoot string, defaultLang ...string) mcp.ToolHandlerFor[DefinitionInput, DefinitionOutput] {
 	return func(ctx context.Context, _ *mcp.CallToolRequest, in DefinitionInput) (*mcp.CallToolResult, DefinitionOutput, error) {
 		if in.File == "" {
 			return nil, DefinitionOutput{}, fmt.Errorf("file is required")
@@ -84,10 +84,7 @@ func definitionHandler(looker defLooker, workspaceRoot string) mcp.ToolHandlerFo
 			return nil, DefinitionOutput{}, fmt.Errorf("resolve file path %q: %w", in.File, err)
 		}
 
-		lang := in.Language
-		if lang == "" {
-			lang = defaultLanguage
-		}
+		lang := defaultedLanguage(in.Language, defaultLang...)
 
 		text, err := os.ReadFile(absPath)
 		if err != nil {

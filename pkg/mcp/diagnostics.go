@@ -64,7 +64,7 @@ type DiagnosticsOutput struct {
 // diagnosticsHandler returns the tool handler bound to looker. The handler
 // validates the input, reads the file, looks up diagnostics, and converts the
 // zero-based LSP positions to one-based agent positions.
-func diagnosticsHandler(looker diagLooker, workspaceRoot string) mcp.ToolHandlerFor[DiagnosticsInput, DiagnosticsOutput] {
+func diagnosticsHandler(looker diagLooker, workspaceRoot string, defaultLang ...string) mcp.ToolHandlerFor[DiagnosticsInput, DiagnosticsOutput] {
 	return func(ctx context.Context, _ *mcp.CallToolRequest, in DiagnosticsInput) (*mcp.CallToolResult, DiagnosticsOutput, error) {
 		if in.File == "" {
 			return nil, DiagnosticsOutput{}, fmt.Errorf("file is required")
@@ -75,10 +75,7 @@ func diagnosticsHandler(looker diagLooker, workspaceRoot string) mcp.ToolHandler
 			return nil, DiagnosticsOutput{}, fmt.Errorf("resolve file path %q: %w", in.File, err)
 		}
 
-		lang := in.Language
-		if lang == "" {
-			lang = defaultLanguage
-		}
+		lang := defaultedLanguage(in.Language, defaultLang...)
 
 		text, err := os.ReadFile(absPath)
 		if err != nil {

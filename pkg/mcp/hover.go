@@ -50,13 +50,13 @@ type HoverItem struct {
 	Range *DefinitionRangeItem `json:"range,omitempty"`
 }
 
-func hoverHandler(looker hoverLooker, workspaceRoot string) mcp.ToolHandlerFor[HoverInput, HoverOutput] {
+func hoverHandler(looker hoverLooker, workspaceRoot string, defaultLang ...string) mcp.ToolHandlerFor[HoverInput, HoverOutput] {
 	return func(ctx context.Context, _ *mcp.CallToolRequest, in HoverInput) (*mcp.CallToolResult, HoverOutput, error) {
 		pos, err := navigationInputPosition(in.Line, in.Column)
 		if err != nil {
 			return nil, HoverOutput{}, err
 		}
-		absPath, text, lang, err := readInputFile(workspaceRoot, in.File, in.Language)
+		absPath, text, lang, err := readInputFile(workspaceRoot, in.File, in.Language, defaultLang...)
 		if err != nil {
 			return nil, HoverOutput{}, err
 		}

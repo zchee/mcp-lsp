@@ -99,6 +99,27 @@ func TestFormattingHandlerReadsFileAndConvertsInputs(t *testing.T) {
 	}
 }
 
+func TestFormattingHandlerUsesInjectedDefaultLanguage(t *testing.T) {
+	t.Parallel()
+
+	workspace := t.TempDir()
+	path := filepath.Join(workspace, "main.py")
+	writeFile(t, path, "# comment\n")
+	formatter := &fakeFormatter{}
+
+	handler := formattingHandler(formatter, workspace, "python")
+	_, _, err := handler(t.Context(), nil, FormattingInput{File: "main.py"})
+	if err != nil {
+		t.Fatalf("formatting handler: %v", err)
+	}
+	if formatter.gotFormatLang != "python" {
+		t.Fatalf("Format language = %q, want python", formatter.gotFormatLang)
+	}
+	if formatter.gotFormatPath != path || formatter.gotFormatText != "# comment\n" {
+		t.Fatalf("Format path/text = %q/%q, want %q/Python contents", formatter.gotFormatPath, formatter.gotFormatText, path)
+	}
+}
+
 func TestRangeFormattingHandlerReadsFileAndConvertsInputs(t *testing.T) {
 	t.Parallel()
 

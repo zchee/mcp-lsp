@@ -65,7 +65,7 @@ type ImplementationOutput struct {
 // implementationHandler returns the tool handler bound to looker. The handler
 // validates input, reads the file, looks up implementations, and converts
 // one-based agent positions at the MCP boundary.
-func implementationHandler(looker implLooker, workspaceRoot string) mcp.ToolHandlerFor[ImplementationInput, ImplementationOutput] {
+func implementationHandler(looker implLooker, workspaceRoot string, defaultLang ...string) mcp.ToolHandlerFor[ImplementationInput, ImplementationOutput] {
 	return func(ctx context.Context, _ *mcp.CallToolRequest, in ImplementationInput) (*mcp.CallToolResult, ImplementationOutput, error) {
 		if in.File == "" {
 			return nil, ImplementationOutput{}, fmt.Errorf("file is required")
@@ -80,10 +80,7 @@ func implementationHandler(looker implLooker, workspaceRoot string) mcp.ToolHand
 			return nil, ImplementationOutput{}, fmt.Errorf("resolve file path %q: %w", in.File, err)
 		}
 
-		lang := in.Language
-		if lang == "" {
-			lang = defaultLanguage
-		}
+		lang := defaultedLanguage(in.Language, defaultLang...)
 
 		text, err := os.ReadFile(absPath)
 		if err != nil {

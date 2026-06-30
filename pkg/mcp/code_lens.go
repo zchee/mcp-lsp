@@ -47,9 +47,9 @@ type CodeLensItem struct {
 	Command *CommandItem        `json:"command,omitempty"`
 }
 
-func codeLensHandler(looker codeLensLooker, workspaceRoot string) mcp.ToolHandlerFor[CodeLensInput, CodeLensOutput] {
+func codeLensHandler(looker codeLensLooker, workspaceRoot string, defaultLang ...string) mcp.ToolHandlerFor[CodeLensInput, CodeLensOutput] {
 	return func(ctx context.Context, _ *mcp.CallToolRequest, in CodeLensInput) (*mcp.CallToolResult, CodeLensOutput, error) {
-		absPath, text, lang, err := readInputFile(workspaceRoot, in.File, in.Language)
+		absPath, text, lang, err := readInputFile(workspaceRoot, in.File, in.Language, defaultLang...)
 		if err != nil {
 			return nil, CodeLensOutput{}, err
 		}

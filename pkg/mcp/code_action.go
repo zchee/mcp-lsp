@@ -57,13 +57,13 @@ type CodeActionItem struct {
 	Command        *CommandItem            `json:"command,omitempty"`
 }
 
-func codeActionHandler(looker codeActionLooker, workspaceRoot string) mcp.ToolHandlerFor[CodeActionInput, CodeActionOutput] {
+func codeActionHandler(looker codeActionLooker, workspaceRoot string, defaultLang ...string) mcp.ToolHandlerFor[CodeActionInput, CodeActionOutput] {
 	return func(ctx context.Context, _ *mcp.CallToolRequest, in CodeActionInput) (*mcp.CallToolResult, CodeActionOutput, error) {
 		rng, err := inputRange(in.StartLine, in.StartColumn, in.EndLine, in.EndColumn)
 		if err != nil {
 			return nil, CodeActionOutput{}, err
 		}
-		absPath, text, lang, err := readInputFile(workspaceRoot, in.File, in.Language)
+		absPath, text, lang, err := readInputFile(workspaceRoot, in.File, in.Language, defaultLang...)
 		if err != nil {
 			return nil, CodeActionOutput{}, err
 		}

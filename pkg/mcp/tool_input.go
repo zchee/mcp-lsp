@@ -21,7 +21,7 @@ import (
 	"go.lsp.dev/protocol"
 )
 
-func readInputFile(workspaceRoot, file, lang string) (absPath, text, resolvedLang string, err error) {
+func readInputFile(workspaceRoot, file, lang string, defaultLang ...string) (absPath, text, resolvedLang string, err error) {
 	if file == "" {
 		return "", "", "", fmt.Errorf("file is required")
 	}
@@ -33,11 +33,16 @@ func readInputFile(workspaceRoot, file, lang string) (absPath, text, resolvedLan
 	if err != nil {
 		return "", "", "", fmt.Errorf("read file %q: %w", absPath, err)
 	}
-	return absPath, string(content), defaultedLanguage(lang), nil
+	return absPath, string(content), defaultedLanguage(lang, defaultLang...), nil
 }
 
-func defaultedLanguage(lang string) string {
+func defaultedLanguage(lang string, defaultLang ...string) string {
 	if lang == "" {
+		for _, fallback := range defaultLang {
+			if fallback != "" {
+				return fallback
+			}
+		}
 		return defaultLanguage
 	}
 	return lang

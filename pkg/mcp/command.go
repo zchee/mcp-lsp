@@ -48,12 +48,12 @@ type ExecuteCommandOutput struct {
 	Result protocol.LSPAny `json:"result,omitempty"`
 }
 
-func executeCommandHandler(executor commandExecutor) mcp.ToolHandlerFor[ExecuteCommandInput, ExecuteCommandOutput] {
+func executeCommandHandler(executor commandExecutor, defaultLang ...string) mcp.ToolHandlerFor[ExecuteCommandInput, ExecuteCommandOutput] {
 	return func(ctx context.Context, _ *mcp.CallToolRequest, in ExecuteCommandInput) (*mcp.CallToolResult, ExecuteCommandOutput, error) {
 		if in.Command == "" {
 			return nil, ExecuteCommandOutput{}, fmt.Errorf("command is required")
 		}
-		result, err := executor.Execute(ctx, defaultedLanguage(in.Language), in.Command, in.Arguments, in.ApplyEdits)
+		result, err := executor.Execute(ctx, defaultedLanguage(in.Language, defaultLang...), in.Command, in.Arguments, in.ApplyEdits)
 		if err != nil {
 			return nil, ExecuteCommandOutput{}, err
 		}

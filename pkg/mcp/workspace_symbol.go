@@ -46,9 +46,9 @@ type WorkspaceSymbolItem struct {
 	Range         *DefinitionRangeItem `json:"range,omitempty"`
 }
 
-func workspaceSymbolHandler(looker workspaceSymbolLooker) mcp.ToolHandlerFor[WorkspaceSymbolInput, WorkspaceSymbolOutput] {
+func workspaceSymbolHandler(looker workspaceSymbolLooker, defaultLang ...string) mcp.ToolHandlerFor[WorkspaceSymbolInput, WorkspaceSymbolOutput] {
 	return func(ctx context.Context, _ *mcp.CallToolRequest, in WorkspaceSymbolInput) (*mcp.CallToolResult, WorkspaceSymbolOutput, error) {
-		lang := defaultedLanguage(in.Language)
+		lang := defaultedLanguage(in.Language, defaultLang...)
 		symbols, err := looker.Lookup(ctx, lang, in.Query)
 		if err != nil {
 			return nil, WorkspaceSymbolOutput{}, err
