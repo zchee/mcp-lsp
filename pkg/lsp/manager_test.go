@@ -26,12 +26,16 @@ import (
 	"go.lsp.dev/uri"
 )
 
-// newTestManager returns a [Manager] whose sessions never spawn a subprocess: each
-// session's startFn merely closes ready, incrementing spawns so tests can assert
-// how many times a server would have been launched.
+// newTestManager returns a [Manager] whose sessions never spawn a subprocess:
+// each session's startFn merely closes ready, incrementing spawns so tests can
+// assert how many times a server would have been launched.
 func newTestManager(spawns *atomic.Int64) *Manager {
+	return newTestManagerWithConfig(spawns, map[string]ServerConfig{"go": {LanguageID: protocol.LanguageKindGo}})
+}
+
+func newTestManagerWithConfig(spawns *atomic.Int64, cfg map[string]ServerConfig) *Manager {
 	m := &Manager{
-		cfg:      map[string]ServerConfig{"go": {LanguageID: protocol.LanguageKindGo}},
+		cfg:      indexConfig(cfg),
 		sessions: make(map[string]*serverSession),
 		logger:   slog.New(slog.DiscardHandler),
 		rootURI:  uri.File("/workspace"),
@@ -58,6 +62,40 @@ func TestManagerSessionUnknownLanguage(t *testing.T) {
 	}
 	if got := spawns.Load(); got != 0 {
 		t.Errorf("unknown language spawned %d servers, want 0", got)
+	}
+}
+
+func TestManagerSessionResolvesLanguageAliases(t *testing.T) {
+	t.Parallel()
+
+	var spawns atomic.Int64
+	m := newTestManagerWithConfig(&spawns, map[string]ServerConfig{
+		"python": {
+			LanguageID: protocol.LanguageKindPython,
+		},
+	})
+
+	pythonSession, err := m.session(t.Context(), "python")
+	if err != nil {
+		t.Fatalf("python session: %v", err)
+	}
+	pySession, err := m.session(t.Context(), "py")
+	if err != nil {
+		t.Fatalf("py alias session: %v", err)
+	}
+	basedpyrightSession, languageID, _, err := m.sessionForFile(t.Context(), "basedpyright", "/workspace/main.py")
+	if err != nil {
+		t.Fatalf("basedpyright alias session: %v", err)
+	}
+
+	if pySession != pythonSession || basedpyrightSession != pythonSession {
+		t.Fatal("language aliases did not reuse the canonical python session")
+	}
+	if languageID != protocol.LanguageKindPython {
+		t.Fatalf("basedpyright LanguageID = %q, want %q", languageID, protocol.LanguageKindPython)
+	}
+	if got := spawns.Load(); got != 1 {
+		t.Fatalf("alias lookups spawned %d sessions, want 1", got)
 	}
 }
 

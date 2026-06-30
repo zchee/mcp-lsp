@@ -64,16 +64,13 @@ func (m *Manager) Diagnostics() *Diagnostics {
 // for the push (publishDiagnostics) stream to settle. Positions in the result
 // are zero-based.
 func (d *Diagnostics) Lookup(ctx context.Context, lang, absPath, text string) ([]Diagnostic, error) {
-	sess, err := d.mgr.session(ctx, lang)
+	sess, languageID, u, err := d.mgr.sessionForFile(ctx, lang, absPath)
 	if err != nil {
 		return nil, err
 	}
 
-	cfg := d.mgr.cfg[lang]
-	u := uri.File(absPath)
-
 	baselineSeq := sess.store.publishSeq(u)
-	if err := sess.syncTextDocument(ctx, u, cfg.LanguageID, text); err != nil {
+	if err := sess.syncTextDocument(ctx, u, languageID, text); err != nil {
 		return nil, err
 	}
 

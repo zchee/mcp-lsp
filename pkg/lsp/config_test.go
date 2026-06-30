@@ -30,6 +30,11 @@ func TestDefaultConfig(t *testing.T) {
 			Args:       nil,
 			LanguageID: protocol.LanguageKindGo,
 		},
+		"python": {
+			Command:    "pyright-langserver",
+			Args:       []string{"--stdio"},
+			LanguageID: protocol.LanguageKindPython,
+		},
 		"rust": {
 			Command:    "rust-analyzer",
 			Args:       nil,
@@ -40,5 +45,84 @@ func TestDefaultConfig(t *testing.T) {
 	got := DefaultConfig()
 	if diff := gocmp.Diff(want, got); diff != "" {
 		t.Errorf("DefaultConfig() mismatch (-want +got):\n%s", diff)
+	}
+}
+
+func TestCanonicalLanguage(t *testing.T) {
+	t.Parallel()
+
+	tests := map[string]struct {
+		input string
+		want  string
+	}{
+		"basedpyright maps to python": {
+			input: "basedpyright",
+			want:  "python",
+		},
+		"py maps to python": {
+			input: "py",
+			want:  "python",
+		},
+		"pyright maps to python": {
+			input: "pyright",
+			want:  "python",
+		},
+		"preserves other normalized languages": {
+			input: " RUST ",
+			want:  "rust",
+		},
+	}
+
+	for name, tt := range tests {
+		t.Run(name, func(t *testing.T) {
+			t.Parallel()
+
+			if got := CanonicalLanguage(tt.input); got != tt.want {
+				t.Fatalf("CanonicalLanguage(%q) = %q, want %q", tt.input, got, tt.want)
+			}
+		})
+	}
+}
+
+func TestInferLanguageFromCommand(t *testing.T) {
+	t.Parallel()
+
+	tests := map[string]struct {
+		command string
+		want    string
+		wantOK  bool
+	}{
+		"basedpyright langserver": {
+			command: "basedpyright-langserver",
+			want:    "python",
+			wantOK:  true,
+		},
+		"pyright langserver path": {
+			command: "/opt/bin/pyright-langserver",
+			want:    "python",
+			wantOK:  true,
+		},
+		"gopls wrapper": {
+			command: "custom-gopls",
+			want:    "go",
+			wantOK:  true,
+		},
+		"unknown command": {
+			command: "language-server",
+		},
+	}
+
+	for name, tt := range tests {
+		t.Run(name, func(t *testing.T) {
+			t.Parallel()
+
+			got, ok := InferLanguageFromCommand(tt.command)
+			if ok != tt.wantOK {
+				t.Fatalf("InferLanguageFromCommand(%q) ok = %t, want %t", tt.command, ok, tt.wantOK)
+			}
+			if got != tt.want {
+				t.Fatalf("InferLanguageFromCommand(%q) = %q, want %q", tt.command, got, tt.want)
+			}
+		})
 	}
 }

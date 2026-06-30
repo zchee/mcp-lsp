@@ -45,7 +45,7 @@ func (i *Implementation) Lookup(ctx context.Context, lang, absPath, text string,
 	ctx, cancel := withRequestTimeout(ctx, i.timeout)
 	defer cancel()
 
-	sess, err := i.mgr.session(ctx, lang)
+	sess, languageID, u, err := i.mgr.sessionForFile(ctx, lang, absPath)
 	if err != nil {
 		return nil, err
 	}
@@ -53,9 +53,7 @@ func (i *Implementation) Lookup(ctx context.Context, lang, absPath, text string,
 		return nil, fmt.Errorf("implementation request is not supported by language server")
 	}
 
-	cfg := i.mgr.cfg[lang]
-	u := uri.File(absPath)
-	if err := sess.syncTextDocument(ctx, u, cfg.LanguageID, text); err != nil {
+	if err := sess.syncTextDocument(ctx, u, languageID, text); err != nil {
 		return nil, err
 	}
 

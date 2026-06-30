@@ -58,8 +58,9 @@ func NewManager(cfg map[string]ServerConfig, rootDir string, logger *slog.Logger
 	if absRoot, err := filepath.Abs(rootDir); err == nil {
 		rootDir = absRoot
 	}
+	indexed := indexConfig(cfg)
 	return &Manager{
-		cfg:          cfg,
+		cfg:          indexed,
 		sessions:     make(map[string]*serverSession),
 		logger:       logger,
 		rootDir:      rootDir,
@@ -79,16 +80,16 @@ func (m *Manager) WorkspaceRoot() string {
 // dead is discarded and replaced. It returns [context.Context.Err] if ctx is
 // canceled while the session initializes.
 func (m *Manager) session(ctx context.Context, lang string) (*serverSession, error) {
-	cfg, ok := m.cfg[lang]
+	canonical, cfg, ok := m.configForLanguage(lang)
 	if !ok {
 		return nil, fmt.Errorf("unknown language %q", lang)
 	}
 
 	m.mu.Lock()
-	sess := m.sessions[lang]
+	sess := m.sessions[canonical]
 	if sess == nil || sess.dead.Load() {
 		sess = m.newSessionFn(m.store(sess), m.logger)
-		m.sessions[lang] = sess
+		m.sessions[canonical] = sess
 	}
 	m.mu.Unlock()
 
@@ -134,10 +135,32 @@ func (m *Manager) Close(ctx context.Context) error {
 }
 
 func (m *Manager) sessionForFile(ctx context.Context, lang, absPath string) (*serverSession, protocol.LanguageKind, uri.URI, error) {
-	sess, err := m.session(ctx, lang)
+	canonical, cfg, ok := m.configForLanguage(lang)
+	if !ok {
+		return nil, "", "", fmt.Errorf("unknown language %q", lang)
+	}
+	sess, err := m.session(ctx, canonical)
 	if err != nil {
 		return nil, "", "", err
 	}
-	cfg := m.cfg[lang]
 	return sess, cfg.LanguageID, uri.File(absPath), nil
+}
+
+func (m *Manager) configForLanguage(lang string) (string, ServerConfig, bool) {
+	canonical := CanonicalLanguage(lang)
+	cfg, ok := m.cfg[canonical]
+	return canonical, cfg, ok
+}
+
+func indexConfig(cfg map[string]ServerConfig) map[string]ServerConfig {
+	indexed := make(map[string]ServerConfig, len(cfg))
+	for lang, serverCfg := range cfg {
+		canonical := CanonicalLanguage(lang)
+		serverCfg = cloneConfig(serverCfg)
+		if serverCfg.LanguageID == "" {
+			serverCfg.LanguageID = protocol.LanguageKind(canonical)
+		}
+		indexed[canonical] = serverCfg
+	}
+	return indexed
 }
