@@ -115,10 +115,13 @@ func TestIntegrationBasedPyrightLanguageAliases(t *testing.T) {
 func newBasedPyrightManager(t *testing.T, ws lsptest.Workspace) *lsp.Manager {
 	t.Helper()
 
-	cfg := lsp.DefaultConfig()
-	pythonCfg := cfg[pythonLanguage]
-	pythonCfg.Command = basedpyrightCommand
-	cfg[pythonLanguage] = pythonCfg
+	cfg := map[string]lsp.ServerConfig{
+		pythonLanguage: {
+			Command:    basedpyrightCommand,
+			Args:       []string{"--stdio"},
+			LanguageID: protocol.LanguageKindPython,
+		},
+	}
 	return lsptest.NewManager(t, cfg, ws)
 }
 

@@ -32,6 +32,8 @@ import (
 	"testing"
 	"time"
 
+	"go.lsp.dev/protocol"
+
 	"github.com/zchee/mcp-lsp/pkg/lsp"
 	"github.com/zchee/mcp-lsp/tests/internal/lsptest"
 )
@@ -63,5 +65,11 @@ func extractFixture(t *testing.T, name string) lsptest.Workspace {
 func newManager(t *testing.T, w lsptest.Workspace) *lsp.Manager {
 	t.Helper()
 
-	return lsptest.NewManager(t, lsp.DefaultConfig(), w)
+	cfg := map[string]lsp.ServerConfig{
+		"go": {
+			Command:    "gopls",
+			LanguageID: protocol.LanguageKindGo,
+		},
+	}
+	return lsptest.NewManager(t, cfg, w)
 }

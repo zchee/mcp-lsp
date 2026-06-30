@@ -38,8 +38,7 @@ func TestE2EDiagnostics(t *testing.T) {
 	res, err := session.CallTool(t.Context(), &mcpsdk.CallToolParams{
 		Name: "lsp_diagnostics",
 		Arguments: map[string]any{
-			"file":     fixture,
-			"language": "go",
+			"file": fixture,
 		},
 	})
 	if err != nil {
