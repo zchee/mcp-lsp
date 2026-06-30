@@ -20,6 +20,7 @@ import (
 	"fmt"
 	"log/slog"
 	"path/filepath"
+	"sort"
 	"sync"
 	"time"
 
@@ -72,6 +73,19 @@ func NewManager(cfg map[string]ServerConfig, rootDir string, logger *slog.Logger
 // WorkspaceRoot returns the absolute workspace root directory configured on m.
 func (m *Manager) WorkspaceRoot() string {
 	return m.rootDir
+}
+
+// ConfiguredLanguages returns the canonical languages configured on m.
+func (m *Manager) ConfiguredLanguages() []string {
+	m.mu.Lock()
+	defer m.mu.Unlock()
+
+	languages := make([]string, 0, len(m.cfg))
+	for lang := range m.cfg {
+		languages = append(languages, lang)
+	}
+	sort.Strings(languages)
+	return languages
 }
 
 // session returns the initialized server session for lang, spawning it on first

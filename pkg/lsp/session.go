@@ -135,9 +135,10 @@ func (s *serverSession) start(parent context.Context, cfg ServerConfig, rootURI 
 	sctx, cancel := context.WithCancel(context.WithoutCancel(parent))
 	s.cancel = cancel
 
-	// The command and arguments come from the trusted internal language-server
-	// registry, not from tool input, so this is not an injection vector.
-	cmd := exec.CommandContext(sctx, cfg.Command, cfg.Args...) //nolint:gosec // command sourced from the trusted internal registry
+	// The command and arguments come from the operator-controlled runtime
+	// registry built from config, CLI override, or PATH discovery. MCP tool input
+	// cannot provide this command, and it is executed without shell expansion.
+	cmd := exec.CommandContext(sctx, cfg.Command, cfg.Args...) //nolint:gosec // operator-controlled runtime registry command, not tool input or shell text
 	cmd.Stderr = newLogWriter(s.logger)
 
 	stdin, err := cmd.StdinPipe()

@@ -15,36 +15,72 @@
 package lsp
 
 import (
+	"fmt"
+	"os/exec"
+	"strings"
 	"testing"
 
 	gocmp "github.com/google/go-cmp/cmp"
 	"go.lsp.dev/protocol"
 )
 
-func TestDefaultConfig(t *testing.T) {
+func TestDefaultCatalogContainsLanguageMetadataButNoActiveServers(t *testing.T) {
 	t.Parallel()
 
-	want := map[string]ServerConfig{
+	specs := DefaultCatalog()
+	registry, err := NewRegistry(specs, nil)
+	if err != nil {
+		t.Fatalf("NewRegistry(DefaultCatalog(), nil): %v", err)
+	}
+	if got := registry.ConfiguredLanguages(); len(got) != 0 {
+		t.Fatalf("ConfiguredLanguages() = %v, want no active servers", got)
+	}
+	if _, ok := registry.ServerConfig("go"); ok {
+		t.Fatal("ServerConfig(\"go\") unexpectedly returned an active server")
+	}
+
+	tests := map[string]struct {
+		language   string
+		aliases    []string
+		extensions []string
+		languageID protocol.LanguageKind
+	}{
 		"go": {
-			Command:    "gopls",
-			Args:       nil,
-			LanguageID: protocol.LanguageKindGo,
+			language:   "go",
+			extensions: []string{".go"},
+			languageID: protocol.LanguageKindGo,
 		},
 		"python": {
-			Command:    "pyright-langserver",
-			Args:       []string{"--stdio"},
-			LanguageID: protocol.LanguageKindPython,
+			language:   "python",
+			aliases:    []string{"py", "pyright", "basedpyright"},
+			extensions: []string{".py", ".pyi"},
+			languageID: protocol.LanguageKindPython,
 		},
 		"rust": {
-			Command:    "rust-analyzer",
-			Args:       nil,
-			LanguageID: protocol.LanguageKindRust,
+			language:   "rust",
+			extensions: []string{".rs"},
+			languageID: protocol.LanguageKindRust,
 		},
 	}
 
-	got := DefaultConfig()
-	if diff := gocmp.Diff(want, got); diff != "" {
-		t.Errorf("DefaultConfig() mismatch (-want +got):\n%s", diff)
+	for name, tt := range tests {
+		t.Run(name, func(t *testing.T) {
+			t.Parallel()
+
+			spec, ok := registry.LanguageSpec(tt.language)
+			if !ok {
+				t.Fatalf("LanguageSpec(%q) not found", tt.language)
+			}
+			if spec.Language != tt.language || spec.LanguageID != tt.languageID {
+				t.Fatalf("LanguageSpec(%q) = %+v", tt.language, spec)
+			}
+			if diff := gocmp.Diff(tt.aliases, spec.Aliases); diff != "" {
+				t.Fatalf("aliases mismatch (-want +got):\n%s", diff)
+			}
+			if diff := gocmp.Diff(tt.extensions, spec.Extensions); diff != "" {
+				t.Fatalf("extensions mismatch (-want +got):\n%s", diff)
+			}
+		})
 	}
 }
 
@@ -102,10 +138,13 @@ func TestInferLanguageFromCommand(t *testing.T) {
 			want:    "python",
 			wantOK:  true,
 		},
-		"gopls wrapper": {
-			command: "custom-gopls",
+		"gopls command": {
+			command: "gopls",
 			want:    "go",
 			wantOK:  true,
+		},
+		"misleading wrapper does not infer": {
+			command: "custom-gopls",
 		},
 		"unknown command": {
 			command: "language-server",
@@ -124,5 +163,126 @@ func TestInferLanguageFromCommand(t *testing.T) {
 				t.Fatalf("InferLanguageFromCommand(%q) = %q, want %q", tt.command, got, tt.want)
 			}
 		})
+	}
+}
+
+func TestDiscoverServerConfigsUsesLookPathAndCandidateOrder(t *testing.T) {
+	t.Parallel()
+
+	paths := map[string]string{
+		"basedpyright-langserver": "/bin/basedpyright-langserver",
+		"pyright-langserver":      "/bin/pyright-langserver",
+		"rust-analyzer":           "/bin/rust-analyzer",
+	}
+	lookPath := func(command string) (string, error) {
+		if path, ok := paths[command]; ok {
+			return path, nil
+		}
+		return "", exec.ErrNotFound
+	}
+
+	got := DiscoverServerConfigs(DefaultCatalog(), lookPath)
+	want := map[string]ServerConfig{
+		"python": {
+			Command:    "/bin/basedpyright-langserver",
+			Args:       []string{"--stdio"},
+			LanguageID: protocol.LanguageKindPython,
+		},
+		"rust": {
+			Command:    "/bin/rust-analyzer",
+			LanguageID: protocol.LanguageKindRust,
+		},
+	}
+	if diff := gocmp.Diff(want, got); diff != "" {
+		t.Fatalf("DiscoverServerConfigs mismatch (-want +got):\n%s", diff)
+	}
+	if _, ok := got["go"]; ok {
+		t.Fatal("gopls became active without LookPath success")
+	}
+}
+
+func TestRegistryCanonicalizationCloningAndFileInference(t *testing.T) {
+	t.Parallel()
+
+	cfg := map[string]ServerConfig{
+		"py": {
+			Command:    "pyright-langserver",
+			Args:       []string{"--stdio"},
+			LanguageID: protocol.LanguageKindPython,
+		},
+	}
+	registry, err := NewRegistry(DefaultCatalog(), cfg)
+	if err != nil {
+		t.Fatalf("NewRegistry: %v", err)
+	}
+	cfg["py"] = ServerConfig{}
+
+	serverCfg, ok := registry.ServerConfig("basedpyright")
+	if !ok {
+		t.Fatal("ServerConfig(basedpyright) not found")
+	}
+	serverCfg.Args[0] = "--mutated"
+	again, _ := registry.ServerConfig("python")
+	if diff := gocmp.Diff([]string{"--stdio"}, again.Args); diff != "" {
+		t.Fatalf("ServerConfig args were not cloned (-want +got):\n%s", diff)
+	}
+	if got, ok := registry.LanguageForFile("main.py", ""); !ok || got != "python" {
+		t.Fatalf("LanguageForFile(main.py) = %q/%t, want python/true", got, ok)
+	}
+	if got, ok := registry.LanguageForFile("script", "#!/usr/bin/env python\n"); !ok || got != "python" {
+		t.Fatalf("LanguageForFile(shebang) = %q/%t, want python/true", got, ok)
+	}
+}
+
+func TestRegistryRejectsConflictingAliasesAndExtensions(t *testing.T) {
+	t.Parallel()
+
+	tests := map[string]struct {
+		specs []LanguageSpec
+		want  string
+	}{
+		"alias conflict": {
+			specs: []LanguageSpec{
+				{Language: "one", Aliases: []string{"shared"}},
+				{Language: "two", Aliases: []string{"shared"}},
+			},
+			want: "alias",
+		},
+		"extension conflict": {
+			specs: []LanguageSpec{
+				{Language: "one", Extensions: []string{".x"}},
+				{Language: "two", Extensions: []string{".x"}},
+			},
+			want: "extension",
+		},
+	}
+
+	for name, tt := range tests {
+		t.Run(name, func(t *testing.T) {
+			t.Parallel()
+
+			_, err := NewRegistry(tt.specs, nil)
+			if err == nil || !strings.Contains(err.Error(), tt.want) {
+				t.Fatalf("NewRegistry error = %v, want contains %q", err, tt.want)
+			}
+		})
+	}
+}
+
+func TestRegistrySupportsCustomConfiguredLanguage(t *testing.T) {
+	t.Parallel()
+
+	registry, err := NewRegistry(nil, map[string]ServerConfig{
+		"zig": {Command: "zls"},
+	})
+	if err != nil {
+		t.Fatalf("NewRegistry custom language: %v", err)
+	}
+	cfg, ok := registry.ServerConfig("zig")
+	if !ok {
+		t.Fatal("ServerConfig(zig) not found")
+	}
+	if got := fmt.Sprint(cfg.LanguageID); got != "zig" {
+		t.Fatalf("custom language ID = %q, want zig", got)
 	}
 }
