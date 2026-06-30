@@ -20,7 +20,7 @@ import (
 	"fmt"
 	"log/slog"
 	"path/filepath"
-	"sort"
+	"slices"
 	"sync"
 	"time"
 
@@ -84,7 +84,7 @@ func (m *Manager) ConfiguredLanguages() []string {
 	for lang := range m.cfg {
 		languages = append(languages, lang)
 	}
-	sort.Strings(languages)
+	slices.Sort(languages)
 	return languages
 }
 
