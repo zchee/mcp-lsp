@@ -87,15 +87,21 @@ func DefaultCatalog() []LanguageSpec {
 	return cloneLanguageSpecs(builtInLanguageSpecs)
 }
 
+var defaultRegistry *Registry
+
+func init() {
+	var err error
+	defaultRegistry, err = NewRegistry(DefaultCatalog(), nil)
+	if err != nil {
+		panic("failed to initialize default language registry: " + err.Error())
+	}
+}
+
 // CanonicalLanguage returns the built-in canonical language key for a
 // user-supplied language identifier. Unknown identifiers are normalized and
 // returned unchanged.
 func CanonicalLanguage(lang string) string {
-	registry, err := NewRegistry(DefaultCatalog(), nil)
-	if err != nil {
-		return normalizeLanguage(lang)
-	}
-	canonical, ok := registry.CanonicalLanguage(lang)
+	canonical, ok := defaultRegistry.CanonicalLanguage(lang)
 	if !ok {
 		return normalizeLanguage(lang)
 	}

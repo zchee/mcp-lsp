@@ -316,7 +316,7 @@ func resolveCLIOverrideLanguage(specs []lsp.LanguageSpec, lang string) (canonica
 		spec, _ := registry.LanguageSpec(known)
 		return known, spec.LanguageID, specs, nil
 	}
-	canonical = lsp.CanonicalLanguage(lang)
+	canonical = strings.ToLower(strings.TrimSpace(lang))
 	if canonical == "" {
 		return "", "", nil, fmt.Errorf("language is required")
 	}
