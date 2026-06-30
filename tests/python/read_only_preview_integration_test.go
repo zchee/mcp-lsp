@@ -64,7 +64,72 @@ func TestIntegrationPyrightReadOnlyPreviews(t *testing.T) {
 	assertPyrightRenameEdits(t, edits, renamePos, queryPos)
 }
 
+func TestIntegrationBasedPyrightLanguageAliases(t *testing.T) {
+	lsptest.RequireIntegration(t, basedpyrightCommand)
+
+	ws := extractFixture(t, "read_only_preview_suite.txtar")
+
+	mainFile := ws.Path("main.py")
+	text := ws.Source(t, "main.py")
+	hoverPos := ws.MarkerPosition(t, "main.py", "hover", "ANSWER")
+
+	tests := map[string]struct {
+		language string
+	}{
+		"python canonical language": {
+			language: "python",
+		},
+		"py alias": {
+			language: "py",
+		},
+		"basedpyright alias": {
+			language: "basedpyright",
+		},
+	}
+
+	for name, tt := range tests {
+		t.Run(name, func(t *testing.T) {
+			mgr := newBasedPyrightManager(t, ws)
+			diags, err := mgr.Diagnostics().Lookup(t.Context(), tt.language, mainFile, text)
+			if err != nil {
+				t.Fatalf("diagnostics with language %q: %v", tt.language, err)
+			}
+			if diags == nil {
+				t.Fatalf("diagnostics with language %q returned nil slice", tt.language)
+			}
+		})
+	}
+
+	mgr := newBasedPyrightManager(t, ws)
+	hover := lookupPythonHoverWithLanguage(t, mgr, "basedpyright", mainFile, text, hoverPos)
+	if hover == nil || !strings.Contains(hover.Value, "ANSWER") {
+		t.Fatalf("basedpyright hover = %+v, want documentation for ANSWER", hover)
+	}
+
+	_, err := mgr.Formatting().Format(t.Context(), "basedpyright", mainFile, text, protocol.FormattingOptions{TabSize: 4, InsertSpaces: true})
+	if err != nil && strings.Contains(err.Error(), "illegal character") {
+		t.Fatalf("basedpyright formatting routed through non-Python semantics: %v", err)
+	}
+}
+
+func newBasedPyrightManager(t *testing.T, ws lsptest.Workspace) *lsp.Manager {
+	t.Helper()
+
+	cfg := lsp.DefaultConfig()
+	pythonCfg := cfg[pythonLanguage]
+	pythonCfg.Command = basedpyrightCommand
+	cfg[pythonLanguage] = pythonCfg
+	return lsptest.NewManager(t, cfg, ws)
+}
+
 func lookupPyrightHover(t *testing.T, mgr *lsp.Manager, absPath, text string, pos protocol.Position) *lsp.HoverResult {
+	t.Helper()
+	validatePyrightReadOnlyPreviewLookupConfig(t)
+
+	return lookupPythonHoverWithLanguage(t, mgr, pyrightReadOnlyPreviewLookup.Language, absPath, text, pos)
+}
+
+func lookupPythonHoverWithLanguage(t *testing.T, mgr *lsp.Manager, language, absPath, text string, pos protocol.Position) *lsp.HoverResult {
 	t.Helper()
 	validatePyrightReadOnlyPreviewLookupConfig(t)
 
@@ -73,7 +138,7 @@ func lookupPyrightHover(t *testing.T, mgr *lsp.Manager, absPath, text string, po
 		lastErr error
 	)
 	for range pyrightReadOnlyPreviewLookup.Attempts {
-		hover, lastErr = mgr.Hover().Lookup(t.Context(), pyrightReadOnlyPreviewLookup.Language, absPath, text, pos)
+		hover, lastErr = mgr.Hover().Lookup(t.Context(), language, absPath, text, pos)
 		if lastErr == nil && hover != nil && hover.Value != "" {
 			return hover
 		}

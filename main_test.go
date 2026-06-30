@@ -43,6 +43,7 @@ func TestParseCLI(t *testing.T) {
 				logLevel:   "debug",
 				lspCommand: "custom-gopls",
 				lspArgs:    []string{"-remote=auto", "--stdio"},
+				lang:       "go",
 			},
 		},
 		"lsp command without child args": {
@@ -51,6 +52,26 @@ func TestParseCLI(t *testing.T) {
 				workspace:  workspace,
 				logLevel:   "info",
 				lspCommand: "custom-gopls",
+				lang:       "go",
+			},
+		},
+		"basedpyright command infers python": {
+			args: []string{"-lsp", "basedpyright-langserver", "--", "--stdio"},
+			want: cliConfig{
+				workspace:  workspace,
+				logLevel:   "info",
+				lspCommand: "basedpyright-langserver",
+				lspArgs:    []string{"--stdio"},
+				lang:       "python",
+			},
+		},
+		"explicit language alias canonicalizes for lsp command": {
+			args: []string{"-language", "basedpyright", "-lsp", "custom-server"},
+			want: cliConfig{
+				workspace:  workspace,
+				logLevel:   "info",
+				lspCommand: "custom-server",
+				lang:       "python",
 			},
 		},
 		"empty delimiter is a no-op without lsp command": {
@@ -115,6 +136,14 @@ func TestParseCLIRejectsInvalidArgs(t *testing.T) {
 		"empty lsp command": {
 			args:        []string{"-lsp", ""},
 			wantContain: "lsp command is required",
+		},
+		"custom lsp command without inferable language": {
+			args:        []string{"-lsp", "custom-server"},
+			wantContain: "language is required",
+		},
+		"empty language": {
+			args:        []string{"-language", "", "-lsp", "gopls"},
+			wantContain: "language is required",
 		},
 	}
 

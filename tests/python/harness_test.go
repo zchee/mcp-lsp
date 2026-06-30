@@ -35,9 +35,10 @@ import (
 )
 
 const (
-	pyrightCommand = "pyright-langserver"
-	pythonLanguage = "python"
-	pyrightSettle  = 250 * time.Millisecond
+	pyrightCommand      = "pyright-langserver"
+	basedpyrightCommand = "basedpyright-langserver"
+	pythonLanguage      = "python"
+	pyrightSettle       = 250 * time.Millisecond
 )
 
 var pyrightReadOnlyPreviewLookup = lsptest.LookupConfig{

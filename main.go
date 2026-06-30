@@ -68,11 +68,13 @@ func run(args []string) error {
 
 	lspCfg := lsp.DefaultConfig()
 	if cfg.lspCommand != "" {
-		lspCfg[cfg.lang] = lsp.ServerConfig{
-			Command:    cfg.lspCommand,
-			Args:       cfg.lspArgs,
-			LanguageID: protocol.LanguageKind(cfg.lang),
+		serverCfg := lspCfg[cfg.lang]
+		serverCfg.Command = cfg.lspCommand
+		serverCfg.Args = cfg.lspArgs
+		if serverCfg.LanguageID == "" {
+			serverCfg.LanguageID = protocol.LanguageKind(cfg.lang)
 		}
+		lspCfg[cfg.lang] = serverCfg
 	}
 	mgr := lsp.NewManager(lspCfg, cfg.workspace, logger)
 	defer func() {
@@ -81,7 +83,12 @@ func run(args []string) error {
 		}
 	}()
 
-	srv := mcpserver.NewServer(mgr, logger)
+	var srv *mcp.Server
+	if cfg.lspCommand != "" {
+		srv = mcpserver.NewServerWithDefaultLanguage(mgr, logger, cfg.lang)
+	} else {
+		srv = mcpserver.NewServer(mgr, logger)
+	}
 
 	ctx, stop := signal.NotifyContext(context.Background(), os.Interrupt, syscall.SIGTERM)
 	defer stop()
@@ -126,6 +133,9 @@ func parseCLI(args []string, cwd string) (cliConfig, error) {
 	showVersion := fs.Bool("version", false, "print the version and exit")
 	var lspCommand stringFlag
 	fs.Var(&lspCommand, "lsp", "language server command")
+	var language stringFlag
+	fs.Var(&language, "language", "language id served by -lsp; inferred for common servers when omitted")
+	fs.Var(&language, "lang", "alias for -language")
 
 	if err := fs.Parse(flagArgs); err != nil {
 		return cliConfig{}, err
@@ -135,6 +145,7 @@ func parseCLI(args []string, cwd string) (cliConfig, error) {
 		logLevel:    *logLevel,
 		showVersion: *showVersion,
 		lspCommand:  lspCommand.value,
+		lang:        lsp.CanonicalLanguage(language.value),
 	}
 	if cfg.showVersion {
 		return cfg, nil
@@ -145,8 +156,18 @@ func parseCLI(args []string, cwd string) (cliConfig, error) {
 	if lspCommand.set && lspCommand.value == "" {
 		return cliConfig{}, fmt.Errorf("lsp command is required")
 	}
+	if language.set && cfg.lang == "" {
+		return cliConfig{}, fmt.Errorf("language is required")
+	}
 	if len(lspArgs) > 0 && !lspCommand.set {
 		return cliConfig{}, fmt.Errorf("language-server args after -- require -lsp")
+	}
+	if lspCommand.set && cfg.lang == "" {
+		lang, ok := lsp.InferLanguageFromCommand(lspCommand.value)
+		if !ok {
+			return cliConfig{}, fmt.Errorf("language is required for -lsp %q; pass -language", lspCommand.value)
+		}
+		cfg.lang = lang
 	}
 
 	if hasDelimiter && len(lspArgs) > 0 {
@@ -155,7 +176,7 @@ func parseCLI(args []string, cwd string) (cliConfig, error) {
 	return cfg, nil
 }
 
-func splitLSPArgs(args []string) (flagArgs []string, lspArgs []string, hasDelimiter bool) {
+func splitLSPArgs(args []string) (flagArgs, lspArgs []string, hasDelimiter bool) {
 	for i, arg := range args {
 		if arg == "--" {
 			return args[:i], args[i+1:], true
