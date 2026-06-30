@@ -15,6 +15,8 @@
 package main
 
 import (
+	"os"
+	"path/filepath"
 	"slices"
 	"strings"
 	"testing"
@@ -34,24 +36,27 @@ func TestParseCLI(t *testing.T) {
 			want: cliConfig{
 				workspace: workspace,
 				logLevel:  "info",
+				discover:  true,
 			},
 		},
 		"lsp command and child args after delimiter": {
-			args: []string{"-workspace", workspace, "-log-level", "debug", "-lsp", "custom-gopls", "--", "-remote=auto", "--stdio"},
+			args: []string{"-workspace", workspace, "-log-level", "debug", "-lsp", "gopls", "--", "-remote=auto", "--stdio"},
 			want: cliConfig{
 				workspace:  workspace,
 				logLevel:   "debug",
-				lspCommand: "custom-gopls",
+				discover:   true,
+				lspCommand: "gopls",
 				lspArgs:    []string{"-remote=auto", "--stdio"},
 				lang:       "go",
 			},
 		},
 		"lsp command without child args": {
-			args: []string{"-lsp", "custom-gopls"},
+			args: []string{"-lsp", "gopls"},
 			want: cliConfig{
 				workspace:  workspace,
 				logLevel:   "info",
-				lspCommand: "custom-gopls",
+				discover:   true,
+				lspCommand: "gopls",
 				lang:       "go",
 			},
 		},
@@ -60,6 +65,7 @@ func TestParseCLI(t *testing.T) {
 			want: cliConfig{
 				workspace:  workspace,
 				logLevel:   "info",
+				discover:   true,
 				lspCommand: "basedpyright-langserver",
 				lspArgs:    []string{"--stdio"},
 				lang:       "python",
@@ -70,6 +76,7 @@ func TestParseCLI(t *testing.T) {
 			want: cliConfig{
 				workspace:  workspace,
 				logLevel:   "info",
+				discover:   true,
 				lspCommand: "custom-server",
 				lang:       "python",
 			},
@@ -79,6 +86,7 @@ func TestParseCLI(t *testing.T) {
 			want: cliConfig{
 				workspace: workspace,
 				logLevel:  "info",
+				discover:  true,
 			},
 		},
 		"version flag remains independent": {
@@ -86,6 +94,7 @@ func TestParseCLI(t *testing.T) {
 			want: cliConfig{
 				workspace:   workspace,
 				logLevel:    "info",
+				discover:    true,
 				showVersion: true,
 			},
 		},
@@ -94,7 +103,25 @@ func TestParseCLI(t *testing.T) {
 			want: cliConfig{
 				workspace:   workspace,
 				logLevel:    "info",
+				discover:    true,
 				showVersion: true,
+			},
+		},
+		"discover can be disabled": {
+			args: []string{"-discover=false"},
+			want: cliConfig{
+				workspace: workspace,
+				logLevel:  "info",
+				discover:  false,
+			},
+		},
+		"explicit config path": {
+			args: []string{"-config", "servers.json"},
+			want: cliConfig{
+				workspace:  workspace,
+				logLevel:   "info",
+				configPath: "servers.json",
+				discover:   true,
 			},
 		},
 	}
@@ -111,6 +138,145 @@ func TestParseCLI(t *testing.T) {
 				t.Errorf("parseCLI() mismatch (-want +got):\n%s", diff)
 			}
 		})
+	}
+}
+
+func TestLoadRuntimeRegistry(t *testing.T) {
+	t.Parallel()
+
+	workspace := t.TempDir()
+	configPath := filepath.Join(workspace, ".mcp-lsp.json")
+	if err := os.WriteFile(configPath, []byte(`{
+		"servers": {
+			"python": {
+				"command": "basedpyright-langserver",
+				"args": ["--stdio"],
+				"languageId": "python",
+				"extensions": [".py", ".pyi"],
+				"aliases": ["py", "basedpyright"]
+			}
+		}
+	}`), 0o600); err != nil {
+		t.Fatalf("write config: %v", err)
+	}
+
+	tests := map[string]struct {
+		cfg       cliConfig
+		wantLangs []string
+		wantCfg   map[string]string
+	}{
+		"empty when discovery disabled and no config": {
+			cfg: cliConfig{
+				workspace: t.TempDir(),
+				discover:  false,
+			},
+			wantLangs: []string{},
+		},
+		"workspace config is loaded": {
+			cfg: cliConfig{
+				workspace: workspace,
+				discover:  false,
+			},
+			wantLangs: []string{"python"},
+			wantCfg: map[string]string{
+				"python": "basedpyright-langserver",
+			},
+		},
+		"known cli override infers python without language": {
+			cfg: cliConfig{
+				workspace:  t.TempDir(),
+				discover:   false,
+				lspCommand: "basedpyright-langserver",
+				lspArgs:    []string{"--stdio"},
+				lang:       "python",
+			},
+			wantLangs: []string{"python"},
+			wantCfg: map[string]string{
+				"python": "basedpyright-langserver",
+			},
+		},
+		"cli override wins over config": {
+			cfg: cliConfig{
+				workspace:  workspace,
+				discover:   false,
+				lspCommand: "pyright-langserver",
+				lspArgs:    []string{"--stdio"},
+				lang:       "python",
+			},
+			wantLangs: []string{"python"},
+			wantCfg: map[string]string{
+				"python": "pyright-langserver",
+			},
+		},
+	}
+
+	for name, tt := range tests {
+		t.Run(name, func(t *testing.T) {
+			t.Parallel()
+
+			registry, _, err := loadRuntimeRegistry(&tt.cfg)
+			if err != nil {
+				t.Fatalf("loadRuntimeRegistry() error = %v", err)
+			}
+			if diff := gocmp.Diff(tt.wantLangs, registry.ConfiguredLanguages()); diff != "" {
+				t.Fatalf("configured languages mismatch (-want +got):\n%s", diff)
+			}
+			for language, command := range tt.wantCfg {
+				serverCfg, ok := registry.ServerConfig(language)
+				if !ok {
+					t.Fatalf("ServerConfig(%q) not found", language)
+				}
+				if serverCfg.Command != command {
+					t.Fatalf("ServerConfig(%q).Command = %q, want %q", language, serverCfg.Command, command)
+				}
+			}
+		})
+	}
+}
+
+func TestLoadRuntimeRegistryExplicitMissingConfigErrors(t *testing.T) {
+	t.Parallel()
+
+	cfg := cliConfig{
+		workspace:  t.TempDir(),
+		configPath: filepath.Join(t.TempDir(), "missing.json"),
+		discover:   false,
+	}
+	_, _, err := loadRuntimeRegistry(&cfg)
+	if err == nil || !strings.Contains(err.Error(), "read config") {
+		t.Fatalf("loadRuntimeRegistry() error = %v, want read config error", err)
+	}
+}
+
+func TestLoadRuntimeRegistryRejectsDuplicateCanonicalConfigLanguages(t *testing.T) {
+	t.Parallel()
+
+	workspace := t.TempDir()
+	configPath := filepath.Join(workspace, ".mcp-lsp.json")
+	if err := os.WriteFile(configPath, []byte(`{
+		"servers": {
+			"python": {
+				"command": "pyright-langserver",
+				"args": ["--stdio"],
+				"languageId": "python"
+			},
+			"py": {
+				"command": "basedpyright-langserver",
+				"args": ["--stdio"],
+				"languageId": "python"
+			}
+		}
+	}`), 0o600); err != nil {
+		t.Fatalf("write config: %v", err)
+	}
+
+	cfg := cliConfig{
+		workspace: workspace,
+		discover:  false,
+	}
+	_, _, err := loadRuntimeRegistry(&cfg)
+	if err == nil || !strings.Contains(err.Error(), "duplicate config language") {
+		t.Fatalf("loadRuntimeRegistry() error = %v, want duplicate config language error", err)
 	}
 }
 
@@ -139,6 +305,10 @@ func TestParseCLIRejectsInvalidArgs(t *testing.T) {
 		},
 		"custom lsp command without inferable language": {
 			args:        []string{"-lsp", "custom-server"},
+			wantContain: "language is required",
+		},
+		"wrapper lsp command without explicit language": {
+			args:        []string{"-lsp", "custom-gopls"},
 			wantContain: "language is required",
 		},
 		"empty language": {
