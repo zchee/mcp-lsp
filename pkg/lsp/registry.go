@@ -18,7 +18,6 @@ import (
 	"fmt"
 	"path/filepath"
 	"slices"
-	"sort"
 	"strings"
 
 	"go.lsp.dev/protocol"
@@ -49,6 +48,9 @@ func NewRegistry(specs []LanguageSpec, servers map[string]ServerConfig) (*Regist
 			return nil, err
 		}
 	}
+	if err := r.rebuildIndexes(); err != nil {
+		return nil, err
+	}
 	for lang, cfg := range servers {
 		canonical, ok := r.CanonicalLanguage(lang)
 		if !ok {
@@ -56,7 +58,10 @@ func NewRegistry(specs []LanguageSpec, servers map[string]ServerConfig) (*Regist
 			if canonical == "" {
 				return nil, fmt.Errorf("server language is required")
 			}
-			if err := r.addSpec(&LanguageSpec{Language: canonical, LanguageID: protocolLanguageKind(canonical)}); err != nil {
+			if err := r.addSpec(&LanguageSpec{Language: canonical, LanguageID: protocol.LanguageKind(canonical)}); err != nil {
+				return nil, err
+			}
+			if err := r.rebuildIndexes(); err != nil {
 				return nil, err
 			}
 		}
@@ -68,7 +73,7 @@ func NewRegistry(specs []LanguageSpec, servers map[string]ServerConfig) (*Regist
 			spec := r.specs[canonical]
 			cfg.LanguageID = spec.LanguageID
 			if cfg.LanguageID == "" {
-				cfg.LanguageID = protocolLanguageKind(canonical)
+				cfg.LanguageID = protocol.LanguageKind(canonical)
 			}
 		}
 		r.servers[canonical] = cfg
@@ -130,7 +135,7 @@ func (r *Registry) ConfiguredLanguages() []string {
 	for lang := range r.servers {
 		languages = append(languages, lang)
 	}
-	sort.Strings(languages)
+	slices.Sort(languages)
 	return languages
 }
 
@@ -143,7 +148,7 @@ func (r *Registry) KnownLanguages() []string {
 	for lang := range r.specs {
 		languages = append(languages, lang)
 	}
-	sort.Strings(languages)
+	slices.Sort(languages)
 	return languages
 }
 
@@ -197,7 +202,7 @@ func (r *Registry) addSpec(spec *LanguageSpec) error {
 	cloned := cloneLanguageSpec(spec)
 	cloned.Language = canonical
 	if cloned.LanguageID == "" {
-		cloned.LanguageID = protocolLanguageKind(canonical)
+		cloned.LanguageID = protocol.LanguageKind(canonical)
 	}
 	for i, alias := range cloned.Aliases {
 		alias = normalizeLanguage(alias)
@@ -225,9 +230,6 @@ func (r *Registry) addSpec(spec *LanguageSpec) error {
 		cloned = mergeLanguageSpec(&existing, &cloned)
 	}
 	r.specs[canonical] = cloned
-	if err := r.rebuildIndexes(); err != nil {
-		return err
-	}
 	return nil
 }
 
@@ -305,8 +307,4 @@ func normalizeExtension(ext string) string {
 		return ext
 	}
 	return "." + ext
-}
-
-func protocolLanguageKind(language string) protocol.LanguageKind {
-	return protocol.LanguageKind(language)
 }

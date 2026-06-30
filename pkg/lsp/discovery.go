@@ -14,7 +14,11 @@
 
 package lsp
 
-import "slices"
+import (
+	"slices"
+
+	"go.lsp.dev/protocol"
+)
 
 // LookPathFunc resolves a command name to an executable path.
 type LookPathFunc func(file string) (string, error)
@@ -43,7 +47,7 @@ func DiscoverServerConfigs(specs []LanguageSpec, lookPath LookPathFunc) map[stri
 			}
 			languageID := spec.LanguageID
 			if languageID == "" {
-				languageID = protocolLanguageKind(canonical)
+				languageID = protocol.LanguageKind(canonical)
 			}
 			discovered[canonical] = ServerConfig{
 				Command:    command,
