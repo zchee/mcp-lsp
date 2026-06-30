@@ -43,7 +43,7 @@ func (f *fakeHoverLooker) Lookup(_ context.Context, lang, absPath, text string, 
 	return f.hover, nil
 }
 
-func TestHoverHandlerReadsFileDefaultsLanguageAndConvertsCoordinates(t *testing.T) {
+func TestHoverHandlerReadsFileInfersLanguageAndConvertsCoordinates(t *testing.T) {
 	t.Parallel()
 
 	path := writeTempFile(t)
@@ -51,7 +51,7 @@ func TestHoverHandlerReadsFileDefaultsLanguageAndConvertsCoordinates(t *testing.
 	looker := &fakeHoverLooker{
 		hover: &lsp.HoverResult{Kind: "markdown", Value: "**doc**", Range: &hoverRange},
 	}
-	handler := hoverHandler(looker, t.TempDir())
+	handler := hoverHandler(looker, t.TempDir(), testResolver(t, "go", "python", "rust"))
 
 	_, out, err := handler(t.Context(), nil, HoverInput{File: path, Line: 3, Column: 5})
 	if err != nil {

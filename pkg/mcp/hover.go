@@ -33,7 +33,7 @@ type HoverInput struct {
 	File     string `json:"file"               jsonschema:"absolute or workspace-relative path to the file to query"`
 	Line     int    `json:"line"               jsonschema:"one-based line containing the hover position"`
 	Column   int    `json:"column"             jsonschema:"one-based column containing the hover position"`
-	Language string `json:"language,omitempty" jsonschema:"language id of the file; defaults to go"`
+	Language string `json:"language,omitempty" jsonschema:"language id of the file; inferred from file when omitted"`
 }
 
 // HoverOutput is the output schema for lsp_hover.
@@ -50,13 +50,13 @@ type HoverItem struct {
 	Range *DefinitionRangeItem `json:"range,omitempty"`
 }
 
-func hoverHandler(looker hoverLooker, workspaceRoot string, defaultLang ...string) mcp.ToolHandlerFor[HoverInput, HoverOutput] {
+func hoverHandler(looker hoverLooker, workspaceRoot string, resolver languageResolver) mcp.ToolHandlerFor[HoverInput, HoverOutput] {
 	return func(ctx context.Context, _ *mcp.CallToolRequest, in HoverInput) (*mcp.CallToolResult, HoverOutput, error) {
 		pos, err := navigationInputPosition(in.Line, in.Column)
 		if err != nil {
 			return nil, HoverOutput{}, err
 		}
-		absPath, text, lang, err := readInputFile(workspaceRoot, in.File, in.Language, defaultLang...)
+		absPath, text, lang, err := readInputFile(workspaceRoot, in.File, in.Language, resolver)
 		if err != nil {
 			return nil, HoverOutput{}, err
 		}

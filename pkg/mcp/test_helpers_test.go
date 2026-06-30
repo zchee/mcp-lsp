@@ -18,6 +18,10 @@ import (
 	"os"
 	"path/filepath"
 	"testing"
+
+	"go.lsp.dev/protocol"
+
+	"github.com/zchee/mcp-lsp/pkg/lsp"
 )
 
 // fileContent is the source written to the temporary file used by the handler
@@ -38,4 +42,27 @@ func writeFile(t *testing.T, path, content string) {
 	if err := os.WriteFile(path, []byte(content), 0o600); err != nil {
 		t.Fatalf("write file: %v", err)
 	}
+}
+
+func testResolver(t *testing.T, languages ...string) languageResolver {
+	t.Helper()
+
+	cfg := make(map[string]lsp.ServerConfig, len(languages))
+	for _, language := range languages {
+		switch language {
+		case "go":
+			cfg[language] = lsp.ServerConfig{Command: "gopls", LanguageID: protocol.LanguageKindGo}
+		case "python":
+			cfg[language] = lsp.ServerConfig{Command: "pyright-langserver", Args: []string{"--stdio"}, LanguageID: protocol.LanguageKindPython}
+		case "rust":
+			cfg[language] = lsp.ServerConfig{Command: "rust-analyzer", LanguageID: protocol.LanguageKindRust}
+		default:
+			cfg[language] = lsp.ServerConfig{Command: language + "-server", LanguageID: protocol.LanguageKind(language)}
+		}
+	}
+	registry, err := lsp.NewRegistry(lsp.DefaultCatalog(), cfg)
+	if err != nil {
+		t.Fatalf("create test language registry: %v", err)
+	}
+	return NewLanguageResolver(registry)
 }

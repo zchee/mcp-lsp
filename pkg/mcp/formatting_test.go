@@ -76,7 +76,7 @@ func TestFormattingHandlerReadsFileAndConvertsInputs(t *testing.T) {
 		}},
 	}
 
-	handler := formattingHandler(formatter, workspace)
+	handler := formattingHandler(formatter, workspace, testResolver(t, "go", "python", "rust"))
 	_, out, err := handler(t.Context(), nil, FormattingInput{File: "main.go", Language: "rust", TabSize: 2, InsertSpaces: &insertSpaces})
 	if err != nil {
 		t.Fatalf("formatting handler: %v", err)
@@ -99,7 +99,7 @@ func TestFormattingHandlerReadsFileAndConvertsInputs(t *testing.T) {
 	}
 }
 
-func TestFormattingHandlerUsesInjectedDefaultLanguage(t *testing.T) {
+func TestFormattingHandlerInfersLanguage(t *testing.T) {
 	t.Parallel()
 
 	workspace := t.TempDir()
@@ -107,7 +107,7 @@ func TestFormattingHandlerUsesInjectedDefaultLanguage(t *testing.T) {
 	writeFile(t, path, "# comment\n")
 	formatter := &fakeFormatter{}
 
-	handler := formattingHandler(formatter, workspace, "python")
+	handler := formattingHandler(formatter, workspace, testResolver(t, "python"))
 	_, _, err := handler(t.Context(), nil, FormattingInput{File: "main.py"})
 	if err != nil {
 		t.Fatalf("formatting handler: %v", err)
@@ -133,7 +133,7 @@ func TestRangeFormattingHandlerReadsFileAndConvertsInputs(t *testing.T) {
 		}},
 	}
 
-	handler := rangeFormattingHandler(formatter, workspace)
+	handler := rangeFormattingHandler(formatter, workspace, testResolver(t, "go", "python", "rust"))
 	_, out, err := handler(t.Context(), nil, RangeFormattingInput{
 		File:        "main.go",
 		StartLine:   2,
@@ -171,7 +171,7 @@ func TestRangeFormattingHandlerValidatesRangeBeforeFileIO(t *testing.T) {
 
 	missing := filepath.Join(t.TempDir(), "missing.go")
 	formatter := &fakeFormatter{}
-	handler := rangeFormattingHandler(formatter, t.TempDir())
+	handler := rangeFormattingHandler(formatter, t.TempDir(), testResolver(t, "go", "python", "rust"))
 
 	_, _, err := handler(t.Context(), nil, RangeFormattingInput{
 		File:        missing,

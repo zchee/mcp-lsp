@@ -52,7 +52,7 @@ func TestDiagnosticsHandlerEmptyFile(t *testing.T) {
 	t.Parallel()
 
 	looker := &fakeLooker{}
-	handler := diagnosticsHandler(looker, t.TempDir())
+	handler := diagnosticsHandler(looker, t.TempDir(), testResolver(t, "go", "python", "rust"))
 
 	_, _, err := handler(t.Context(), nil, DiagnosticsInput{File: ""})
 	if err == nil {
@@ -63,19 +63,19 @@ func TestDiagnosticsHandlerEmptyFile(t *testing.T) {
 	}
 }
 
-func TestDiagnosticsHandlerDefaultsLanguage(t *testing.T) {
+func TestDiagnosticsHandlerInfersLanguage(t *testing.T) {
 	t.Parallel()
 
 	path := writeTempFile(t)
 	looker := &fakeLooker{}
-	handler := diagnosticsHandler(looker, t.TempDir())
+	handler := diagnosticsHandler(looker, t.TempDir(), testResolver(t, "go", "python", "rust"))
 
 	_, _, err := handler(t.Context(), nil, DiagnosticsInput{File: path})
 	if err != nil {
 		t.Fatalf("handler: %v", err)
 	}
 	if looker.gotLang != "go" {
-		t.Errorf("Lookup language = %q, want %q (default)", looker.gotLang, "go")
+		t.Errorf("Lookup language = %q, want %q (inferred)", looker.gotLang, "go")
 	}
 	if looker.gotText != fileContent {
 		t.Errorf("Lookup text = %q, want the file contents", looker.gotText)
@@ -95,7 +95,7 @@ func TestDiagnosticsHandlerResolvesRelativeFileFromWorkspaceRoot(t *testing.T) {
 	}
 
 	looker := &fakeLooker{}
-	handler := diagnosticsHandler(looker, workspace)
+	handler := diagnosticsHandler(looker, workspace, testResolver(t, "go", "python", "rust"))
 
 	_, out, err := handler(t.Context(), nil, DiagnosticsInput{File: "main.go"})
 	if err != nil {
@@ -122,7 +122,7 @@ func TestDiagnosticsHandlerOneBasedConversion(t *testing.T) {
 			},
 		},
 	}
-	handler := diagnosticsHandler(looker, t.TempDir())
+	handler := diagnosticsHandler(looker, t.TempDir(), testResolver(t, "go", "python", "rust"))
 
 	_, out, err := handler(t.Context(), nil, DiagnosticsInput{File: path, Language: "go"})
 	if err != nil {
@@ -149,7 +149,7 @@ func TestDiagnosticsHandlerSurfacesLookupError(t *testing.T) {
 	path := writeTempFile(t)
 	sentinel := errors.New("language server initialize failed")
 	looker := &fakeLooker{err: sentinel}
-	handler := diagnosticsHandler(looker, t.TempDir())
+	handler := diagnosticsHandler(looker, t.TempDir(), testResolver(t, "go", "python", "rust"))
 
 	_, _, err := handler(t.Context(), nil, DiagnosticsInput{File: path})
 	if !errors.Is(err, sentinel) {
@@ -161,7 +161,7 @@ func TestDiagnosticsHandlerMissingFile(t *testing.T) {
 	t.Parallel()
 
 	looker := &fakeLooker{}
-	handler := diagnosticsHandler(looker, t.TempDir())
+	handler := diagnosticsHandler(looker, t.TempDir(), testResolver(t, "go", "python", "rust"))
 
 	missing := filepath.Join(t.TempDir(), "does-not-exist.go")
 	_, _, err := handler(t.Context(), nil, DiagnosticsInput{File: missing})
@@ -178,7 +178,7 @@ func TestDiagnosticsHandlerEmptyResult(t *testing.T) {
 
 	path := writeTempFile(t)
 	looker := &fakeLooker{diags: nil}
-	handler := diagnosticsHandler(looker, t.TempDir())
+	handler := diagnosticsHandler(looker, t.TempDir(), testResolver(t, "go", "python", "rust"))
 
 	_, out, err := handler(t.Context(), nil, DiagnosticsInput{File: path})
 	if err != nil {

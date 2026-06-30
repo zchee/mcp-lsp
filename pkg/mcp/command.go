@@ -40,7 +40,7 @@ type ExecuteCommandInput struct {
 	Command    string            `json:"command"              jsonschema:"server-advertised command id"`
 	Arguments  []protocol.LSPAny `json:"arguments,omitempty"  jsonschema:"optional raw JSON command arguments"`
 	ApplyEdits bool              `json:"applyEdits,omitempty" jsonschema:"allow server-initiated workspace/applyEdit during command execution"`
-	Language   string            `json:"language,omitempty"   jsonschema:"language id; defaults to go"`
+	Language   string            `json:"language,omitempty"   jsonschema:"language id; required when multiple language servers are configured"`
 }
 
 // ExecuteCommandOutput is the output schema for lsp_execute_command.
@@ -48,12 +48,16 @@ type ExecuteCommandOutput struct {
 	Result protocol.LSPAny `json:"result,omitempty"`
 }
 
-func executeCommandHandler(executor commandExecutor, defaultLang ...string) mcp.ToolHandlerFor[ExecuteCommandInput, ExecuteCommandOutput] {
+func executeCommandHandler(executor commandExecutor, resolver languageResolver) mcp.ToolHandlerFor[ExecuteCommandInput, ExecuteCommandOutput] {
 	return func(ctx context.Context, _ *mcp.CallToolRequest, in ExecuteCommandInput) (*mcp.CallToolResult, ExecuteCommandOutput, error) {
 		if in.Command == "" {
 			return nil, ExecuteCommandOutput{}, fmt.Errorf("command is required")
 		}
-		result, err := executor.Execute(ctx, defaultedLanguage(in.Language, defaultLang...), in.Command, in.Arguments, in.ApplyEdits)
+		lang, err := resolver.ResolveToolLanguage(in.Language)
+		if err != nil {
+			return nil, ExecuteCommandOutput{}, err
+		}
+		result, err := executor.Execute(ctx, lang, in.Command, in.Arguments, in.ApplyEdits)
 		if err != nil {
 			return nil, ExecuteCommandOutput{}, err
 		}

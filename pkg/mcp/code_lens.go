@@ -31,7 +31,7 @@ type codeLensLooker interface {
 type CodeLensInput struct {
 	File     string `json:"file"               jsonschema:"absolute or workspace-relative path to the file"`
 	Resolve  bool   `json:"resolve,omitempty"  jsonschema:"resolve lenses when the server supports it"`
-	Language string `json:"language,omitempty" jsonschema:"language id of the file; defaults to go"`
+	Language string `json:"language,omitempty" jsonschema:"language id of the file; inferred from file when omitted"`
 }
 
 // CodeLensOutput is the output schema for lsp_code_lens.
@@ -47,9 +47,9 @@ type CodeLensItem struct {
 	Command *CommandItem        `json:"command,omitempty"`
 }
 
-func codeLensHandler(looker codeLensLooker, workspaceRoot string, defaultLang ...string) mcp.ToolHandlerFor[CodeLensInput, CodeLensOutput] {
+func codeLensHandler(looker codeLensLooker, workspaceRoot string, resolver languageResolver) mcp.ToolHandlerFor[CodeLensInput, CodeLensOutput] {
 	return func(ctx context.Context, _ *mcp.CallToolRequest, in CodeLensInput) (*mcp.CallToolResult, CodeLensOutput, error) {
-		absPath, text, lang, err := readInputFile(workspaceRoot, in.File, in.Language, defaultLang...)
+		absPath, text, lang, err := readInputFile(workspaceRoot, in.File, in.Language, resolver)
 		if err != nil {
 			return nil, CodeLensOutput{}, err
 		}

@@ -35,10 +35,10 @@ type RenameInput struct {
 	Line     int    `json:"line"               jsonschema:"one-based line containing the symbol"`
 	Column   int    `json:"column"             jsonschema:"one-based column containing the symbol"`
 	NewName  string `json:"newName"            jsonschema:"new symbol name"`
-	Language string `json:"language,omitempty" jsonschema:"language id of the file; defaults to go"`
+	Language string `json:"language,omitempty" jsonschema:"language id of the file; inferred from file when omitted"`
 }
 
-func renameHandler(renamer renamer, workspaceRoot string, defaultLang ...string) mcp.ToolHandlerFor[RenameInput, WorkspaceEditPreviewOutput] {
+func renameHandler(renamer renamer, workspaceRoot string, resolver languageResolver) mcp.ToolHandlerFor[RenameInput, WorkspaceEditPreviewOutput] {
 	return func(ctx context.Context, _ *mcp.CallToolRequest, in RenameInput) (*mcp.CallToolResult, WorkspaceEditPreviewOutput, error) {
 		if in.NewName == "" {
 			return nil, WorkspaceEditPreviewOutput{}, fmt.Errorf("newName is required")
@@ -47,7 +47,7 @@ func renameHandler(renamer renamer, workspaceRoot string, defaultLang ...string)
 		if err != nil {
 			return nil, WorkspaceEditPreviewOutput{}, err
 		}
-		absPath, text, lang, err := readInputFile(workspaceRoot, in.File, in.Language, defaultLang...)
+		absPath, text, lang, err := readInputFile(workspaceRoot, in.File, in.Language, resolver)
 		if err != nil {
 			return nil, WorkspaceEditPreviewOutput{}, err
 		}

@@ -54,7 +54,7 @@ func TestCodeActionHandlerValidatesRangeBeforeFileIO(t *testing.T) {
 
 	missing := filepath.Join(t.TempDir(), "missing.go")
 	looker := &fakeCodeActionLooker{}
-	handler := codeActionHandler(looker, t.TempDir())
+	handler := codeActionHandler(looker, t.TempDir(), testResolver(t, "go", "python", "rust"))
 
 	_, _, err := handler(t.Context(), nil, CodeActionInput{
 		File:        missing,
@@ -91,7 +91,7 @@ func TestCodeActionHandlerConvertsRangeKindsAndEdits(t *testing.T) {
 			},
 		},
 	}
-	handler := codeActionHandler(looker, t.TempDir())
+	handler := codeActionHandler(looker, t.TempDir(), testResolver(t, "go", "python", "rust"))
 
 	_, out, err := handler(t.Context(), nil, CodeActionInput{
 		File:        path,

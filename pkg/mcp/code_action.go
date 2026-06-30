@@ -37,7 +37,7 @@ type CodeActionInput struct {
 	EndColumn   int      `json:"endColumn"          jsonschema:"one-based range end column"`
 	Only        []string `json:"only,omitempty"     jsonschema:"optional code action kinds to request"`
 	Resolve     bool     `json:"resolve,omitempty"  jsonschema:"resolve actions when the server supports it"`
-	Language    string   `json:"language,omitempty" jsonschema:"language id of the file; defaults to go"`
+	Language    string   `json:"language,omitempty" jsonschema:"language id of the file; inferred from file when omitted"`
 }
 
 // CodeActionOutput is the output schema for lsp_code_action.
@@ -57,13 +57,13 @@ type CodeActionItem struct {
 	Command        *CommandItem            `json:"command,omitempty"`
 }
 
-func codeActionHandler(looker codeActionLooker, workspaceRoot string, defaultLang ...string) mcp.ToolHandlerFor[CodeActionInput, CodeActionOutput] {
+func codeActionHandler(looker codeActionLooker, workspaceRoot string, resolver languageResolver) mcp.ToolHandlerFor[CodeActionInput, CodeActionOutput] {
 	return func(ctx context.Context, _ *mcp.CallToolRequest, in CodeActionInput) (*mcp.CallToolResult, CodeActionOutput, error) {
 		rng, err := inputRange(in.StartLine, in.StartColumn, in.EndLine, in.EndColumn)
 		if err != nil {
 			return nil, CodeActionOutput{}, err
 		}
-		absPath, text, lang, err := readInputFile(workspaceRoot, in.File, in.Language, defaultLang...)
+		absPath, text, lang, err := readInputFile(workspaceRoot, in.File, in.Language, resolver)
 		if err != nil {
 			return nil, CodeActionOutput{}, err
 		}

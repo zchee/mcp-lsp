@@ -19,16 +19,12 @@ package mcp
 import (
 	"context"
 	"fmt"
-	"os"
 	"path/filepath"
 
 	"github.com/modelcontextprotocol/go-sdk/mcp"
 
 	"github.com/zchee/mcp-lsp/pkg/lsp"
 )
-
-// defaultLanguage is used when the tool input omits the language identifier.
-const defaultLanguage = "go"
 
 // diagLooker is the narrow dependency the diagnostics handler needs from the
 // LSP layer. It lets tests substitute a fake without spawning a language server.
@@ -39,7 +35,7 @@ type diagLooker interface {
 // DiagnosticsInput is the input schema for the lsp_diagnostics tool.
 type DiagnosticsInput struct {
 	File     string `json:"file"               jsonschema:"absolute or workspace-relative path to the file to analyze"`
-	Language string `json:"language,omitempty" jsonschema:"language id of the file; defaults to go"`
+	Language string `json:"language,omitempty" jsonschema:"language id of the file; inferred from file when omitted"`
 }
 
 // DiagnosticItem is one diagnostic reported by the language server. Positions
@@ -64,25 +60,13 @@ type DiagnosticsOutput struct {
 // diagnosticsHandler returns the tool handler bound to looker. The handler
 // validates the input, reads the file, looks up diagnostics, and converts the
 // zero-based LSP positions to one-based agent positions.
-func diagnosticsHandler(looker diagLooker, workspaceRoot string, defaultLang ...string) mcp.ToolHandlerFor[DiagnosticsInput, DiagnosticsOutput] {
+func diagnosticsHandler(looker diagLooker, workspaceRoot string, resolver languageResolver) mcp.ToolHandlerFor[DiagnosticsInput, DiagnosticsOutput] {
 	return func(ctx context.Context, _ *mcp.CallToolRequest, in DiagnosticsInput) (*mcp.CallToolResult, DiagnosticsOutput, error) {
-		if in.File == "" {
-			return nil, DiagnosticsOutput{}, fmt.Errorf("file is required")
-		}
-
-		absPath, err := resolveFilePath(workspaceRoot, in.File)
+		absPath, text, lang, err := readInputFile(workspaceRoot, in.File, in.Language, resolver)
 		if err != nil {
-			return nil, DiagnosticsOutput{}, fmt.Errorf("resolve file path %q: %w", in.File, err)
+			return nil, DiagnosticsOutput{}, err
 		}
-
-		lang := defaultedLanguage(in.Language, defaultLang...)
-
-		text, err := os.ReadFile(absPath)
-		if err != nil {
-			return nil, DiagnosticsOutput{}, fmt.Errorf("read file %q: %w", absPath, err)
-		}
-
-		diags, err := looker.Lookup(ctx, lang, absPath, string(text))
+		diags, err := looker.Lookup(ctx, lang, absPath, text)
 		if err != nil {
 			return nil, DiagnosticsOutput{}, err
 		}

@@ -37,7 +37,7 @@ func (f *fakeWorkspaceSymbolLooker) Lookup(_ context.Context, lang, query string
 	return f.symbols, nil
 }
 
-func TestWorkspaceSymbolHandlerDefaultsLanguageAndConvertsRanges(t *testing.T) {
+func TestWorkspaceSymbolHandlerUsesSingleConfiguredLanguageAndConvertsRanges(t *testing.T) {
 	t.Parallel()
 
 	symbolRange := lsp.NavigationRange{StartLine: 4, StartColumn: 1, EndLine: 4, EndColumn: 8}
@@ -47,7 +47,7 @@ func TestWorkspaceSymbolHandlerDefaultsLanguageAndConvertsRanges(t *testing.T) {
 			{Name: "pkg", Kind: "4", URI: "file:///workspace/pkg"},
 		},
 	}
-	handler := workspaceSymbolHandler(looker)
+	handler := workspaceSymbolHandler(looker, testResolver(t, "go"))
 
 	_, out, err := handler(t.Context(), nil, WorkspaceSymbolInput{Query: "handler"})
 	if err != nil {

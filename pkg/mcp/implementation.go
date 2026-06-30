@@ -16,8 +16,6 @@ package mcp
 
 import (
 	"context"
-	"fmt"
-	"os"
 
 	"github.com/modelcontextprotocol/go-sdk/mcp"
 	"go.lsp.dev/protocol"
@@ -39,7 +37,7 @@ type ImplementationInput struct {
 	File     string `json:"file"               jsonschema:"absolute or workspace-relative path to the file to query"`
 	Line     int    `json:"line"               jsonschema:"one-based line containing the symbol reference"`
 	Column   int    `json:"column"             jsonschema:"one-based column containing the symbol reference"`
-	Language string `json:"language,omitempty" jsonschema:"language id of the file; defaults to go"`
+	Language string `json:"language,omitempty" jsonschema:"language id of the file; inferred from file when omitted"`
 }
 
 // ImplementationRangeItem is a one-based range returned by the
@@ -65,29 +63,17 @@ type ImplementationOutput struct {
 // implementationHandler returns the tool handler bound to looker. The handler
 // validates input, reads the file, looks up implementations, and converts
 // one-based agent positions at the MCP boundary.
-func implementationHandler(looker implLooker, workspaceRoot string, defaultLang ...string) mcp.ToolHandlerFor[ImplementationInput, ImplementationOutput] {
+func implementationHandler(looker implLooker, workspaceRoot string, resolver languageResolver) mcp.ToolHandlerFor[ImplementationInput, ImplementationOutput] {
 	return func(ctx context.Context, _ *mcp.CallToolRequest, in ImplementationInput) (*mcp.CallToolResult, ImplementationOutput, error) {
-		if in.File == "" {
-			return nil, ImplementationOutput{}, fmt.Errorf("file is required")
-		}
 		pos, err := navigationInputPosition(in.Line, in.Column)
 		if err != nil {
 			return nil, ImplementationOutput{}, err
 		}
-
-		absPath, err := resolveFilePath(workspaceRoot, in.File)
+		absPath, text, lang, err := readInputFile(workspaceRoot, in.File, in.Language, resolver)
 		if err != nil {
-			return nil, ImplementationOutput{}, fmt.Errorf("resolve file path %q: %w", in.File, err)
+			return nil, ImplementationOutput{}, err
 		}
-
-		lang := defaultedLanguage(in.Language, defaultLang...)
-
-		text, err := os.ReadFile(absPath)
-		if err != nil {
-			return nil, ImplementationOutput{}, fmt.Errorf("read file %q: %w", absPath, err)
-		}
-
-		implementations, err := looker.Lookup(ctx, lang, absPath, string(text), pos)
+		implementations, err := looker.Lookup(ctx, lang, absPath, text, pos)
 		if err != nil {
 			return nil, ImplementationOutput{}, err
 		}

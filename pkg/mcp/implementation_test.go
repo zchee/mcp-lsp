@@ -58,7 +58,7 @@ func TestImplementationHandlerEmptyFile(t *testing.T) {
 	t.Parallel()
 
 	looker := &fakeImplLooker{}
-	handler := implementationHandler(looker, t.TempDir())
+	handler := implementationHandler(looker, t.TempDir(), testResolver(t, "go", "python", "rust"))
 
 	_, _, err := handler(t.Context(), nil, ImplementationInput{Line: 1, Column: 1})
 	if err == nil || !strings.Contains(err.Error(), "file is required") {
@@ -74,7 +74,7 @@ func TestImplementationHandlerInvalidLine(t *testing.T) {
 
 	path := writeTempFile(t)
 	looker := &fakeImplLooker{}
-	handler := implementationHandler(looker, t.TempDir())
+	handler := implementationHandler(looker, t.TempDir(), testResolver(t, "go", "python", "rust"))
 
 	_, _, err := handler(t.Context(), nil, ImplementationInput{File: path, Line: 0, Column: 1})
 	if err == nil || !strings.Contains(err.Error(), "line must be greater than zero") {
@@ -90,7 +90,7 @@ func TestImplementationHandlerInvalidColumn(t *testing.T) {
 
 	path := writeTempFile(t)
 	looker := &fakeImplLooker{}
-	handler := implementationHandler(looker, t.TempDir())
+	handler := implementationHandler(looker, t.TempDir(), testResolver(t, "go", "python", "rust"))
 
 	_, _, err := handler(t.Context(), nil, ImplementationInput{File: path, Line: 1, Column: 0})
 	if err == nil || !strings.Contains(err.Error(), "column must be greater than zero") {
@@ -133,7 +133,7 @@ func TestImplementationHandlerRejectsPositionBeyondProtocolRange(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			looker := &fakeImplLooker{}
-			handler := implementationHandler(looker, t.TempDir())
+			handler := implementationHandler(looker, t.TempDir(), testResolver(t, "go", "python", "rust"))
 
 			_, _, err := handler(t.Context(), nil, tt.input)
 			if err == nil || !strings.Contains(err.Error(), tt.want) {
@@ -146,19 +146,19 @@ func TestImplementationHandlerRejectsPositionBeyondProtocolRange(t *testing.T) {
 	}
 }
 
-func TestImplementationHandlerDefaultsLanguage(t *testing.T) {
+func TestImplementationHandlerInfersLanguage(t *testing.T) {
 	t.Parallel()
 
 	path := writeTempFile(t)
 	looker := &fakeImplLooker{}
-	handler := implementationHandler(looker, t.TempDir())
+	handler := implementationHandler(looker, t.TempDir(), testResolver(t, "go", "python", "rust"))
 
 	_, _, err := handler(t.Context(), nil, ImplementationInput{File: path, Line: 1, Column: 1})
 	if err != nil {
 		t.Fatalf("handler: %v", err)
 	}
 	if looker.gotLang != "go" {
-		t.Errorf("Lookup language = %q, want %q (default)", looker.gotLang, "go")
+		t.Errorf("Lookup language = %q, want %q (inferred)", looker.gotLang, "go")
 	}
 	if looker.gotText != fileContent {
 		t.Errorf("Lookup text = %q, want the file contents", looker.gotText)
@@ -178,7 +178,7 @@ func TestImplementationHandlerResolvesRelativeFileFromWorkspaceRoot(t *testing.T
 	}
 
 	looker := &fakeImplLooker{}
-	handler := implementationHandler(looker, workspace)
+	handler := implementationHandler(looker, workspace, testResolver(t, "go", "python", "rust"))
 
 	_, out, err := handler(t.Context(), nil, ImplementationInput{File: "main.go", Line: 1, Column: 1})
 	if err != nil {
@@ -200,7 +200,7 @@ func TestImplementationHandlerConvertsInputToZeroBased(t *testing.T) {
 
 	path := writeTempFile(t)
 	looker := &fakeImplLooker{}
-	handler := implementationHandler(looker, t.TempDir())
+	handler := implementationHandler(looker, t.TempDir(), testResolver(t, "go", "python", "rust"))
 
 	_, _, err := handler(t.Context(), nil, ImplementationInput{File: path, Line: 3, Column: 5})
 	if err != nil {
@@ -236,7 +236,7 @@ func TestImplementationHandlerOneBasedOutput(t *testing.T) {
 			},
 		},
 	}
-	handler := implementationHandler(looker, t.TempDir())
+	handler := implementationHandler(looker, t.TempDir(), testResolver(t, "go", "python", "rust"))
 
 	_, out, err := handler(t.Context(), nil, ImplementationInput{File: path, Line: 1, Column: 1, Language: "go"})
 	if err != nil {
@@ -290,7 +290,7 @@ func TestImplementationHandlerLinkOutput(t *testing.T) {
 			},
 		},
 	}
-	handler := implementationHandler(looker, t.TempDir())
+	handler := implementationHandler(looker, t.TempDir(), testResolver(t, "go", "python", "rust"))
 
 	_, out, err := handler(t.Context(), nil, ImplementationInput{File: path, Line: 1, Column: 1, Language: "go"})
 	if err != nil {
@@ -319,7 +319,7 @@ func TestImplementationHandlerEmptyResult(t *testing.T) {
 
 	path := writeTempFile(t)
 	looker := &fakeImplLooker{}
-	handler := implementationHandler(looker, t.TempDir())
+	handler := implementationHandler(looker, t.TempDir(), testResolver(t, "go", "python", "rust"))
 
 	_, out, err := handler(t.Context(), nil, ImplementationInput{File: path, Line: 1, Column: 1})
 	if err != nil {
@@ -339,7 +339,7 @@ func TestImplementationHandlerSurfacesLookupError(t *testing.T) {
 	path := writeTempFile(t)
 	sentinel := errors.New("language server initialize failed")
 	looker := &fakeImplLooker{err: sentinel}
-	handler := implementationHandler(looker, t.TempDir())
+	handler := implementationHandler(looker, t.TempDir(), testResolver(t, "go", "python", "rust"))
 
 	_, _, err := handler(t.Context(), nil, ImplementationInput{File: path, Line: 1, Column: 1})
 	if !errors.Is(err, sentinel) {
@@ -351,7 +351,7 @@ func TestImplementationHandlerMissingFile(t *testing.T) {
 	t.Parallel()
 
 	looker := &fakeImplLooker{}
-	handler := implementationHandler(looker, t.TempDir())
+	handler := implementationHandler(looker, t.TempDir(), testResolver(t, "go", "python", "rust"))
 
 	missing := filepath.Join(t.TempDir(), "does-not-exist.go")
 	_, _, err := handler(t.Context(), nil, ImplementationInput{File: missing, Line: 1, Column: 1})

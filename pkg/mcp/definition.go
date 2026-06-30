@@ -17,7 +17,6 @@ package mcp
 import (
 	"context"
 	"fmt"
-	"os"
 
 	"github.com/modelcontextprotocol/go-sdk/mcp"
 	"go.lsp.dev/protocol"
@@ -40,7 +39,7 @@ type DefinitionInput struct {
 	File     string `json:"file"               jsonschema:"absolute or workspace-relative path to the file to query"`
 	Line     int    `json:"line"               jsonschema:"one-based line containing the symbol reference"`
 	Column   int    `json:"column"             jsonschema:"one-based column containing the symbol reference"`
-	Language string `json:"language,omitempty" jsonschema:"language id of the file; defaults to go"`
+	Language string `json:"language,omitempty" jsonschema:"language id of the file; inferred from file when omitted"`
 }
 
 // DefinitionRangeItem is a one-based range returned by the lsp_definition tool.
@@ -69,29 +68,17 @@ type DefinitionOutput struct {
 // definitionHandler returns the tool handler bound to looker. The handler
 // validates input, reads the file, looks up definitions, and converts one-based
 // agent positions at the MCP boundary.
-func definitionHandler(looker defLooker, workspaceRoot string, defaultLang ...string) mcp.ToolHandlerFor[DefinitionInput, DefinitionOutput] {
+func definitionHandler(looker defLooker, workspaceRoot string, resolver languageResolver) mcp.ToolHandlerFor[DefinitionInput, DefinitionOutput] {
 	return func(ctx context.Context, _ *mcp.CallToolRequest, in DefinitionInput) (*mcp.CallToolResult, DefinitionOutput, error) {
-		if in.File == "" {
-			return nil, DefinitionOutput{}, fmt.Errorf("file is required")
-		}
 		pos, err := navigationInputPosition(in.Line, in.Column)
 		if err != nil {
 			return nil, DefinitionOutput{}, err
 		}
-
-		absPath, err := resolveFilePath(workspaceRoot, in.File)
+		absPath, text, lang, err := readInputFile(workspaceRoot, in.File, in.Language, resolver)
 		if err != nil {
-			return nil, DefinitionOutput{}, fmt.Errorf("resolve file path %q: %w", in.File, err)
+			return nil, DefinitionOutput{}, err
 		}
-
-		lang := defaultedLanguage(in.Language, defaultLang...)
-
-		text, err := os.ReadFile(absPath)
-		if err != nil {
-			return nil, DefinitionOutput{}, fmt.Errorf("read file %q: %w", absPath, err)
-		}
-
-		defs, err := looker.Lookup(ctx, lang, absPath, string(text), pos)
+		defs, err := looker.Lookup(ctx, lang, absPath, text, pos)
 		if err != nil {
 			return nil, DefinitionOutput{}, err
 		}

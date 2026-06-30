@@ -31,10 +31,17 @@ func TestServerExposesReadOnlyTools(t *testing.T) {
 	t.Parallel()
 
 	logger := slog.New(slog.DiscardHandler)
-	mgr := lsp.NewManager(lsp.DefaultConfig(), t.TempDir(), logger)
+	cfg := map[string]lsp.ServerConfig{
+		"go": {Command: "gopls"},
+	}
+	registry, err := lsp.NewRegistry(lsp.DefaultCatalog(), cfg)
+	if err != nil {
+		t.Fatalf("create registry: %v", err)
+	}
+	mgr := lsp.NewManager(registry.ServerConfigs(), t.TempDir(), logger)
 	t.Cleanup(func() { _ = mgr.Close(context.WithoutCancel(t.Context())) })
 
-	srv := NewServer(mgr, logger)
+	srv := NewServer(mgr, logger, NewLanguageResolver(registry))
 
 	clientTransport, serverTransport := mcp.NewInMemoryTransports()
 	if _, err := srv.Connect(t.Context(), serverTransport, nil); err != nil {

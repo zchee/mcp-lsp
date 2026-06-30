@@ -21,7 +21,7 @@ import (
 	"go.lsp.dev/protocol"
 )
 
-func readInputFile(workspaceRoot, file, lang string, defaultLang ...string) (absPath, text, resolvedLang string, err error) {
+func readInputFile(workspaceRoot, file, lang string, resolver languageResolver) (absPath, text, resolvedLang string, err error) {
 	if file == "" {
 		return "", "", "", fmt.Errorf("file is required")
 	}
@@ -33,19 +33,15 @@ func readInputFile(workspaceRoot, file, lang string, defaultLang ...string) (abs
 	if err != nil {
 		return "", "", "", fmt.Errorf("read file %q: %w", absPath, err)
 	}
-	return absPath, string(content), defaultedLanguage(lang, defaultLang...), nil
-}
-
-func defaultedLanguage(lang string, defaultLang ...string) string {
-	if lang == "" {
-		for _, fallback := range defaultLang {
-			if fallback != "" {
-				return fallback
-			}
-		}
-		return defaultLanguage
+	text = string(content)
+	if resolver == nil {
+		return "", "", "", fmt.Errorf("language resolver is required")
 	}
-	return lang
+	resolvedLang, err = resolver.ResolveFileLanguage(absPath, text, lang)
+	if err != nil {
+		return "", "", "", err
+	}
+	return absPath, text, resolvedLang, nil
 }
 
 func inputRange(startLine, startColumn, endLine, endColumn int) (protocol.Range, error) {

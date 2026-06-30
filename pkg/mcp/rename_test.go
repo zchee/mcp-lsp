@@ -51,7 +51,7 @@ func TestRenameHandlerRequiresNewNameBeforeLookup(t *testing.T) {
 
 	path := writeTempFile(t)
 	renamer := &fakeRenamer{}
-	handler := renameHandler(renamer, t.TempDir())
+	handler := renameHandler(renamer, t.TempDir(), testResolver(t, "go", "python", "rust"))
 
 	_, _, err := handler(t.Context(), nil, RenameInput{File: path, Line: 3, Column: 5})
 	if err == nil || !strings.Contains(err.Error(), "newName is required") {
@@ -62,7 +62,7 @@ func TestRenameHandlerRequiresNewNameBeforeLookup(t *testing.T) {
 	}
 }
 
-func TestRenameHandlerDefaultsLanguageAndReturnsWorkspaceEditPreview(t *testing.T) {
+func TestRenameHandlerInfersLanguageAndReturnsWorkspaceEditPreview(t *testing.T) {
 	t.Parallel()
 
 	path := writeTempFile(t)
@@ -72,7 +72,7 @@ func TestRenameHandlerDefaultsLanguageAndReturnsWorkspaceEditPreview(t *testing.
 			fileURI.String(): {{Range: lsp.NavigationRange{StartLine: 2, StartColumn: 4, EndLine: 2, EndColumn: 8}, NewText: "Renamed"}},
 		}},
 	}
-	handler := renameHandler(renamer, t.TempDir())
+	handler := renameHandler(renamer, t.TempDir(), testResolver(t, "go", "python", "rust"))
 
 	_, out, err := handler(t.Context(), nil, RenameInput{File: path, Line: 3, Column: 5, NewName: "Renamed"})
 	if err != nil {

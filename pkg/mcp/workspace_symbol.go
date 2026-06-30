@@ -29,7 +29,7 @@ type workspaceSymbolLooker interface {
 // WorkspaceSymbolInput is the input schema for lsp_workspace_symbol.
 type WorkspaceSymbolInput struct {
 	Query    string `json:"query"              jsonschema:"workspace symbol query"`
-	Language string `json:"language,omitempty" jsonschema:"language id; defaults to go"`
+	Language string `json:"language,omitempty" jsonschema:"language id; required when multiple language servers are configured"`
 }
 
 // WorkspaceSymbolOutput is the output schema for lsp_workspace_symbol.
@@ -46,9 +46,12 @@ type WorkspaceSymbolItem struct {
 	Range         *DefinitionRangeItem `json:"range,omitempty"`
 }
 
-func workspaceSymbolHandler(looker workspaceSymbolLooker, defaultLang ...string) mcp.ToolHandlerFor[WorkspaceSymbolInput, WorkspaceSymbolOutput] {
+func workspaceSymbolHandler(looker workspaceSymbolLooker, resolver languageResolver) mcp.ToolHandlerFor[WorkspaceSymbolInput, WorkspaceSymbolOutput] {
 	return func(ctx context.Context, _ *mcp.CallToolRequest, in WorkspaceSymbolInput) (*mcp.CallToolResult, WorkspaceSymbolOutput, error) {
-		lang := defaultedLanguage(in.Language, defaultLang...)
+		lang, err := resolver.ResolveToolLanguage(in.Language)
+		if err != nil {
+			return nil, WorkspaceSymbolOutput{}, err
+		}
 		symbols, err := looker.Lookup(ctx, lang, in.Query)
 		if err != nil {
 			return nil, WorkspaceSymbolOutput{}, err

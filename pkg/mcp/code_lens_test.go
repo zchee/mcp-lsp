@@ -54,7 +54,7 @@ func TestCodeLensHandlerReadsFileAndConvertsOutputRanges(t *testing.T) {
 			},
 		},
 	}
-	handler := codeLensHandler(looker, t.TempDir())
+	handler := codeLensHandler(looker, t.TempDir(), testResolver(t, "go", "python", "rust"))
 
 	_, out, err := handler(t.Context(), nil, CodeLensInput{File: path, Resolve: true})
 	if err != nil {

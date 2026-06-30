@@ -44,7 +44,7 @@ func TestExecuteCommandHandlerRequiresCommandBeforeExecute(t *testing.T) {
 	t.Parallel()
 
 	executor := &fakeCommandExecutor{}
-	handler := executeCommandHandler(executor)
+	handler := executeCommandHandler(executor, testResolver(t, "go"))
 
 	_, _, err := handler(t.Context(), nil, ExecuteCommandInput{})
 	if err == nil || !strings.Contains(err.Error(), "command is required") {
@@ -55,11 +55,11 @@ func TestExecuteCommandHandlerRequiresCommandBeforeExecute(t *testing.T) {
 	}
 }
 
-func TestExecuteCommandHandlerDefaultsLanguageAndKeepsRawArguments(t *testing.T) {
+func TestExecuteCommandHandlerUsesSingleConfiguredLanguageAndKeepsRawArguments(t *testing.T) {
 	t.Parallel()
 
 	executor := &fakeCommandExecutor{result: protocol.LSPAny(`{"ok":true}`)}
-	handler := executeCommandHandler(executor)
+	handler := executeCommandHandler(executor, testResolver(t, "go"))
 	args := []protocol.LSPAny{protocol.LSPAny(`"arg"`), protocol.LSPAny(`1`)}
 
 	_, out, err := handler(t.Context(), nil, ExecuteCommandInput{Command: "server.test", Arguments: args, ApplyEdits: true})
