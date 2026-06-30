@@ -286,3 +286,59 @@ func TestRegistrySupportsCustomConfiguredLanguage(t *testing.T) {
 		t.Fatalf("custom language ID = %q, want zig", got)
 	}
 }
+
+func TestRegistryMergesDuplicateCanonicalSpecs(t *testing.T) {
+	t.Parallel()
+
+	// Two specs canonicalize to "go": the second overlays additional identity
+	// metadata that must union with the base instead of replacing it.
+	registry, err := NewRegistry([]LanguageSpec{
+		{
+			Language:   languageGo,
+			LanguageID: protocol.LanguageKindGo,
+			Aliases:    []string{"golang"},
+			Extensions: []string{".go"},
+		},
+		{
+			Language:   "Go",
+			Aliases:    []string{"golang", "go-lang"},
+			Extensions: []string{".gohtml"},
+			Shebangs:   []string{"gorun"},
+			Candidates: []ServerCandidate{{Command: "gopls"}},
+		},
+	}, nil)
+	if err != nil {
+		t.Fatalf("NewRegistry merge specs: %v", err)
+	}
+
+	spec, ok := registry.LanguageSpec(languageGo)
+	if !ok {
+		t.Fatalf("LanguageSpec(%q) not found", languageGo)
+	}
+
+	wantAliases := []string{"golang", "go-lang"}
+	if diff := gocmp.Diff(wantAliases, spec.Aliases); diff != "" {
+		t.Errorf("merged aliases mismatch (-want +got):\n%s", diff)
+	}
+	wantExtensions := []string{".go", ".gohtml"}
+	if diff := gocmp.Diff(wantExtensions, spec.Extensions); diff != "" {
+		t.Errorf("merged extensions mismatch (-want +got):\n%s", diff)
+	}
+	wantShebangs := []string{"gorun"}
+	if diff := gocmp.Diff(wantShebangs, spec.Shebangs); diff != "" {
+		t.Errorf("merged shebangs mismatch (-want +got):\n%s", diff)
+	}
+	wantCandidates := []ServerCandidate{{Command: "gopls"}}
+	if diff := gocmp.Diff(wantCandidates, spec.Candidates); diff != "" {
+		t.Errorf("merged candidates mismatch (-want +got):\n%s", diff)
+	}
+
+	for _, alias := range []string{"golang", "go-lang"} {
+		if got, ok := registry.CanonicalLanguage(alias); !ok || got != languageGo {
+			t.Errorf("CanonicalLanguage(%q) = %q/%t, want %q/true", alias, got, ok, languageGo)
+		}
+	}
+	if got, ok := registry.LanguageForFile("page.gohtml", ""); !ok || got != languageGo {
+		t.Errorf("LanguageForFile(page.gohtml) = %q/%t, want %q/true", got, ok, languageGo)
+	}
+}
