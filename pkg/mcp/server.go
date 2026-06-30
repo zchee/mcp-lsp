@@ -26,6 +26,9 @@ import (
 // NewServer assembles an [mcp.Server] that exposes language server capabilities
 // backed by mgr as read-only tools.
 func NewServer(mgr *lsp.Manager, logger *slog.Logger, resolver languageResolver) *mcp.Server {
+	if mgr == nil {
+		panic("manager is required")
+	}
 	if resolver == nil {
 		panic("language resolver is required")
 	}
