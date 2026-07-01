@@ -42,11 +42,11 @@ func NewLanguageResolver(registry *lsp.Registry) *LanguageResolver {
 // wins; otherwise the resolver infers from file metadata and requires a
 // configured server for the inferred language.
 func (r *LanguageResolver) ResolveFileLanguage(file, text, explicit string) (string, error) {
-	if explicit != "" {
-		return r.resolveConfigured(explicit)
-	}
 	if r == nil || r.registry == nil {
 		return "", fmt.Errorf("no language registry configured")
+	}
+	if explicit != "" {
+		return r.resolveConfigured(explicit)
 	}
 	if language, ok := r.registry.LanguageForFile(file, text); ok {
 		if r.registry.IsConfigured(language) {
@@ -77,11 +77,11 @@ func (r *LanguageResolver) ResolveFileLanguage(file, text, explicit string) (str
 // ResolveToolLanguage resolves a file-less tool language. Omitted language is
 // allowed only when exactly one active server is configured.
 func (r *LanguageResolver) ResolveToolLanguage(explicit string) (string, error) {
-	if explicit != "" {
-		return r.resolveConfigured(explicit)
-	}
 	if r == nil || r.registry == nil {
 		return "", fmt.Errorf("no language registry configured")
+	}
+	if explicit != "" {
+		return r.resolveConfigured(explicit)
 	}
 	configured := r.registry.ConfiguredLanguages()
 	switch len(configured) {
