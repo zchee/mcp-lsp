@@ -15,6 +15,7 @@
 package main
 
 import (
+	"fmt"
 	"os"
 	"path/filepath"
 	"slices"
@@ -22,6 +23,8 @@ import (
 	"testing"
 
 	gocmp "github.com/google/go-cmp/cmp"
+
+	"github.com/zchee/mcp-lsp/pkg/lsp"
 )
 
 func TestParseCLI(t *testing.T) {
@@ -142,7 +145,8 @@ func TestParseCLI(t *testing.T) {
 }
 
 func TestLoadRuntimeRegistry(t *testing.T) {
-	t.Parallel()
+	t.Setenv("MCP_LSP_CONFIG", "")
+	t.Setenv("XDG_CONFIG_HOME", "")
 
 	workspace := t.TempDir()
 	configPath := filepath.Join(workspace, ".mcp-lsp.json")
@@ -212,24 +216,121 @@ func TestLoadRuntimeRegistry(t *testing.T) {
 
 	for name, tt := range tests {
 		t.Run(name, func(t *testing.T) {
-			t.Parallel()
-
 			registry, _, err := loadRuntimeRegistry(&tt.cfg)
 			if err != nil {
 				t.Fatalf("loadRuntimeRegistry() error = %v", err)
 			}
-			if diff := gocmp.Diff(tt.wantLangs, registry.ConfiguredLanguages()); diff != "" {
-				t.Fatalf("configured languages mismatch (-want +got):\n%s", diff)
-			}
-			for language, command := range tt.wantCfg {
-				serverCfg, ok := registry.ServerConfig(language)
-				if !ok {
-					t.Fatalf("ServerConfig(%q) not found", language)
+			assertRuntimeRegistry(t, registry, tt.wantLangs, tt.wantCfg)
+		})
+	}
+}
+
+func TestLoadRuntimeRegistryGlobalConfig(t *testing.T) {
+	tests := map[string]struct {
+		setup     func(t *testing.T) cliConfig
+		wantLangs []string
+		wantCfg   map[string]string
+		wantError string
+	}{
+		"workspace config wins over global config": {
+			setup: func(t *testing.T) cliConfig {
+				workspace := t.TempDir()
+				writeRuntimeConfig(t, filepath.Join(workspace, ".mcp-lsp.json"), "python", "workspace-pyright")
+				envPath := filepath.Join(t.TempDir(), "config.json")
+				writeRuntimeConfig(t, envPath, "go", "env-gopls")
+				t.Setenv("MCP_LSP_CONFIG", envPath)
+				t.Setenv("XDG_CONFIG_HOME", "")
+				return cliConfig{workspace: workspace, discover: false}
+			},
+			wantLangs: []string{"python"},
+			wantCfg: map[string]string{
+				"python": "workspace-pyright",
+			},
+		},
+		"MCP_LSP_CONFIG wins over XDG default": {
+			setup: func(t *testing.T) cliConfig {
+				workspace := t.TempDir()
+				envPath := filepath.Join(t.TempDir(), "config.json")
+				writeRuntimeConfig(t, envPath, "python", "env-pyright")
+				xdgHome := t.TempDir()
+				writeRuntimeConfig(t, filepath.Join(xdgHome, "mcp-lsp", "config.json"), "go", "xdg-gopls")
+				t.Setenv("MCP_LSP_CONFIG", envPath)
+				t.Setenv("XDG_CONFIG_HOME", xdgHome)
+				return cliConfig{workspace: workspace, discover: false}
+			},
+			wantLangs: []string{"python"},
+			wantCfg: map[string]string{
+				"python": "env-pyright",
+			},
+		},
+		"XDG default config is loaded": {
+			setup: func(t *testing.T) cliConfig {
+				workspace := t.TempDir()
+				xdgHome := t.TempDir()
+				writeRuntimeConfig(t, filepath.Join(xdgHome, "mcp-lsp", "config.json"), "go", "xdg-gopls")
+				t.Setenv("MCP_LSP_CONFIG", "")
+				t.Setenv("XDG_CONFIG_HOME", xdgHome)
+				return cliConfig{workspace: workspace, discover: false}
+			},
+			wantLangs: []string{"go"},
+			wantCfg: map[string]string{
+				"go": "xdg-gopls",
+			},
+		},
+		"blank XDG does not probe relative config in cwd": {
+			setup: func(t *testing.T) cliConfig {
+				cwd := t.TempDir()
+				t.Chdir(cwd)
+				writeRuntimeConfig(t, filepath.Join(cwd, "mcp-lsp", "config.json"), "go", "relative-gopls")
+				t.Setenv("MCP_LSP_CONFIG", "")
+				t.Setenv("XDG_CONFIG_HOME", "")
+				return cliConfig{workspace: t.TempDir(), discover: false}
+			},
+			wantLangs: []string{},
+		},
+		"relative XDG default is ignored": {
+			setup: func(t *testing.T) cliConfig {
+				t.Setenv("MCP_LSP_CONFIG", "")
+				t.Setenv("XDG_CONFIG_HOME", "relative-xdg")
+				return cliConfig{workspace: t.TempDir(), discover: false}
+			},
+			wantLangs: []string{},
+		},
+		"absent XDG default config is ignored": {
+			setup: func(t *testing.T) cliConfig {
+				t.Setenv("MCP_LSP_CONFIG", "")
+				t.Setenv("XDG_CONFIG_HOME", t.TempDir())
+				return cliConfig{workspace: t.TempDir(), discover: false}
+			},
+			wantLangs: []string{},
+		},
+		"missing MCP_LSP_CONFIG path errors": {
+			setup: func(t *testing.T) cliConfig {
+				missingPath := filepath.Join(t.TempDir(), "missing.json")
+				xdgHome := t.TempDir()
+				writeRuntimeConfig(t, filepath.Join(xdgHome, "mcp-lsp", "config.json"), "go", "xdg-gopls")
+				t.Setenv("MCP_LSP_CONFIG", missingPath)
+				t.Setenv("XDG_CONFIG_HOME", xdgHome)
+				return cliConfig{workspace: t.TempDir(), discover: false}
+			},
+			wantError: "read config",
+		},
+	}
+
+	for name, tt := range tests {
+		t.Run(name, func(t *testing.T) {
+			cfg := tt.setup(t)
+			registry, _, err := loadRuntimeRegistry(&cfg)
+			if tt.wantError != "" {
+				if err == nil || !strings.Contains(err.Error(), tt.wantError) {
+					t.Fatalf("loadRuntimeRegistry() error = %v, want contains %q", err, tt.wantError)
 				}
-				if serverCfg.Command != command {
-					t.Fatalf("ServerConfig(%q).Command = %q, want %q", language, serverCfg.Command, command)
-				}
+				return
 			}
+			if err != nil {
+				t.Fatalf("loadRuntimeRegistry() error = %v", err)
+			}
+			assertRuntimeRegistry(t, registry, tt.wantLangs, tt.wantCfg)
 		})
 	}
 }
@@ -277,6 +378,35 @@ func TestLoadRuntimeRegistryRejectsDuplicateCanonicalConfigLanguages(t *testing.
 	_, _, err := loadRuntimeRegistry(&cfg)
 	if err == nil || !strings.Contains(err.Error(), "duplicate config language") {
 		t.Fatalf("loadRuntimeRegistry() error = %v, want duplicate config language error", err)
+	}
+}
+
+func writeRuntimeConfig(t *testing.T, path, language, command string) {
+	t.Helper()
+
+	if err := os.MkdirAll(filepath.Dir(path), 0o755); err != nil {
+		t.Fatalf("create config dir: %v", err)
+	}
+	data := fmt.Appendf(nil, `{"servers":{%q:{"command":%q,"args":["--stdio"],"languageId":%q}}}`, language, command, language)
+	if err := os.WriteFile(path, data, 0o600); err != nil {
+		t.Fatalf("write config: %v", err)
+	}
+}
+
+func assertRuntimeRegistry(t *testing.T, registry *lsp.Registry, wantLangs []string, wantCfg map[string]string) {
+	t.Helper()
+
+	if diff := gocmp.Diff(wantLangs, registry.ConfiguredLanguages()); diff != "" {
+		t.Fatalf("configured languages mismatch (-want +got):\n%s", diff)
+	}
+	for language, command := range wantCfg {
+		serverCfg, ok := registry.ServerConfig(language)
+		if !ok {
+			t.Fatalf("ServerConfig(%q) not found", language)
+		}
+		if serverCfg.Command != command {
+			t.Fatalf("ServerConfig(%q).Command = %q, want %q", language, serverCfg.Command, command)
+		}
 	}
 }
 

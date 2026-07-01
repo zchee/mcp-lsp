@@ -255,20 +255,55 @@ func runtimeConfigPath(cfg *cliConfig) (string, error) {
 		}
 		return resolvedPath, nil
 	}
-	path := filepath.Join(cfg.workspace, ".mcp-lsp.json")
+	workspacePath := filepath.Join(cfg.workspace, ".mcp-lsp.json")
 	// #nosec G304 G703 -- this checks the workspace-local runtime registry
 	// filename documented for operators, not an MCP tool-provided path.
+	if _, err := os.Stat(workspacePath); err == nil {
+		return workspacePath, nil
+	} else if !os.IsNotExist(err) {
+		return "", fmt.Errorf("stat workspace config %q: %w", workspacePath, err)
+	}
+	globalPath, err := globalRuntimeConfigPath()
+	if err != nil {
+		return "", err
+	}
+	if globalPath != "" {
+		return globalPath, nil
+	}
+	return "", nil
+}
+
+func globalRuntimeConfigPath() (string, error) {
+	if path := strings.TrimSpace(os.Getenv("MCP_LSP_CONFIG")); path != "" {
+		resolvedPath, err := filepath.Abs(path)
+		if err != nil {
+			return "", fmt.Errorf("resolve MCP_LSP_CONFIG %q: %w", path, err)
+		}
+		return resolvedPath, nil
+	}
+
+	configHome := strings.TrimSpace(os.Getenv("XDG_CONFIG_HOME"))
+	if configHome == "" {
+		return "", nil
+	}
+	if !filepath.IsAbs(configHome) {
+		return "", nil
+	}
+
+	path := filepath.Join(configHome, "mcp-lsp", "config.json")
+	// #nosec G304 G703 -- this checks the documented user-level runtime
+	// registry config path, not an MCP tool-provided path.
 	if _, err := os.Stat(path); err == nil {
 		return path, nil
 	} else if !os.IsNotExist(err) {
-		return "", fmt.Errorf("stat workspace config %q: %w", path, err)
+		return "", fmt.Errorf("stat global config %q: %w", path, err)
 	}
 	return "", nil
 }
 
 func loadRuntimeConfigFile(path string) ([]lsp.LanguageSpec, map[string]lsp.ServerConfig, error) {
-	// #nosec G304 G703 -- path is an explicit CLI or workspace-local runtime
-	// registry config path, not untrusted tool input.
+	// #nosec G304 G703 -- path is an explicit or discovered runtime registry
+	// config path documented for operators, not untrusted tool input.
 	data, err := os.ReadFile(path)
 	if err != nil {
 		return nil, nil, fmt.Errorf("read config %q: %w", path, err)

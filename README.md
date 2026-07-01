@@ -35,7 +35,23 @@ mcp-lsp -discover=false -config .mcp-lsp.json
 ```
 
 If no config is supplied, `mcp-lsp` also checks for `.mcp-lsp.json` in the
-workspace root. A minimal config looks like this:
+workspace root. If the workspace does not provide `.mcp-lsp.json`, `mcp-lsp`
+then checks a global runtime config. Set `MCP_LSP_CONFIG` to override the
+global path; otherwise the default global path is
+`$XDG_CONFIG_HOME/mcp-lsp/config.json` when `XDG_CONFIG_HOME` is set to an
+absolute path. Missing workspace and default global configs are ignored; blank,
+unset, or relative `XDG_CONFIG_HOME` values do not define a default global
+config path. A missing or unreadable explicit `-config` path or
+`MCP_LSP_CONFIG` path is an error.
+
+Config file path precedence is:
+
+1. `-config <path>`,
+2. `<workspace>/.mcp-lsp.json`,
+3. `MCP_LSP_CONFIG`,
+4. `$XDG_CONFIG_HOME/mcp-lsp/config.json`.
+
+A minimal config looks like this:
 
 ```json
 {
