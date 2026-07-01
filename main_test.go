@@ -234,6 +234,8 @@ func TestLoadRuntimeRegistryGlobalConfig(t *testing.T) {
 	}{
 		"workspace config wins over global config": {
 			setup: func(t *testing.T) cliConfig {
+				t.Helper()
+
 				workspace := t.TempDir()
 				writeRuntimeConfig(t, filepath.Join(workspace, ".mcp-lsp.json"), "python", "workspace-pyright")
 				envPath := filepath.Join(t.TempDir(), "config.json")
@@ -249,6 +251,8 @@ func TestLoadRuntimeRegistryGlobalConfig(t *testing.T) {
 		},
 		"MCP_LSP_CONFIG wins over XDG default": {
 			setup: func(t *testing.T) cliConfig {
+				t.Helper()
+
 				workspace := t.TempDir()
 				envPath := filepath.Join(t.TempDir(), "config.json")
 				writeRuntimeConfig(t, envPath, "python", "env-pyright")
@@ -265,6 +269,8 @@ func TestLoadRuntimeRegistryGlobalConfig(t *testing.T) {
 		},
 		"XDG default config is loaded": {
 			setup: func(t *testing.T) cliConfig {
+				t.Helper()
+
 				workspace := t.TempDir()
 				xdgHome := t.TempDir()
 				writeRuntimeConfig(t, filepath.Join(xdgHome, "mcp-lsp", "config.json"), "go", "xdg-gopls")
@@ -279,6 +285,8 @@ func TestLoadRuntimeRegistryGlobalConfig(t *testing.T) {
 		},
 		"blank XDG does not probe relative config in cwd": {
 			setup: func(t *testing.T) cliConfig {
+				t.Helper()
+
 				cwd := t.TempDir()
 				t.Chdir(cwd)
 				writeRuntimeConfig(t, filepath.Join(cwd, "mcp-lsp", "config.json"), "go", "relative-gopls")
@@ -290,6 +298,8 @@ func TestLoadRuntimeRegistryGlobalConfig(t *testing.T) {
 		},
 		"relative XDG default is ignored": {
 			setup: func(t *testing.T) cliConfig {
+				t.Helper()
+
 				t.Setenv("MCP_LSP_CONFIG", "")
 				t.Setenv("XDG_CONFIG_HOME", "relative-xdg")
 				return cliConfig{workspace: t.TempDir(), discover: false}
@@ -298,6 +308,8 @@ func TestLoadRuntimeRegistryGlobalConfig(t *testing.T) {
 		},
 		"absent XDG default config is ignored": {
 			setup: func(t *testing.T) cliConfig {
+				t.Helper()
+
 				t.Setenv("MCP_LSP_CONFIG", "")
 				t.Setenv("XDG_CONFIG_HOME", t.TempDir())
 				return cliConfig{workspace: t.TempDir(), discover: false}
@@ -306,6 +318,8 @@ func TestLoadRuntimeRegistryGlobalConfig(t *testing.T) {
 		},
 		"missing MCP_LSP_CONFIG path errors": {
 			setup: func(t *testing.T) cliConfig {
+				t.Helper()
+
 				missingPath := filepath.Join(t.TempDir(), "missing.json")
 				xdgHome := t.TempDir()
 				writeRuntimeConfig(t, filepath.Join(xdgHome, "mcp-lsp", "config.json"), "go", "xdg-gopls")
