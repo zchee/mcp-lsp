@@ -12,11 +12,12 @@ capabilities to agents over MCP stdio.
 ## Runtime language registry
 
 `mcp-lsp` does not activate hardcoded language-server defaults at startup.
-Active downstream language servers come from, in order:
+Active downstream language servers come from these sources, in order of
+precedence from highest to lowest:
 
-1. a runtime JSON config file,
-2. PATH discovery for known language-server commands, unless `-discover=false`,
-3. an explicit one-off `-lsp` CLI override.
+1. an explicit one-off `-lsp` CLI override,
+2. a runtime JSON config file,
+3. PATH discovery for known language-server commands, unless `-discover=false`.
 
 The built-in language catalog contains identity metadata such as aliases,
 extensions, LSP language IDs, and discovery candidates. That catalog is not an
