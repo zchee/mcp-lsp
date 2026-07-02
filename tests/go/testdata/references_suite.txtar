@@ -1,0 +1,31 @@
+This fixture is a small Go module for find-all-references integration
+coverage against gopls. A single exported function is declared in one file and
+referenced twice from another so cross-file reference resolution is exercised.
+
+Markers embedded in the source drive the test:
+
+  decl=Greeting marks the function declaration queried by textDocument/references.
+  use=Greeting  marks the first cross-file call site.
+  use2=Greeting marks the second cross-file call site.
+
+-- go.mod --
+module referencesfixture
+
+go 1.27
+
+-- greet.go --
+package main
+
+func Greeting(name string) string { // decl=Greeting
+	return "hello " + name
+}
+
+-- main.go --
+package main
+
+import "fmt"
+
+func main() {
+	fmt.Println(Greeting("gopher")) // use=Greeting
+	fmt.Println(Greeting("mcp")) // use2=Greeting
+}

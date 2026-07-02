@@ -1,0 +1,29 @@
+This fixture is a small Cargo package for find-all-references integration
+coverage against rust-analyzer. A single public function is declared and then
+referenced twice from sibling functions in the same crate.
+
+Markers embedded in the source drive the test:
+
+  decl=greeting marks the function declaration queried by textDocument/references.
+  use=greeting  marks the first call site.
+  use2=greeting marks the second call site.
+
+-- Cargo.toml --
+[package]
+name = "mcp_lsp_rust_references_fixture"
+version = "0.1.0"
+edition = "2024"
+
+[dependencies]
+-- src/lib.rs --
+pub fn greeting(name: &str) -> String { // decl=greeting
+    format!("hello {name}")
+}
+
+pub fn caller_one() -> String {
+    greeting("gopher") // use=greeting
+}
+
+pub fn caller_two() -> String {
+    greeting("mcp") // use2=greeting
+}
