@@ -78,6 +78,48 @@ type fakeServer struct {
 	implementationErr       error
 	implementationRequests  []protocol.ImplementationParams
 
+	referencesSupported bool
+	referencesResult    []protocol.Location
+	referencesErr       error
+	referencesRequests  []protocol.ReferenceParams
+
+	declarationSupported bool
+	declarationResult    protocol.DeclarationResult
+	declarationErr       error
+	declarationRequests  []protocol.DeclarationParams
+
+	typeDefinitionSupported bool
+	typeDefinitionResult    protocol.DefinitionResult
+	typeDefinitionErr       error
+	typeDefinitionRequests  []protocol.TypeDefinitionParams
+
+	documentSymbolSupported bool
+	documentSymbolResult    protocol.DocumentSymbolResult
+	documentSymbolErr       error
+	documentSymbolRequests  []protocol.DocumentSymbolParams
+
+	callHierarchySupported       bool
+	callHierarchyItems           []protocol.CallHierarchyItem
+	callHierarchyErr             error
+	callHierarchyPrepareRequests []protocol.CallHierarchyPrepareParams
+	incomingCalls                []protocol.CallHierarchyIncomingCall
+	incomingCallsErr             error
+	incomingCallsRequests        []protocol.CallHierarchyIncomingCallsParams
+	outgoingCalls                []protocol.CallHierarchyOutgoingCall
+	outgoingCallsErr             error
+	outgoingCallsRequests        []protocol.CallHierarchyOutgoingCallsParams
+
+	typeHierarchySupported       bool
+	typeHierarchyItems           []protocol.TypeHierarchyItem
+	typeHierarchyErr             error
+	typeHierarchyPrepareRequests []protocol.TypeHierarchyPrepareParams
+	supertypes                   []protocol.TypeHierarchyItem
+	supertypesErr                error
+	supertypesRequests           []protocol.TypeHierarchySupertypesParams
+	subtypes                     []protocol.TypeHierarchyItem
+	subtypesErr                  error
+	subtypesRequests             []protocol.TypeHierarchySubtypesParams
+
 	definitionResult   protocol.DefinitionResult
 	definitionErr      error
 	definitionRequests []protocol.DefinitionParams
@@ -120,6 +162,12 @@ func (f *fakeServer) Initialize(_ context.Context, _ *protocol.InitializeParams)
 	capabilities := f.capabilities
 	pullSupported := f.pullSupported
 	implementationSupported := f.implementationSupported
+	referencesSupported := f.referencesSupported
+	declarationSupported := f.declarationSupported
+	typeDefinitionSupported := f.typeDefinitionSupported
+	documentSymbolSupported := f.documentSymbolSupported
+	callHierarchySupported := f.callHierarchySupported
+	typeHierarchySupported := f.typeHierarchySupported
 	f.mu.Unlock()
 
 	res := &protocol.InitializeResult{
@@ -133,6 +181,24 @@ func (f *fakeServer) Initialize(_ context.Context, _ *protocol.InitializeParams)
 	}
 	if implementationSupported {
 		res.Capabilities.ImplementationProvider = protocol.Boolean(true)
+	}
+	if referencesSupported {
+		res.Capabilities.ReferencesProvider = protocol.Boolean(true)
+	}
+	if declarationSupported {
+		res.Capabilities.DeclarationProvider = protocol.Boolean(true)
+	}
+	if typeDefinitionSupported {
+		res.Capabilities.TypeDefinitionProvider = protocol.Boolean(true)
+	}
+	if documentSymbolSupported {
+		res.Capabilities.DocumentSymbolProvider = protocol.Boolean(true)
+	}
+	if callHierarchySupported {
+		res.Capabilities.CallHierarchyProvider = protocol.Boolean(true)
+	}
+	if typeHierarchySupported {
+		res.Capabilities.TypeHierarchyProvider = protocol.Boolean(true)
 	}
 	return res, nil
 }
