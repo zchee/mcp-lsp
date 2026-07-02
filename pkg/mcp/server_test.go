@@ -69,6 +69,7 @@ func TestServerExposesReadOnlyTools(t *testing.T) {
 		"lsp_diagnostics",
 		"lsp_definition",
 		"lsp_implementation",
+		"lsp_find_references",
 		"lsp_hover",
 		"lsp_workspace_symbol",
 		"lsp_formatting",

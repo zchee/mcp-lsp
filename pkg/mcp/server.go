@@ -62,6 +62,13 @@ func NewServer(mgr *lsp.Manager, logger *slog.Logger, resolver languageResolver)
 		},
 	}, implementationHandler(mgr.Implementation(), mgr.WorkspaceRoot(), resolver))
 	mcp.AddTool(s, &mcp.Tool{
+		Name:        "lsp_find_references",
+		Description: "Find every reference to a symbol at a file position via its language server, gated by a readiness check so cold-index results are never reported as an authoritative zero.",
+		Annotations: &mcp.ToolAnnotations{
+			ReadOnlyHint: true,
+		},
+	}, referencesHandler(mgr.References(), mgr.WorkspaceRoot(), resolver))
+	mcp.AddTool(s, &mcp.Tool{
 		Name:        "lsp_hover",
 		Description: "Return hover information for a file position via its language server.",
 		Annotations: &mcp.ToolAnnotations{
