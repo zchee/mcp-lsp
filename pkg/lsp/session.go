@@ -92,6 +92,12 @@ type sessionCapabilities struct {
 	formatting        bool
 	rangeFormatting   bool
 	rename            bool
+	references        bool
+	declaration       bool
+	typeDefinition    bool
+	documentSymbol    bool
+	callHierarchy     bool
+	typeHierarchy     bool
 	executeCommands   []string
 }
 
@@ -109,6 +115,12 @@ func snapshotCapabilities(capabilities *protocol.ServerCapabilities) sessionCapa
 		formatting:      providerSupported(capabilities.DocumentFormattingProvider),
 		rangeFormatting: providerSupported(capabilities.DocumentRangeFormattingProvider),
 		rename:          providerSupported(capabilities.RenameProvider),
+		references:      providerSupported(capabilities.ReferencesProvider),
+		declaration:     providerSupported(capabilities.DeclarationProvider),
+		typeDefinition:  providerSupported(capabilities.TypeDefinitionProvider),
+		documentSymbol:  providerSupported(capabilities.DocumentSymbolProvider),
+		callHierarchy:   providerSupported(capabilities.CallHierarchyProvider),
+		typeHierarchy:   providerSupported(capabilities.TypeHierarchyProvider),
 		executeCommands: slices.Clone(capabilities.ExecuteCommandProvider.Commands),
 	}
 	if opts, ok := capabilities.CodeActionProvider.(*protocol.CodeActionOptions); ok && opts != nil && opts.ResolveProvider != nil {
@@ -322,6 +334,19 @@ func initializeParams(rootURI uri.URI) *protocol.InitializeParams {
 				Implementation: &protocol.ImplementationClientCapabilities{
 					LinkSupport: new(true),
 				},
+				Declaration: &protocol.DeclarationClientCapabilities{
+					LinkSupport: new(true),
+				},
+				TypeDefinition: &protocol.TypeDefinitionClientCapabilities{
+					LinkSupport: new(true),
+				},
+				References: &protocol.ReferenceClientCapabilities{},
+				DocumentSymbol: &protocol.DocumentSymbolClientCapabilities{
+					SymbolKind:                        &protocol.ClientSymbolKindOptions{ValueSet: supportedSymbolKinds()},
+					HierarchicalDocumentSymbolSupport: new(true),
+				},
+				CallHierarchy: &protocol.CallHierarchyClientCapabilities{},
+				TypeHierarchy: &protocol.TypeHierarchyClientCapabilities{},
 				CodeAction: &protocol.CodeActionClientCapabilities{
 					CodeActionLiteralSupport: protocol.ClientCodeActionLiteralOptions{
 						CodeActionKind: protocol.ClientCodeActionKindOptions{ValueSet: supportedCodeActionKinds()},
