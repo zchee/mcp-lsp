@@ -21,6 +21,7 @@ import (
 
 	"github.com/zchee/mcp-lsp/internal/version"
 	"github.com/zchee/mcp-lsp/pkg/lsp"
+	"github.com/zchee/mcp-lsp/pkg/lsp/composite"
 )
 
 // NewServer assembles an [mcp.Server] that exposes language server capabilities
@@ -68,6 +69,8 @@ func NewServer(mgr *lsp.Manager, logger *slog.Logger, resolver languageResolver)
 			ReadOnlyHint: true,
 		},
 	}, referencesHandler(mgr.References(), mgr.WorkspaceRoot(), resolver))
+
+	registerCompositeTools(s, mgr, resolver)
 	mcp.AddTool(s, &mcp.Tool{
 		Name:        "lsp_hover",
 		Description: "Return hover information for a file position via its language server.",
@@ -139,4 +142,33 @@ func NewServer(mgr *lsp.Manager, logger *slog.Logger, resolver languageResolver)
 	}, executeCommandHandler(mgr.Commands(), resolver))
 
 	return s
+}
+
+// registerCompositeTools registers the flagship composite tools, which fuse
+// several language-server requests into one agent-facing call. They share a
+// single composite engine built over the manager's exported helper surface.
+func registerCompositeTools(s *mcp.Server, mgr *lsp.Manager, resolver languageResolver) {
+	engine := composite.NewEngine(mgr)
+	root := mgr.WorkspaceRoot()
+	mcp.AddTool(s, &mcp.Tool{
+		Name:        "lsp_impact_analysis",
+		Description: "Compute the blast radius of changing a symbol: references, call graph, type graph, implementations, and diagnostics, gathered in one call with a readiness gate so cold-index results are never reported as an authoritative zero.",
+		Annotations: &mcp.ToolAnnotations{
+			ReadOnlyHint: true,
+		},
+	}, impactAnalysisHandler(composite.NewImpactAnalysis(engine), root, resolver))
+	mcp.AddTool(s, &mcp.Tool{
+		Name:        "lsp_symbol_context",
+		Description: "Assemble a dense symbol card (hover, enclosing outline, signature, navigation targets, same-file occurrences, inlay context) in one call, degrading each leg independently when a capability is unavailable.",
+		Annotations: &mcp.ToolAnnotations{
+			ReadOnlyHint: true,
+		},
+	}, symbolContextHandler(composite.NewSymbolContext(engine), root, resolver))
+	mcp.AddTool(s, &mcp.Tool{
+		Name:        "lsp_change_guard",
+		Description: "Read the post-edit, on-disk diagnostics of a changed file and report an advisory verdict (clean/attention/broken); the verdict is settle-gated so cold or unsettled diagnostics yield notReady, never a false clean.",
+		Annotations: &mcp.ToolAnnotations{
+			ReadOnlyHint: true,
+		},
+	}, changeGuardHandler(composite.NewChangeGuard(engine), root, resolver))
 }

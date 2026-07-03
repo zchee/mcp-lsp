@@ -1,0 +1,17 @@
+This fixture is a small Go module for change_guard integration coverage
+against gopls. broken.go contains a deliberate type error (assigning a string
+to an int) so gopls reports an error-severity diagnostic and change_guard
+returns a broken verdict.
+
+-- go.mod --
+module changeguardfixture
+
+go 1.27
+
+-- broken.go --
+package main
+
+func brokenValue() int {
+	var n int = "not an int"
+	return n
+}

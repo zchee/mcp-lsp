@@ -89,6 +89,69 @@ File-less tools are deterministic:
 - `lsp_execute_command` never fans out across multiple language servers; omit
   `language` only when exactly one server is configured.
 
+## Composite tools
+
+Alongside the thin, one-request-per-tool wrappers, `mcp-lsp` exposes composite
+tools that fuse several language-server requests into one call, returning
+judgement an agent cannot cheaply assemble by chaining raw tools:
+
+- `lsp_impact_analysis` — the blast radius of changing a symbol: references,
+  call graph, type graph, implementations, and diagnostics. References is the
+  epicenter; the rest fan out and degrade independently.
+- `lsp_symbol_context` — a dense symbol card: hover, enclosing outline,
+  signature, navigation targets, same-file occurrences, and inlay context.
+  Hover is the epicenter.
+- `lsp_change_guard` — a verify-after-edit report over the post-edit, on-disk
+  state of a changed file, ending in an advisory verdict. Diagnostics is the
+  epicenter.
+
+All three are read-only and share a metadata block: `readiness`, `stopReason`,
+`epicenterTextHash` (a SHA-256 of the file text the call actually analyzed, so a
+concurrent on-disk edit is detectable), and `capabilitiesUsed`/
+`capabilitiesMissing`.
+
+### Degradation contract
+
+Each composite has one **epicenter** leg that is fatal when its capability is
+unsupported — `lsp_impact_analysis` needs references, `lsp_symbol_context` needs
+hover, and `lsp_change_guard` needs diagnostics — and the tool returns an error
+in that case. Every other leg degrades on its own, carrying a per-leg `status`:
+
+- `ok` / `empty` — the leg ran; `empty` is a trustworthy zero, only reported
+  after a readiness check.
+- `unsupported` — the server does not advertise the capability. This is
+  distinct from `empty`, so an absent capability is never read as "no results".
+- `truncated` — a budget cap was hit and the data is partial.
+- `error` — the leg failed for a reason other than an unsupported capability.
+- `notReady` — the leg could not be trusted within its readiness budget (the
+  server was likely still indexing, or a fan-out deadline cut it short).
+
+Because capabilities differ per server, the same composite returns different
+legs as `unsupported` on different servers: `lsp_impact_analysis` reports the
+declaration leg `unsupported` on gopls and the type-graph leg `unsupported` on
+rust-analyzer and basedpyright.
+
+### Readiness and the advisory verdict
+
+Reference, call-hierarchy, and type-hierarchy legs are readiness-gated: a
+language server returns empty or partial results while it is still indexing, so
+an empty result is only trusted once two consecutive lookups agree. An
+epicenter that never stabilizes yields `readiness: notReady` and skips the rest
+of the analysis rather than reporting a misleading zero.
+
+`lsp_change_guard`'s `advisoryVerdict` (`clean` / `attention` / `broken`) is
+advisory and settle-gated: it reflects only static diagnostics settled at
+analysis time — not tests or runtime — and `clean` is emitted only when
+diagnostics are both ready and empty. Cold or unsettled diagnostics yield
+`notReady`, never a false `clean`. The `basis` field names exactly which legs
+produced the verdict, and the agent owns the decision to ship.
+
+### Provenance
+
+Composite input is disk-only: the tools read the named file from disk at call
+time, so an agent must write its edits to disk before calling. Unsaved editor
+buffers are not visible.
+
 <!-- badge links -->
 [test]: https://github.com/zchee/mcp-lsp/actions/workflows/test.yaml
 [pkg.go.dev]: https://pkg.go.dev/zchee/mcp-lsp
