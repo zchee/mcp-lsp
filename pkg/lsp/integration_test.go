@@ -109,6 +109,19 @@ type fakeServer struct {
 	outgoingCallsErr             error
 	outgoingCallsRequests        []protocol.CallHierarchyOutgoingCallsParams
 
+	signatureHelpSupported     bool
+	signatureHelpResult        *protocol.SignatureHelp
+	signatureHelpErr           error
+	signatureHelpRequests      []protocol.SignatureHelpParams
+	documentHighlightSupported bool
+	documentHighlightResult    []protocol.DocumentHighlight
+	documentHighlightErr       error
+	documentHighlightRequests  []protocol.DocumentHighlightParams
+	inlayHintSupported         bool
+	inlayHintResult            []protocol.InlayHint
+	inlayHintErr               error
+	inlayHintRequests          []protocol.InlayHintParams
+
 	typeHierarchySupported       bool
 	typeHierarchyItems           []protocol.TypeHierarchyItem
 	typeHierarchyErr             error
@@ -168,6 +181,9 @@ func (f *fakeServer) Initialize(_ context.Context, _ *protocol.InitializeParams)
 	documentSymbolSupported := f.documentSymbolSupported
 	callHierarchySupported := f.callHierarchySupported
 	typeHierarchySupported := f.typeHierarchySupported
+	signatureHelpSupported := f.signatureHelpSupported
+	documentHighlightSupported := f.documentHighlightSupported
+	inlayHintSupported := f.inlayHintSupported
 	f.mu.Unlock()
 
 	res := &protocol.InitializeResult{
@@ -199,6 +215,15 @@ func (f *fakeServer) Initialize(_ context.Context, _ *protocol.InitializeParams)
 	}
 	if typeHierarchySupported {
 		res.Capabilities.TypeHierarchyProvider = protocol.Boolean(true)
+	}
+	if signatureHelpSupported {
+		res.Capabilities.SignatureHelpProvider = &protocol.SignatureHelpOptions{}
+	}
+	if documentHighlightSupported {
+		res.Capabilities.DocumentHighlightProvider = protocol.Boolean(true)
+	}
+	if inlayHintSupported {
+		res.Capabilities.InlayHintProvider = protocol.Boolean(true)
 	}
 	return res, nil
 }

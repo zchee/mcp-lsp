@@ -21,20 +21,23 @@ import "context"
 // it is race-free: session capabilities are written once before the session
 // signals ready and never mutated afterwards.
 type CapabilitySnapshot struct {
-	References      bool
-	Declaration     bool
-	TypeDefinition  bool
-	DocumentSymbol  bool
-	CallHierarchy   bool
-	TypeHierarchy   bool
-	Hover           bool
-	Implementation  bool
-	Rename          bool
-	CodeAction      bool
-	Formatting      bool
-	RangeFormatting bool
-	WorkspaceSymbol bool
-	PullDiagnostics bool
+	References        bool
+	Declaration       bool
+	TypeDefinition    bool
+	DocumentSymbol    bool
+	CallHierarchy     bool
+	TypeHierarchy     bool
+	SignatureHelp     bool
+	DocumentHighlight bool
+	InlayHint         bool
+	Hover             bool
+	Implementation    bool
+	Rename            bool
+	CodeAction        bool
+	Formatting        bool
+	RangeFormatting   bool
+	WorkspaceSymbol   bool
+	PullDiagnostics   bool
 }
 
 // CapabilitySnapshot returns the advertised capabilities for lang, spawning
@@ -46,19 +49,22 @@ func (m *Manager) CapabilitySnapshot(ctx context.Context, lang string) (Capabili
 	}
 	c := sess.capabilities
 	return CapabilitySnapshot{
-		References:      c.references,
-		Declaration:     c.declaration,
-		TypeDefinition:  c.typeDefinition,
-		DocumentSymbol:  c.documentSymbol,
-		CallHierarchy:   c.callHierarchy,
-		TypeHierarchy:   c.typeHierarchy,
-		Hover:           c.hover,
-		Implementation:  c.implementation,
-		Rename:          c.rename,
-		CodeAction:      c.codeAction,
-		Formatting:      c.formatting,
-		RangeFormatting: c.rangeFormatting,
-		WorkspaceSymbol: c.workspaceSymbol,
-		PullDiagnostics: c.pullDiagnostics,
+		References:        c.references,
+		Declaration:       c.declaration,
+		TypeDefinition:    c.typeDefinition,
+		DocumentSymbol:    c.documentSymbol,
+		CallHierarchy:     c.callHierarchy,
+		TypeHierarchy:     c.typeHierarchy,
+		SignatureHelp:     c.signatureHelp,
+		DocumentHighlight: c.documentHighlight,
+		InlayHint:         c.inlayHint,
+		Hover:             c.hover,
+		Implementation:    c.implementation,
+		Rename:            c.rename,
+		CodeAction:        c.codeAction,
+		Formatting:        c.formatting,
+		RangeFormatting:   c.rangeFormatting,
+		WorkspaceSymbol:   c.workspaceSymbol,
+		PullDiagnostics:   c.pullDiagnostics,
 	}, nil
 }

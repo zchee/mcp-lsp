@@ -98,6 +98,9 @@ type sessionCapabilities struct {
 	documentSymbol    bool
 	callHierarchy     bool
 	typeHierarchy     bool
+	signatureHelp     bool
+	documentHighlight bool
+	inlayHint         bool
 	executeCommands   []string
 }
 
@@ -106,22 +109,25 @@ func snapshotCapabilities(capabilities *protocol.ServerCapabilities) sessionCapa
 		return sessionCapabilities{}
 	}
 	out := sessionCapabilities{
-		pullDiagnostics: capabilities.DiagnosticProvider != nil,
-		implementation:  implementationProviderSupported(capabilities.ImplementationProvider),
-		hover:           providerSupported(capabilities.HoverProvider),
-		codeAction:      providerSupported(capabilities.CodeActionProvider),
-		codeLens:        capabilities.CodeLensProvider != nil,
-		workspaceSymbol: providerSupported(capabilities.WorkspaceSymbolProvider),
-		formatting:      providerSupported(capabilities.DocumentFormattingProvider),
-		rangeFormatting: providerSupported(capabilities.DocumentRangeFormattingProvider),
-		rename:          providerSupported(capabilities.RenameProvider),
-		references:      providerSupported(capabilities.ReferencesProvider),
-		declaration:     providerSupported(capabilities.DeclarationProvider),
-		typeDefinition:  providerSupported(capabilities.TypeDefinitionProvider),
-		documentSymbol:  providerSupported(capabilities.DocumentSymbolProvider),
-		callHierarchy:   providerSupported(capabilities.CallHierarchyProvider),
-		typeHierarchy:   providerSupported(capabilities.TypeHierarchyProvider),
-		executeCommands: slices.Clone(capabilities.ExecuteCommandProvider.Commands),
+		pullDiagnostics:   capabilities.DiagnosticProvider != nil,
+		implementation:    implementationProviderSupported(capabilities.ImplementationProvider),
+		hover:             providerSupported(capabilities.HoverProvider),
+		codeAction:        providerSupported(capabilities.CodeActionProvider),
+		codeLens:          capabilities.CodeLensProvider != nil,
+		workspaceSymbol:   providerSupported(capabilities.WorkspaceSymbolProvider),
+		formatting:        providerSupported(capabilities.DocumentFormattingProvider),
+		rangeFormatting:   providerSupported(capabilities.DocumentRangeFormattingProvider),
+		rename:            providerSupported(capabilities.RenameProvider),
+		references:        providerSupported(capabilities.ReferencesProvider),
+		declaration:       providerSupported(capabilities.DeclarationProvider),
+		typeDefinition:    providerSupported(capabilities.TypeDefinitionProvider),
+		documentSymbol:    providerSupported(capabilities.DocumentSymbolProvider),
+		callHierarchy:     providerSupported(capabilities.CallHierarchyProvider),
+		typeHierarchy:     providerSupported(capabilities.TypeHierarchyProvider),
+		signatureHelp:     capabilities.SignatureHelpProvider != nil,
+		documentHighlight: providerSupported(capabilities.DocumentHighlightProvider),
+		inlayHint:         providerSupported(capabilities.InlayHintProvider),
+		executeCommands:   slices.Clone(capabilities.ExecuteCommandProvider.Commands),
 	}
 	if opts, ok := capabilities.CodeActionProvider.(*protocol.CodeActionOptions); ok && opts != nil && opts.ResolveProvider != nil {
 		out.codeActionResolve = *opts.ResolveProvider
@@ -345,8 +351,11 @@ func initializeParams(rootURI uri.URI) *protocol.InitializeParams {
 					SymbolKind:                        &protocol.ClientSymbolKindOptions{ValueSet: supportedSymbolKinds()},
 					HierarchicalDocumentSymbolSupport: new(true),
 				},
-				CallHierarchy: &protocol.CallHierarchyClientCapabilities{},
-				TypeHierarchy: &protocol.TypeHierarchyClientCapabilities{},
+				CallHierarchy:     &protocol.CallHierarchyClientCapabilities{},
+				TypeHierarchy:     &protocol.TypeHierarchyClientCapabilities{},
+				SignatureHelp:     &protocol.SignatureHelpClientCapabilities{},
+				DocumentHighlight: &protocol.DocumentHighlightClientCapabilities{},
+				InlayHint:         &protocol.InlayHintClientCapabilities{},
 				CodeAction: &protocol.CodeActionClientCapabilities{
 					CodeActionLiteralSupport: protocol.ClientCodeActionLiteralOptions{
 						CodeActionKind: protocol.ClientCodeActionKindOptions{ValueSet: supportedCodeActionKinds()},
