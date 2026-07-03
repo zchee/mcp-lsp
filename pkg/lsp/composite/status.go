@@ -15,6 +15,7 @@
 package composite
 
 import (
+	"context"
 	"errors"
 
 	"github.com/zchee/mcp-lsp/pkg/lsp"
@@ -123,4 +124,35 @@ func LegFrom[T any](data []T, err error) Leg[[]T] {
 		return Leg[[]T]{Status: StatusEmpty, Data: data}
 	}
 	return Leg[[]T]{Status: StatusOK, Data: data}
+}
+
+// LegFromPointer classifies a lookup that returns a single pointer result,
+// applying the same rules as [LegFrom]: an error wrapping [lsp.ErrUnsupported]
+// is unsupported, any other error is an error, a nil pointer with no error is
+// empty (e.g. signature help off a call site), and a non-nil pointer is ok.
+// Like [LegFrom], this is a place capability errors are interpreted via
+// errors.Is, never by matching error text.
+func LegFromPointer[T any](data *T, err error) Leg[*T] {
+	if err != nil {
+		if errors.Is(err, lsp.ErrUnsupported) {
+			return Leg[*T]{Status: StatusUnsupported, Note: err.Error()}
+		}
+		return Leg[*T]{Status: StatusError, Note: err.Error()}
+	}
+	if data == nil {
+		return Leg[*T]{Status: StatusEmpty}
+	}
+	return Leg[*T]{Status: StatusOK, Data: data}
+}
+
+// legFromFanOut classifies a secondary fan-out leg. A leg cut short by the
+// fan-out deadline (or its cancellation) reports StatusNotReady with a
+// "fan-out deadline" note rather than an error, so a slow leg never looks like
+// a failure and never aborts the composite; every other outcome is classified
+// by [LegFrom].
+func legFromFanOut[T any](data []T, err error) Leg[[]T] {
+	if err != nil && (errors.Is(err, context.DeadlineExceeded) || errors.Is(err, context.Canceled)) {
+		return Leg[[]T]{Status: StatusNotReady, Note: "fan-out deadline"}
+	}
+	return LegFrom(data, err)
 }

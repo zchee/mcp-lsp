@@ -61,6 +61,38 @@ type typeHierarchyLooker interface {
 	Subtypes(ctx context.Context, lang string, item *protocol.TypeHierarchyItem) ([]protocol.TypeHierarchyItem, error)
 }
 
+// hoverLooker returns the hover card at a position.
+type hoverLooker interface {
+	Lookup(ctx context.Context, lang, absPath, text string, pos protocol.Position) (*lsp.HoverResult, error)
+}
+
+// signatureHelpLooker returns signature help at a position.
+type signatureHelpLooker interface {
+	Lookup(ctx context.Context, lang, absPath, text string, pos protocol.Position) (*lsp.SignatureHelpResult, error)
+}
+
+// documentHighlightLooker returns same-file read/write occurrences at a position.
+type documentHighlightLooker interface {
+	Lookup(ctx context.Context, lang, absPath, text string, pos protocol.Position) ([]lsp.DocumentHighlightSpan, error)
+}
+
+// inlayHintLooker returns inlay hints within a range.
+type inlayHintLooker interface {
+	Lookup(ctx context.Context, lang, absPath, text string, rng protocol.Range) ([]lsp.InlayHintItem, error)
+}
+
+// diagnosticsEpicenterLooker returns a file's current diagnostics. change_guard
+// wraps it directly (not through the facade) so it can readiness-gate the
+// epicenter per transport mode.
+type diagnosticsEpicenterLooker interface {
+	Lookup(ctx context.Context, lang, absPath, text string) ([]lsp.Diagnostic, error)
+}
+
+// codeActionLooker returns the code actions available for a range.
+type codeActionLooker interface {
+	Lookup(ctx context.Context, lang, absPath, text string, rng protocol.Range, only []protocol.CodeActionKind, resolve bool) ([]lsp.CodeAction, error)
+}
+
 // capabilityProbe reports which capabilities a language server advertised.
 type capabilityProbe interface {
 	CapabilitySnapshot(ctx context.Context, lang string) (lsp.CapabilitySnapshot, error)
@@ -69,15 +101,21 @@ type capabilityProbe interface {
 // Compile-time proof that the concrete pkg/lsp helpers satisfy the engine's
 // narrow interfaces. A signature drift in pkg/lsp breaks the build here.
 var (
-	_ referencesLooker     = (*lsp.References)(nil)
-	_ navigationLooker     = (*lsp.Definition)(nil)
-	_ navigationLooker     = (*lsp.Declaration)(nil)
-	_ navigationLooker     = (*lsp.TypeDefinition)(nil)
-	_ navigationLooker     = (*lsp.Implementation)(nil)
-	_ documentSymbolLooker = (*lsp.DocumentSymbols)(nil)
-	_ callHierarchyLooker  = (*lsp.CallHierarchy)(nil)
-	_ typeHierarchyLooker  = (*lsp.TypeHierarchy)(nil)
-	_ capabilityProbe      = (*lsp.Manager)(nil)
+	_ referencesLooker           = (*lsp.References)(nil)
+	_ navigationLooker           = (*lsp.Definition)(nil)
+	_ navigationLooker           = (*lsp.Declaration)(nil)
+	_ navigationLooker           = (*lsp.TypeDefinition)(nil)
+	_ navigationLooker           = (*lsp.Implementation)(nil)
+	_ documentSymbolLooker       = (*lsp.DocumentSymbols)(nil)
+	_ callHierarchyLooker        = (*lsp.CallHierarchy)(nil)
+	_ typeHierarchyLooker        = (*lsp.TypeHierarchy)(nil)
+	_ hoverLooker                = (*lsp.Hover)(nil)
+	_ signatureHelpLooker        = (*lsp.SignatureHelp)(nil)
+	_ documentHighlightLooker    = (*lsp.DocumentHighlight)(nil)
+	_ inlayHintLooker            = (*lsp.InlayHints)(nil)
+	_ diagnosticsEpicenterLooker = (*lsp.Diagnostics)(nil)
+	_ codeActionLooker           = (*lsp.CodeActions)(nil)
+	_ capabilityProbe            = (*lsp.Manager)(nil)
 )
 
 // Engine is the shared substrate the flagship composites build on. It holds
@@ -85,28 +123,46 @@ var (
 // exported *lsp.Manager helper surface, and never reaches into unexported
 // session state.
 type Engine struct {
-	references     referencesLooker
-	definition     navigationLooker
-	declaration    navigationLooker
-	typeDefinition navigationLooker
-	implementation navigationLooker
-	documentSymbol documentSymbolLooker
-	callHierarchy  callHierarchyLooker
-	typeHierarchy  typeHierarchyLooker
-	capabilities   capabilityProbe
+	references        referencesLooker
+	definition        navigationLooker
+	declaration       navigationLooker
+	typeDefinition    navigationLooker
+	implementation    navigationLooker
+	documentSymbol    documentSymbolLooker
+	callHierarchy     callHierarchyLooker
+	typeHierarchy     typeHierarchyLooker
+	hover             hoverLooker
+	signatureHelp     signatureHelpLooker
+	documentHighlight documentHighlightLooker
+	inlayHint         inlayHintLooker
+	diagnostics       *DiagnosticsFacade
+	diagEpicenter     diagnosticsEpicenterLooker
+	codeAction        codeActionLooker
+	capabilities      capabilityProbe
 }
+
+// hasDiagnostics reports whether the diagnostics facade is wired, so composites
+// can degrade the diagnostics leg gracefully in tests that omit it.
+func (e *Engine) hasDiagnostics() bool { return e.diagnostics != nil }
 
 // NewEngine wires an engine from a manager's exported helpers.
 func NewEngine(mgr *lsp.Manager) *Engine {
 	return &Engine{
-		references:     mgr.References(),
-		definition:     mgr.Definition(),
-		declaration:    mgr.Declaration(),
-		typeDefinition: mgr.TypeDefinition(),
-		implementation: mgr.Implementation(),
-		documentSymbol: mgr.DocumentSymbols(),
-		callHierarchy:  mgr.CallHierarchy(),
-		typeHierarchy:  mgr.TypeHierarchy(),
-		capabilities:   mgr,
+		references:        mgr.References(),
+		definition:        mgr.Definition(),
+		declaration:       mgr.Declaration(),
+		typeDefinition:    mgr.TypeDefinition(),
+		implementation:    mgr.Implementation(),
+		documentSymbol:    mgr.DocumentSymbols(),
+		callHierarchy:     mgr.CallHierarchy(),
+		typeHierarchy:     mgr.TypeHierarchy(),
+		hover:             mgr.Hover(),
+		signatureHelp:     mgr.SignatureHelp(),
+		documentHighlight: mgr.DocumentHighlight(),
+		inlayHint:         mgr.InlayHints(),
+		diagnostics:       NewDiagnosticsFacade(mgr.Diagnostics()),
+		diagEpicenter:     mgr.Diagnostics(),
+		codeAction:        mgr.CodeActions(),
+		capabilities:      mgr,
 	}
 }

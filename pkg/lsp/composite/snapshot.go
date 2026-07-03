@@ -27,16 +27,20 @@ type Capability string
 
 // Capabilities a composite can request.
 const (
-	CapReferences     Capability = "references"
-	CapDefinition     Capability = "definition"
-	CapDeclaration    Capability = "declaration"
-	CapTypeDefinition Capability = "typeDefinition"
-	CapImplementation Capability = "implementation"
-	CapDocumentSymbol Capability = "documentSymbol"
-	CapCallHierarchy  Capability = "callHierarchy"
-	CapTypeHierarchy  Capability = "typeHierarchy"
-	CapHover          Capability = "hover"
-	CapDiagnostics    Capability = "diagnostics"
+	CapReferences        Capability = "references"
+	CapDefinition        Capability = "definition"
+	CapDeclaration       Capability = "declaration"
+	CapTypeDefinition    Capability = "typeDefinition"
+	CapImplementation    Capability = "implementation"
+	CapDocumentSymbol    Capability = "documentSymbol"
+	CapCallHierarchy     Capability = "callHierarchy"
+	CapTypeHierarchy     Capability = "typeHierarchy"
+	CapHover             Capability = "hover"
+	CapSignatureHelp     Capability = "signatureHelp"
+	CapDocumentHighlight Capability = "documentHighlight"
+	CapInlayHint         Capability = "inlayHint"
+	CapCodeAction        Capability = "codeAction"
+	CapDiagnostics       Capability = "diagnostics"
 )
 
 // CapabilityReport partitions the capabilities a composite requested into the
@@ -93,6 +97,14 @@ func capabilityAdvertised(snap lsp.CapabilitySnapshot, want Capability) bool {
 		return snap.TypeHierarchy
 	case CapHover:
 		return snap.Hover
+	case CapSignatureHelp:
+		return snap.SignatureHelp
+	case CapDocumentHighlight:
+		return snap.DocumentHighlight
+	case CapInlayHint:
+		return snap.InlayHint
+	case CapCodeAction:
+		return snap.CodeAction
 	case CapDiagnostics:
 		return true
 	default:
