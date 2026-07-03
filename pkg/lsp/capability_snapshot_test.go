@@ -45,7 +45,7 @@ func TestSnapshotCapabilitiesNewFields(t *testing.T) {
 		capabilities *protocol.ServerCapabilities
 		want         sessionCapabilities
 	}{
-		"success: all six advertised as boolean true": {
+		"success: all advertised as boolean true": {
 			capabilities: &protocol.ServerCapabilities{
 				ReferencesProvider:     protocol.Boolean(true),
 				DeclarationProvider:    protocol.Boolean(true),
@@ -53,6 +53,7 @@ func TestSnapshotCapabilitiesNewFields(t *testing.T) {
 				DocumentSymbolProvider: protocol.Boolean(true),
 				CallHierarchyProvider:  protocol.Boolean(true),
 				TypeHierarchyProvider:  protocol.Boolean(true),
+				FoldingRangeProvider:   protocol.Boolean(true),
 			},
 			want: sessionCapabilities{
 				references:     true,
@@ -61,6 +62,7 @@ func TestSnapshotCapabilitiesNewFields(t *testing.T) {
 				documentSymbol: true,
 				callHierarchy:  true,
 				typeHierarchy:  true,
+				foldingRange:   true,
 			},
 		},
 		"success: boolean false is not advertised": {
@@ -79,6 +81,7 @@ func TestSnapshotCapabilitiesNewFields(t *testing.T) {
 				DocumentSymbolProvider: &protocol.DocumentSymbolOptions{},
 				CallHierarchyProvider:  &protocol.CallHierarchyOptions{},
 				TypeHierarchyProvider:  &protocol.TypeHierarchyOptions{},
+				FoldingRangeProvider:   &protocol.FoldingRangeOptions{},
 			},
 			want: sessionCapabilities{
 				references:     true,
@@ -87,6 +90,7 @@ func TestSnapshotCapabilitiesNewFields(t *testing.T) {
 				documentSymbol: true,
 				callHierarchy:  true,
 				typeHierarchy:  true,
+				foldingRange:   true,
 			},
 		},
 		"success: typed nil option pointers are not advertised": {
@@ -116,7 +120,8 @@ func TestSnapshotCapabilitiesNewFields(t *testing.T) {
 				got.typeDefinition != tt.want.typeDefinition ||
 				got.documentSymbol != tt.want.documentSymbol ||
 				got.callHierarchy != tt.want.callHierarchy ||
-				got.typeHierarchy != tt.want.typeHierarchy {
+				got.typeHierarchy != tt.want.typeHierarchy ||
+				got.foldingRange != tt.want.foldingRange {
 				t.Errorf("snapshotCapabilities new fields = %+v, want %+v", got, tt.want)
 			}
 		})
@@ -139,6 +144,8 @@ func TestManagerCapabilitySnapshot(t *testing.T) {
 				hover:          true,
 				implementation: true,
 				rename:         true,
+				codeLens:       true,
+				foldingRange:   true,
 				formatting:     true,
 			},
 			want: CapabilitySnapshot{
@@ -149,6 +156,8 @@ func TestManagerCapabilitySnapshot(t *testing.T) {
 				Hover:          true,
 				Implementation: true,
 				Rename:         true,
+				CodeLens:       true,
+				FoldingRange:   true,
 				Formatting:     true,
 			},
 		},

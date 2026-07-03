@@ -16,6 +16,7 @@ package composite
 
 import (
 	"context"
+	"os"
 
 	"go.lsp.dev/protocol"
 
@@ -93,6 +94,16 @@ type codeActionLooker interface {
 	Lookup(ctx context.Context, lang, absPath, text string, rng protocol.Range, only []protocol.CodeActionKind, resolve bool) ([]lsp.CodeAction, error)
 }
 
+// codeLensLooker returns a file's code lenses, optionally resolving commands.
+type codeLensLooker interface {
+	Lookup(ctx context.Context, lang, absPath, text string, resolve bool) ([]lsp.CodeLens, error)
+}
+
+// foldingRangeLooker returns a file's foldable regions.
+type foldingRangeLooker interface {
+	Lookup(ctx context.Context, lang, absPath, text string) ([]lsp.FoldingRangeItem, error)
+}
+
 // capabilityProbe reports which capabilities a language server advertised.
 type capabilityProbe interface {
 	CapabilitySnapshot(ctx context.Context, lang string) (lsp.CapabilitySnapshot, error)
@@ -115,6 +126,8 @@ var (
 	_ inlayHintLooker            = (*lsp.InlayHints)(nil)
 	_ diagnosticsEpicenterLooker = (*lsp.Diagnostics)(nil)
 	_ codeActionLooker           = (*lsp.CodeActions)(nil)
+	_ codeLensLooker             = (*lsp.CodeLenses)(nil)
+	_ foldingRangeLooker         = (*lsp.FoldingRanges)(nil)
 	_ capabilityProbe            = (*lsp.Manager)(nil)
 )
 
@@ -138,7 +151,15 @@ type Engine struct {
 	diagnostics       *DiagnosticsFacade
 	diagEpicenter     diagnosticsEpicenterLooker
 	codeAction        codeActionLooker
+	codeLens          codeLensLooker
+	foldingRange      foldingRangeLooker
 	capabilities      capabilityProbe
+
+	// readFile reads a non-epicenter file's disk text on demand, so a
+	// composite can diagnose or inspect files the language server reached
+	// through its workspace tree without the MCP layer pre-reading them. It
+	// defaults to os.ReadFile and is injectable in tests.
+	readFile func(string) ([]byte, error)
 }
 
 // hasDiagnostics reports whether the diagnostics facade is wired, so composites
@@ -163,6 +184,9 @@ func NewEngine(mgr *lsp.Manager) *Engine {
 		diagnostics:       NewDiagnosticsFacade(mgr.Diagnostics()),
 		diagEpicenter:     mgr.Diagnostics(),
 		codeAction:        mgr.CodeActions(),
+		codeLens:          mgr.CodeLenses(),
+		foldingRange:      mgr.FoldingRanges(),
 		capabilities:      mgr,
+		readFile:          os.ReadFile,
 	}
 }

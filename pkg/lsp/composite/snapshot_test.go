@@ -102,6 +102,51 @@ func TestReportPartitionsRequested(t *testing.T) {
 	}
 }
 
+func TestReportPartitionsFoldingRangeAndCodeLens(t *testing.T) {
+	t.Parallel()
+
+	requested := []Capability{CapFoldingRange, CapCodeLens}
+
+	tests := map[string]struct {
+		snap        lsp.CapabilitySnapshot
+		wantUsed    []Capability
+		wantMissing []Capability
+	}{
+		"success: both advertised land in used": {
+			snap:        lsp.CapabilitySnapshot{FoldingRange: true, CodeLens: true},
+			wantUsed:    []Capability{CapCodeLens, CapFoldingRange},
+			wantMissing: nil,
+		},
+		"success: neither advertised lands in missing": {
+			snap:        lsp.CapabilitySnapshot{},
+			wantUsed:    nil,
+			wantMissing: []Capability{CapCodeLens, CapFoldingRange},
+		},
+		"success: only folding advertised splits the pair": {
+			snap:        lsp.CapabilitySnapshot{FoldingRange: true},
+			wantUsed:    []Capability{CapFoldingRange},
+			wantMissing: []Capability{CapCodeLens},
+		},
+	}
+
+	for name, tt := range tests {
+		t.Run(name, func(t *testing.T) {
+			t.Parallel()
+
+			got, err := Report(t.Context(), fakeProbe{snap: tt.snap}, "go", requested)
+			if err != nil {
+				t.Fatalf("Report: %v", err)
+			}
+			if diff := gocmp.Diff(tt.wantUsed, got.Used); diff != "" {
+				t.Errorf("Used mismatch (-want +got):\n%s", diff)
+			}
+			if diff := gocmp.Diff(tt.wantMissing, got.Missing); diff != "" {
+				t.Errorf("Missing mismatch (-want +got):\n%s", diff)
+			}
+		})
+	}
+}
+
 func TestReportPropagatesProbeError(t *testing.T) {
 	t.Parallel()
 

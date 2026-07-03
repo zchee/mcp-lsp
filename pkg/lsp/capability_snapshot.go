@@ -30,10 +30,12 @@ type CapabilitySnapshot struct {
 	SignatureHelp     bool
 	DocumentHighlight bool
 	InlayHint         bool
+	FoldingRange      bool
 	Hover             bool
 	Implementation    bool
 	Rename            bool
 	CodeAction        bool
+	CodeLens          bool
 	Formatting        bool
 	RangeFormatting   bool
 	WorkspaceSymbol   bool
@@ -58,10 +60,12 @@ func (m *Manager) CapabilitySnapshot(ctx context.Context, lang string) (Capabili
 		SignatureHelp:     c.signatureHelp,
 		DocumentHighlight: c.documentHighlight,
 		InlayHint:         c.inlayHint,
+		FoldingRange:      c.foldingRange,
 		Hover:             c.hover,
 		Implementation:    c.implementation,
 		Rename:            c.rename,
 		CodeAction:        c.codeAction,
+		CodeLens:          c.codeLens,
 		Formatting:        c.formatting,
 		RangeFormatting:   c.rangeFormatting,
 		WorkspaceSymbol:   c.workspaceSymbol,

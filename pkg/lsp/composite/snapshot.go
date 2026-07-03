@@ -39,7 +39,9 @@ const (
 	CapSignatureHelp     Capability = "signatureHelp"
 	CapDocumentHighlight Capability = "documentHighlight"
 	CapInlayHint         Capability = "inlayHint"
+	CapFoldingRange      Capability = "foldingRange"
 	CapCodeAction        Capability = "codeAction"
+	CapCodeLens          Capability = "codeLens"
 	CapDiagnostics       Capability = "diagnostics"
 )
 
@@ -75,39 +77,41 @@ func Report(ctx context.Context, probe capabilityProbe, lang string, requested [
 	return report, nil
 }
 
+// alwaysAvailable names capabilities every supported server answers even
+// though the snapshot carries no dedicated flag for them: go-to-definition has
+// no distinct provider bit, and diagnostics are always reachable through either
+// the push or the pull path.
+var alwaysAvailable = map[Capability]struct{}{
+	CapDefinition:  {},
+	CapDiagnostics: {},
+}
+
+// snapshotFlag maps each snapshot-backed capability to its flag in a
+// [lsp.CapabilitySnapshot]. Capabilities in alwaysAvailable are intentionally
+// absent here.
+var snapshotFlag = map[Capability]func(lsp.CapabilitySnapshot) bool{
+	CapReferences:        func(s lsp.CapabilitySnapshot) bool { return s.References },
+	CapDeclaration:       func(s lsp.CapabilitySnapshot) bool { return s.Declaration },
+	CapTypeDefinition:    func(s lsp.CapabilitySnapshot) bool { return s.TypeDefinition },
+	CapImplementation:    func(s lsp.CapabilitySnapshot) bool { return s.Implementation },
+	CapDocumentSymbol:    func(s lsp.CapabilitySnapshot) bool { return s.DocumentSymbol },
+	CapCallHierarchy:     func(s lsp.CapabilitySnapshot) bool { return s.CallHierarchy },
+	CapTypeHierarchy:     func(s lsp.CapabilitySnapshot) bool { return s.TypeHierarchy },
+	CapHover:             func(s lsp.CapabilitySnapshot) bool { return s.Hover },
+	CapSignatureHelp:     func(s lsp.CapabilitySnapshot) bool { return s.SignatureHelp },
+	CapDocumentHighlight: func(s lsp.CapabilitySnapshot) bool { return s.DocumentHighlight },
+	CapInlayHint:         func(s lsp.CapabilitySnapshot) bool { return s.InlayHint },
+	CapFoldingRange:      func(s lsp.CapabilitySnapshot) bool { return s.FoldingRange },
+	CapCodeAction:        func(s lsp.CapabilitySnapshot) bool { return s.CodeAction },
+	CapCodeLens:          func(s lsp.CapabilitySnapshot) bool { return s.CodeLens },
+}
+
 func capabilityAdvertised(snap lsp.CapabilitySnapshot, want Capability) bool {
-	switch want {
-	case CapReferences:
-		return snap.References
-	case CapDefinition:
-		// Every supported server answers go-to-definition; it has no dedicated
-		// snapshot flag, so treat it as always available.
+	if _, ok := alwaysAvailable[want]; ok {
 		return true
-	case CapDeclaration:
-		return snap.Declaration
-	case CapTypeDefinition:
-		return snap.TypeDefinition
-	case CapImplementation:
-		return snap.Implementation
-	case CapDocumentSymbol:
-		return snap.DocumentSymbol
-	case CapCallHierarchy:
-		return snap.CallHierarchy
-	case CapTypeHierarchy:
-		return snap.TypeHierarchy
-	case CapHover:
-		return snap.Hover
-	case CapSignatureHelp:
-		return snap.SignatureHelp
-	case CapDocumentHighlight:
-		return snap.DocumentHighlight
-	case CapInlayHint:
-		return snap.InlayHint
-	case CapCodeAction:
-		return snap.CodeAction
-	case CapDiagnostics:
-		return true
-	default:
-		return false
 	}
+	if flag, ok := snapshotFlag[want]; ok {
+		return flag(snap)
+	}
+	return false
 }

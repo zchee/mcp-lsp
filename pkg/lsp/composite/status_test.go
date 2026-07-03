@@ -138,11 +138,19 @@ func TestLegFrom(t *testing.T) {
 
 // TestNoErrorTextMatchingInPackage guards the invariant that capability
 // support is decided only via errors.Is on lsp.ErrUnsupported, never by
-// matching error text. No non-test file in the package may call
-// strings.Contains, so a future edit that reintroduces text matching fails
-// here.
+// matching error text. No non-test file in the package may substring-match an
+// error message, so a future edit that reintroduces text matching fails here.
+// The guard covers every stdlib substring primitive an edit might reach for,
+// not only strings.Contains.
 func TestNoErrorTextMatchingInPackage(t *testing.T) {
 	t.Parallel()
+
+	forbidden := []string{
+		"strings.Contains",
+		"strings.HasPrefix",
+		"strings.HasSuffix",
+		"strings.Index",
+	}
 
 	entries, err := os.ReadDir(".")
 	if err != nil {
@@ -157,8 +165,10 @@ func TestNoErrorTextMatchingInPackage(t *testing.T) {
 		if err != nil {
 			t.Fatalf("read %s: %v", name, err)
 		}
-		if strings.Contains(string(src), "strings.Contains") {
-			t.Errorf("%s calls strings.Contains; capability support must be decided via errors.Is on lsp.ErrUnsupported, not error text", name)
+		for _, token := range forbidden {
+			if strings.Contains(string(src), token) {
+				t.Errorf("%s calls %s; capability support must be decided via errors.Is on lsp.ErrUnsupported, not error text", name, token)
+			}
 		}
 	}
 }
