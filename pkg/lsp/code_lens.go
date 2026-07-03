@@ -47,7 +47,7 @@ func (c *CodeLenses) Lookup(ctx context.Context, lang, absPath, text string, res
 		return nil, err
 	}
 	if !sess.capabilities.codeLens {
-		return nil, fmt.Errorf("code lens request is not supported by language server")
+		return nil, fmt.Errorf("code lens request: %w", ErrUnsupported)
 	}
 	if err := sess.syncTextDocument(ctx, u, languageID, text); err != nil {
 		return nil, err

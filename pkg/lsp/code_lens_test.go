@@ -32,7 +32,7 @@ func TestCodeLensesRejectUnsupportedCapabilityBeforeSync(t *testing.T) {
 	mgr := newFakeServerManager(t, srv, root)
 
 	_, err := mgr.CodeLenses().Lookup(t.Context(), "go", path, "package main\n", false)
-	requireErrorContains(t, err, "code lens request is not supported")
+	requireErrUnsupported(t, err, "code lens request")
 	requireNoDocumentSync(t, srv)
 }
 

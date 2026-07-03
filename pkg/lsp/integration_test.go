@@ -16,6 +16,7 @@ package lsp
 
 import (
 	"context"
+	"errors"
 	"log/slog"
 	"net"
 	"slices"
@@ -513,6 +514,20 @@ func requireErrorContains(t *testing.T, err error, want string) {
 	}
 	if !strings.Contains(err.Error(), want) {
 		t.Fatalf("error = %q, want contains %q", err, want)
+	}
+}
+
+// requireErrUnsupported asserts that err reports an unsupported capability via
+// [ErrUnsupported] and still names the failing primitive, so callers can rely
+// on errors.Is instead of matching the human-readable message.
+func requireErrUnsupported(t *testing.T, err error, primitive string) {
+	t.Helper()
+
+	if !errors.Is(err, ErrUnsupported) {
+		t.Fatalf("error = %v, want errors.Is ErrUnsupported", err)
+	}
+	if !strings.Contains(err.Error(), primitive) {
+		t.Fatalf("error = %v, want it to name the %q primitive", err, primitive)
 	}
 }
 

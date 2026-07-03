@@ -51,7 +51,7 @@ func (c *CodeActions) Lookup(ctx context.Context, lang, absPath, text string, rn
 		return nil, err
 	}
 	if !sess.capabilities.codeAction {
-		return nil, fmt.Errorf("code action request is not supported by language server")
+		return nil, fmt.Errorf("code action request: %w", ErrUnsupported)
 	}
 	if err := sess.syncTextDocument(ctx, u, languageID, text); err != nil {
 		return nil, err

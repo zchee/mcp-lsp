@@ -50,7 +50,7 @@ func (h *Hover) Lookup(ctx context.Context, lang, absPath, text string, pos prot
 		return nil, err
 	}
 	if !sess.capabilities.hover {
-		return nil, fmt.Errorf("hover request is not supported by language server")
+		return nil, fmt.Errorf("hover request: %w", ErrUnsupported)
 	}
 	if err := sess.syncTextDocument(ctx, u, languageID, text); err != nil {
 		return nil, err

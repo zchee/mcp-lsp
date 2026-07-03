@@ -33,7 +33,7 @@ func TestCodeActionsRejectUnsupportedCapabilityBeforeSync(t *testing.T) {
 	rng := protocol.Range{Start: protocol.Position{Line: 0, Character: 0}, End: protocol.Position{Line: 0, Character: 1}}
 
 	_, err := mgr.CodeActions().Lookup(t.Context(), "go", path, "package main\n", rng, nil, false)
-	requireErrorContains(t, err, "code action request is not supported")
+	requireErrUnsupported(t, err, "code action request")
 	requireNoDocumentSync(t, srv)
 }
 

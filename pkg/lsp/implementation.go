@@ -50,7 +50,7 @@ func (i *Implementation) Lookup(ctx context.Context, lang, absPath, text string,
 		return nil, err
 	}
 	if !sess.implementationSupported {
-		return nil, fmt.Errorf("implementation request is not supported by language server")
+		return nil, fmt.Errorf("implementation request: %w", ErrUnsupported)
 	}
 
 	if err := sess.syncTextDocument(ctx, u, languageID, text); err != nil {

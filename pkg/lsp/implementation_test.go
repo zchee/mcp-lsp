@@ -106,8 +106,11 @@ func TestImplementationLookupUnsupportedProvider(t *testing.T) {
 	}
 
 	_, err := fakeImplementation(sess).Lookup(t.Context(), "go", "/workspace/main.go", "package main\n", protocol.Position{})
-	if err == nil || !strings.Contains(err.Error(), "implementation request is not supported") {
-		t.Fatalf("Lookup error = %v, want unsupported implementation error", err)
+	if !errors.Is(err, ErrUnsupported) {
+		t.Fatalf("Lookup error = %v, want errors.Is ErrUnsupported", err)
+	}
+	if !strings.Contains(err.Error(), "implementation request") {
+		t.Fatalf("Lookup error = %v, want the failing primitive named", err)
 	}
 	if got := len(fake.openedDocs()); got != 0 {
 		t.Errorf("Lookup opened %d documents despite unsupported provider, want 0", got)

@@ -33,7 +33,7 @@ func TestHoverRejectsUnsupportedCapabilityBeforeSync(t *testing.T) {
 	mgr := newFakeServerManager(t, srv, root)
 
 	_, err := mgr.Hover().Lookup(t.Context(), "go", path, "package main\n", protocol.Position{})
-	requireErrorContains(t, err, "hover request is not supported")
+	requireErrUnsupported(t, err, "hover request")
 	requireNoDocumentSync(t, srv)
 }
 
