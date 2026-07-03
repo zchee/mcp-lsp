@@ -101,6 +101,7 @@ type sessionCapabilities struct {
 	signatureHelp     bool
 	documentHighlight bool
 	inlayHint         bool
+	foldingRange      bool
 	executeCommands   []string
 }
 
@@ -127,6 +128,7 @@ func snapshotCapabilities(capabilities *protocol.ServerCapabilities) sessionCapa
 		signatureHelp:     capabilities.SignatureHelpProvider != nil,
 		documentHighlight: providerSupported(capabilities.DocumentHighlightProvider),
 		inlayHint:         providerSupported(capabilities.InlayHintProvider),
+		foldingRange:      providerSupported(capabilities.FoldingRangeProvider),
 		executeCommands:   slices.Clone(capabilities.ExecuteCommandProvider.Commands),
 	}
 	if opts, ok := capabilities.CodeActionProvider.(*protocol.CodeActionOptions); ok && opts != nil && opts.ResolveProvider != nil {
@@ -370,6 +372,7 @@ func initializeParams(rootURI uri.URI) *protocol.InitializeParams {
 				CodeLens: &protocol.CodeLensClientCapabilities{
 					ResolveSupport: protocol.ClientCodeLensResolveOptions{Properties: []string{"command"}},
 				},
+				FoldingRange: &protocol.FoldingRangeClientCapabilities{},
 				PublishDiagnostics: &protocol.PublishDiagnosticsClientCapabilities{
 					RelatedInformation: new(true),
 				},

@@ -122,6 +122,10 @@ type fakeServer struct {
 	inlayHintResult            []protocol.InlayHint
 	inlayHintErr               error
 	inlayHintRequests          []protocol.InlayHintParams
+	foldingRangeSupported      bool
+	foldingRangeResult         []protocol.FoldingRange
+	foldingRangeErr            error
+	foldingRangeRequests       []protocol.FoldingRangeParams
 
 	typeHierarchySupported       bool
 	typeHierarchyItems           []protocol.TypeHierarchyItem
@@ -185,6 +189,7 @@ func (f *fakeServer) Initialize(_ context.Context, _ *protocol.InitializeParams)
 	signatureHelpSupported := f.signatureHelpSupported
 	documentHighlightSupported := f.documentHighlightSupported
 	inlayHintSupported := f.inlayHintSupported
+	foldingRangeSupported := f.foldingRangeSupported
 	f.mu.Unlock()
 
 	res := &protocol.InitializeResult{
@@ -225,6 +230,9 @@ func (f *fakeServer) Initialize(_ context.Context, _ *protocol.InitializeParams)
 	}
 	if inlayHintSupported {
 		res.Capabilities.InlayHintProvider = protocol.Boolean(true)
+	}
+	if foldingRangeSupported {
+		res.Capabilities.FoldingRangeProvider = protocol.Boolean(true)
 	}
 	return res, nil
 }
